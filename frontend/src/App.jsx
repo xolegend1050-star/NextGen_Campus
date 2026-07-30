@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
@@ -6,47 +7,57 @@ import { useAuthStore } from './store/authStore';
 import PublicLayout from './layouts/PublicLayout';
 import DashboardLayout from './layouts/DashboardLayout';
 
-// Public Pages
-import Landing from './pages/public/Landing';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
+// Lazy-loaded Public Pages
+const Landing = lazy(() => import('./pages/public/Landing'));
+const Login = lazy(() => import('./pages/auth/Login'));
+const Register = lazy(() => import('./pages/auth/Register'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
 
-// Dashboard Pages
-import Dashboard from './pages/student/Dashboard';
-import Profile from './pages/student/Profile';
-import Doubts from './pages/student/Doubts';
-import DoubtDetail from './pages/student/DoubtDetail';
-import CreateDoubt from './pages/student/CreateDoubt';
-import Mentors from './pages/student/Mentors';
-import MentorDetail from './pages/student/MentorDetail';
-import Gigs from './pages/student/Gigs';
-import GigDetail from './pages/student/GigDetail';
-import MyApplications from './pages/student/MyApplications';
-import Wallet from './pages/student/Wallet';
-import Notifications from './pages/student/Notifications';
-import Chat from './pages/student/Chat';
-import Resources from './pages/student/Resources';
+// Lazy-loaded Dashboard Pages
+const Dashboard = lazy(() => import('./pages/student/Dashboard'));
+const Profile = lazy(() => import('./pages/student/Profile'));
+const Doubts = lazy(() => import('./pages/student/Doubts'));
+const DoubtDetail = lazy(() => import('./pages/student/DoubtDetail'));
+const CreateDoubt = lazy(() => import('./pages/student/CreateDoubt'));
+const Mentors = lazy(() => import('./pages/student/Mentors'));
+const MentorDetail = lazy(() => import('./pages/student/MentorDetail'));
+const Gigs = lazy(() => import('./pages/student/Gigs'));
+const GigDetail = lazy(() => import('./pages/student/GigDetail'));
+const MyApplications = lazy(() => import('./pages/student/MyApplications'));
+const Wallet = lazy(() => import('./pages/student/Wallet'));
+const Notifications = lazy(() => import('./pages/student/Notifications'));
+const Chat = lazy(() => import('./pages/student/Chat'));
+const Resources = lazy(() => import('./pages/student/Resources'));
 
-// Company Pages
-import CompanyDashboard from './pages/company/Dashboard';
-import PostGig from './pages/company/PostGig';
-import ManageGigs from './pages/company/ManageGigs';
-import ViewApplications from './pages/company/ViewApplications';
+// Lazy-loaded Company Pages
+const CompanyDashboard = lazy(() => import('./pages/company/Dashboard'));
+const PostGig = lazy(() => import('./pages/company/PostGig'));
+const ManageGigs = lazy(() => import('./pages/company/ManageGigs'));
+const ViewApplications = lazy(() => import('./pages/company/ViewApplications'));
 
-// Mentor Pages
-import MentorDashboard from './pages/mentor/Dashboard';
-import MentorRequests from './pages/mentor/Requests';
-import MentorSessions from './pages/mentor/Sessions';
+// Lazy-loaded Mentor Pages
+const MentorDashboard = lazy(() => import('./pages/mentor/Dashboard'));
+const MentorRequests = lazy(() => import('./pages/mentor/Requests'));
+const MentorSessions = lazy(() => import('./pages/mentor/Sessions'));
 
-// Admin Pages
-import AdminDashboard from './pages/admin/Dashboard';
-import AdminUsers from './pages/admin/Users';
-import AdminVerifications from './pages/admin/Verifications';
-import AdminFlaggedContent from './pages/admin/FlaggedContent';
-import AdminDisputes from './pages/admin/Disputes';
-import AdminAuditLog from './pages/admin/AuditLog';
+// Lazy-loaded Admin Pages
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
+const AdminUsers = lazy(() => import('./pages/admin/Users'));
+const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
+const AdminFlaggedContent = lazy(() => import('./pages/admin/FlaggedContent'));
+const AdminDisputes = lazy(() => import('./pages/admin/Disputes'));
+const AdminAuditLog = lazy(() => import('./pages/admin/AuditLog'));
+
+// Loading fallback
+const Loading = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="text-center">
+      <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-gray-600 font-medium">Loading...</p>
+    </div>
+  </div>
+);
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -78,92 +89,94 @@ function App() {
   return (
     <Router>
       <Toaster position="top-right" />
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<PublicLayout />}>
-          <Route index element={<Landing />} />
-        </Route>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<PublicLayout />}>
+            <Route index element={<Landing />} />
+          </Route>
 
-        {/* Auth Routes */}
-        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-        <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-        <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-        <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+          {/* Auth Routes */}
+          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+          <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+          <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
 
-        {/* Student Dashboard Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Dashboard />} />
-          <Route path="profile" element={<Profile />} />
-          <Route path="doubts" element={<Doubts />} />
-          <Route path="doubts/:id" element={<DoubtDetail />} />
-          <Route path="doubts/create" element={<CreateDoubt />} />
-          <Route path="mentors" element={<Mentors />} />
-          <Route path="mentors/:id" element={<MentorDetail />} />
-          <Route path="gigs" element={<Gigs />} />
-          <Route path="gigs/:id" element={<GigDetail />} />
-          <Route path="my-applications" element={<MyApplications />} />
-          <Route path="wallet" element={<Wallet />} />
-          <Route path="notifications" element={<Notifications />} />
-          <Route path="chat" element={<Chat />} />
-          <Route path="resources" element={<Resources />} />
-        </Route>
+          {/* Student Dashboard Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Dashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="doubts" element={<Doubts />} />
+            <Route path="doubts/:id" element={<DoubtDetail />} />
+            <Route path="doubts/create" element={<CreateDoubt />} />
+            <Route path="mentors" element={<Mentors />} />
+            <Route path="mentors/:id" element={<MentorDetail />} />
+            <Route path="gigs" element={<Gigs />} />
+            <Route path="gigs/:id" element={<GigDetail />} />
+            <Route path="my-applications" element={<MyApplications />} />
+            <Route path="wallet" element={<Wallet />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="chat" element={<Chat />} />
+            <Route path="resources" element={<Resources />} />
+          </Route>
 
-        {/* Company Routes */}
-        <Route
-          path="/company"
-          element={
-            <ProtectedRoute allowedRoles={['company']}>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<CompanyDashboard />} />
-          <Route path="post-gig" element={<PostGig />} />
-          <Route path="manage-gigs" element={<ManageGigs />} />
-          <Route path="gigs/:id/applications" element={<ViewApplications />} />
-        </Route>
+          {/* Company Routes */}
+          <Route
+            path="/company"
+            element={
+              <ProtectedRoute allowedRoles={['company']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<CompanyDashboard />} />
+            <Route path="post-gig" element={<PostGig />} />
+            <Route path="manage-gigs" element={<ManageGigs />} />
+            <Route path="gigs/:id/applications" element={<ViewApplications />} />
+          </Route>
 
-        {/* Mentor Routes */}
-        <Route
-          path="/mentor"
-          element={
-            <ProtectedRoute allowedRoles={['alumni']}>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<MentorDashboard />} />
-          <Route path="requests" element={<MentorRequests />} />
-          <Route path="sessions" element={<MentorSessions />} />
-        </Route>
+          {/* Mentor Routes */}
+          <Route
+            path="/mentor"
+            element={
+              <ProtectedRoute allowedRoles={['alumni']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<MentorDashboard />} />
+            <Route path="requests" element={<MentorRequests />} />
+            <Route path="sessions" element={<MentorSessions />} />
+          </Route>
 
-        {/* Admin Routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={['admin']}>
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="verifications" element={<AdminVerifications />} />
-          <Route path="flagged-content" element={<AdminFlaggedContent />} />
-          <Route path="disputes" element={<AdminDisputes />} />
-          <Route path="audit-log" element={<AdminAuditLog />} />
-        </Route>
+          {/* Admin Routes */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="verifications" element={<AdminVerifications />} />
+            <Route path="flagged-content" element={<AdminFlaggedContent />} />
+            <Route path="disputes" element={<AdminDisputes />} />
+            <Route path="audit-log" element={<AdminAuditLog />} />
+          </Route>
 
-        {/* 404 */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* 404 */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
