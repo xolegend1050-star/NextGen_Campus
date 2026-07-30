@@ -35,10 +35,19 @@ const aiRoutes = require('./routes/ai');
 const app = express();
 const httpServer = createServer(app);
 
+// Trust proxy (needed for rate limiter behind Render's reverse proxy)
+app.set('trust proxy', 1);
+
 // Socket.IO setup
+const allowedOrigins = [
+  process.env.CORS_ORIGIN,
+  'https://nextgen-campus-8qib.onrender.com',
+  'http://localhost:3000'
+].filter(Boolean);
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -50,7 +59,7 @@ app.set('io', io);
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: allowedOrigins,
   credentials: true
 }));
 
@@ -58,7 +67,8 @@ app.use(cors({
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 500,
-  message: 'Too many requests from this IP, please try again later.'
+  message: 'Too many requests from this IP, please try again later.',
+  validate: { xForwardedForHeader: false }
 });
 app.use('/api/', limiter);
 
