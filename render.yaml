@@ -1,0 +1,61 @@
+services:
+  # Backend API Server (Node.js)
+  - type: web
+    name: nextgen-campus-api
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && node src/server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 30d
+      - key: CORS_ORIGIN
+        sync: false
+      - key: AI_SERVICE_URL
+        fromService:
+          name: nextgen-campus-ai
+          type: web
+          property: host
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "500"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: info
+
+  # AI Service (Python Flask)
+  - type: web
+    name: nextgen-campus-ai
+    runtime: python
+    plan: free
+    buildCommand: cd ai-service && pip install -r requirements.txt
+    startCommand: cd ai-service && gunicorn app:app --bind 0.0.0.0:$PORT
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: AI_SERVICE_URL
+        value: http://localhost:5001
+      - key: DATABASE_URL
+        sync: false
+
+  # Frontend (React + Vite)
+  - type: static_site
+    name: nextgen-campus
+    plan: free
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: frontend/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
