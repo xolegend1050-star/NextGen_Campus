@@ -2,23 +2,12 @@ const { Pool } = require('pg');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-let connectionString = process.env.DATABASE_URL;
-
-if (connectionString) {
-  const isIPv6Host = connectionString.includes('.supabase.co') &&
-    !connectionString.includes('pooler');
-
-  if (isIPv6Host && process.env.NODE_ENV === 'production') {
-    connectionString = connectionString
-      .replace(/@db\./, '@aws-0-ap-south-1.pooler.')
-      .replace(/:5432/, ':6543');
-    console.log('🔄 Using Supabase pooler (IPv4) for production');
-  }
-}
+const connectionString = process.env.DATABASE_URL;
 
 const pool = new Pool({
   connectionString,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  family: 4,
   max: 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 15000,
