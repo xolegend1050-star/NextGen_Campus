@@ -13,55 +13,65 @@ const api = axios.create({
   }
 });
 
-// Request interceptor
+// Request interceptor — always read token from localStorage
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('nextgen-auth');
-    if (token) {
-      const auth = JSON.parse(token);
-      if (auth.state?.token) {
-        config.headers.Authorization = `Bearer ${auth.state.token}`;
+    try {
+      const raw = localStorage.getItem('nextgen-auth');
+      if (raw) {
+        const auth = JSON.parse(raw);
+        if (auth.state?.token) {
+          config.headers.Authorization = `Bearer ${auth.state.token}`;
+        }
       }
+    } catch (e) {
+      // corrupted storage, ignore
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// Response interceptor
+// Response interceptor — handle 401 with one refresh attempt
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If 401 and not already retried
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        // Try to refresh token
-        const auth = JSON.parse(localStorage.getItem('nextgen-auth'));
-        if (auth?.state?.refreshToken) {
-          const response = await api.post('/auth/refresh', {
-            refreshToken: auth.state.refreshToken
-          });
-
-          const { token } = response.data;
-          
-          // Update stored token
-          auth.state.token = token;
-          localStorage.setItem('nextgen-auth', JSON.stringify(auth));
-
-          // Retry original request
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
+        const raw = localStorage.getItem('nextgen-auth');
+        if (!raw) {
+          return Promise.reject(error);
         }
+        const auth = JSON.parse(raw);
+        if (!auth?.state?.refreshToken) {
+          return Promise.reject(error);
+        }
+
+        const response = await axios.post(`${API_URL}/auth/refresh`, {
+          refreshToken: auth.state.refreshToken
+        });
+
+        const { token, refreshToken } = response.data;
+
+        // Update stored tokens
+        auth.state.token = token;
+        auth.state.refreshToken = refreshToken;
+        localStorage.setItem('nextgen-auth', JSON.stringify(auth));
+
+        // Retry original request
+        originalRequest.headers.Authorization = `Bearer ${token}`;
+        return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, logout
-        localStorage.removeItem('nextgen-auth');
-        window.location.href = '/login';
+        // Refresh failed — only clear if we're sure token is expired
+        // Don't wipe storage on network errors
+        if (refreshError.response?.status === 401) {
+          localStorage.removeItem('nextgen-auth');
+          window.location.href = '/login';
+        }
       }
     }
 
