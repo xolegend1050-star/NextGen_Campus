@@ -1,46 +1,45 @@
 const nodemailer = require('nodemailer');
 const logger = require('../utils/logger');
 
-let transporter = null;
+function createTransporter() {
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpPort = process.env.SMTP_PORT;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
 
-async function getTransporter() {
-  if (transporter) return transporter;
+  logger.info(`Email config — host: ${smtpHost || 'NOT SET'}, port: ${smtpPort || 'NOT SET'}, user: ${smtpUser || 'NOT SET'}, pass: ${smtpPass ? '***' : 'NOT SET'}`);
 
-  if (process.env.SMTP_HOST) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: process.env.SMTP_SECURE === 'true',
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      }
-    });
-    logger.info('Email transporter configured with SMTP');
-  } else {
-    const testAccount = await nodemailer.createTestAccount();
-    transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
-      secure: false,
-      auth: {
-        user: testAccount.user,
-        pass: testAccount.pass
-      }
-    });
-    logger.info('Using Ethereal test email account (dev mode)');
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    logger.warn('SMTP env vars not configured — emails will NOT be sent');
+    return null;
   }
 
-  return transporter;
+  return nodemailer.createTransport({
+    host: smtpHost,
+    port: parseInt(smtpPort) || 587,
+    secure: false,
+    auth: {
+      user: smtpUser,
+      pass: smtpPass
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
+  });
 }
 
 async function sendPasswordResetEmail(email, resetToken) {
+  const transport = createTransporter();
+  if (!transport) {
+    logger.error('Cannot send password reset email — SMTP not configured');
+    return false;
+  }
+
   try {
-    const transport = await getTransporter();
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
     const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM || '"NextGen Campus" <noreply@nextgencampus.com>',
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
       to: email,
       subject: 'Password Reset Request - NextGen Campus',
       html: `
@@ -56,26 +55,26 @@ async function sendPasswordResetEmail(email, resetToken) {
       `
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      logger.info(`Password reset email preview: ${previewUrl}`);
-    }
-
-    logger.info(`Password reset email sent to: ${email}`);
+    logger.info(`Password reset email sent to: ${email}, messageId: ${info.messageId}`);
     return true;
   } catch (error) {
-    logger.error('Failed to send password reset email:', error.message);
+    logger.error(`Failed to send password reset email to ${email}:`, error.message);
     return false;
   }
 }
 
 async function sendVerificationEmail(email, verificationToken) {
+  const transport = createTransporter();
+  if (!transport) {
+    logger.error('Cannot send verification email — SMTP not configured');
+    return false;
+  }
+
   try {
-    const transport = await getTransporter();
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
 
     const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM || '"NextGen Campus" <noreply@nextgencampus.com>',
+      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
       to: email,
       subject: 'Verify Your Email - NextGen Campus',
       html: `
@@ -88,15 +87,10 @@ async function sendVerificationEmail(email, verificationToken) {
       `
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      const previewUrl = nodemailer.getTestMessageUrl(info);
-      logger.info(`Verification email preview: ${previewUrl}`);
-    }
-
-    logger.info(`Verification email sent to: ${email}`);
+    logger.info(`Verification email sent to: ${email}, messageId: ${info.messageId}`);
     return true;
   } catch (error) {
-    logger.error('Failed to send verification email:', error.message);
+    logger.error(`Failed to send verification email to ${email}:`, error.message);
     return false;
   }
 }
