@@ -283,6 +283,31 @@ const seedSafe = async () => {
       console.log('⏭️  Conversations already exist');
     }
 
+    // 12. Follows
+    const existingFollows = await db.query('SELECT id FROM follows LIMIT 1');
+    if (existingFollows.rows.length === 0) {
+      const followPairs = [
+        [studentIds[0], alumniIds[0]], // Sujal follows Vikram
+        [studentIds[0], alumniIds[1]], // Sujal follows Neha
+        [studentIds[1], alumniIds[0]], // Priya follows Vikram
+        [alumniIds[0], studentIds[0]], // Vikram follows Sujal (mutual)
+        [studentIds[2], studentIds[0]], // Rahul follows Sujal
+        [studentIds[2], alumniIds[1]], // Rahul follows Neha
+        [studentIds[3], studentIds[1]], // Ananya follows Priya
+        [alumniIds[1], studentIds[0]], // Neha follows Sujal (mutual)
+        [studentIds[1], alumniIds[1]], // Priya follows Neha
+      ];
+      for (const [follower, following] of followPairs) {
+        await db.query(
+          'INSERT INTO follows (follower_id, following_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [follower, following]
+        );
+      }
+      console.log(`✅ ${followPairs.length} follow relationships seeded`);
+    } else {
+      console.log('⏭️  Follows already exist');
+    }
+
     // Count users
     const userCount = await db.query('SELECT role, COUNT(*) FROM users GROUP BY role');
     console.log('\n📊 Users by role:');
