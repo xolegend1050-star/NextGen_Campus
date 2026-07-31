@@ -13,6 +13,7 @@ const Login = lazy(() => import('./pages/auth/Login'));
 const Register = lazy(() => import('./pages/auth/Register'));
 const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/auth/VerifyEmail'));
 
 // Lazy-loaded Dashboard Pages
 const Dashboard = lazy(() => import('./pages/student/Dashboard'));
@@ -130,6 +131,7 @@ function App() {
           <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
           <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
           <Route path="/reset-password" element={<GuestRoute><ResetPassword /></GuestRoute>} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           {/* Student Dashboard Routes */}
           <Route

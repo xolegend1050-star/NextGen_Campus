@@ -38,18 +38,23 @@ exports.register = async (req, res, next) => {
 
     const user = result.rows[0];
 
-    // Create profile based on role
+    // Create profile based on role (use ON CONFLICT DO UPDATE to overwrite empty trigger-created rows)
     if (role === 'student' || role === 'alumni') {
       await db.query(
         `INSERT INTO profiles (user_id, full_name, phone, city, college_name)
          VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (user_id) DO NOTHING`,
+         ON CONFLICT (user_id) DO UPDATE SET
+           full_name = COALESCE(NULLIF(EXCLUDED.full_name, ''), profiles.full_name),
+           phone = COALESCE(EXCLUDED.phone, profiles.phone),
+           city = COALESCE(NULLIF(EXCLUDED.city, ''), profiles.city),
+           college_name = COALESCE(NULLIF(EXCLUDED.college_name, ''), profiles.college_name)`,
         [user.id, full_name, phone || null, city || null, college_name || null]
       );
     } else if (role === 'company') {
       await db.query(
         `INSERT INTO company_profiles (user_id, company_name)
-         VALUES ($1, $2)`,
+         VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET company_name = EXCLUDED.company_name`,
         [user.id, full_name]
       );
     }
@@ -64,12 +69,20 @@ exports.register = async (req, res, next) => {
       [user.id, token, refreshToken]
     );
 
+    // Determine verification type based on role
+    const verificationTypeMap = {
+      student: 'student_college_email',
+      alumni: 'alumni_linkedin',
+      company: 'company_domain'
+    };
+    const verificationType = verificationTypeMap[role] || 'student_college_email';
+
     // Generate email verification token
     const verificationToken = uuidv4();
     await db.query(
       `INSERT INTO verification_tokens (user_id, token, verification_type, expires_at)
-       VALUES ($1, $2, 'student_college_email', NOW() + INTERVAL '24 hours')`,
-      [user.id, verificationToken]
+       VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours')`,
+      [user.id, verificationToken, verificationType]
     );
 
     logger.info(`New user registered: ${email} (${role})`);
@@ -88,8 +101,7 @@ exports.register = async (req, res, next) => {
         created_at: user.created_at
       },
       token,
-      refreshToken,
-      verification_token: verificationToken
+      refreshToken
     });
   } catch (error) {
     next(error);
@@ -158,14 +170,26 @@ exports.login = async (req, res, next) => {
 
 exports.getMe = async (req, res, next) => {
   try {
-    const result = await db.query(
-      `SELECT u.id, u.email, u.role, u.is_email_verified, u.created_at,
-              p.full_name, p.avatar_url, p.city, p.college_name, p.trust_score, p.talent_tier
-       FROM users u
-       LEFT JOIN profiles p ON u.id = p.user_id
-       WHERE u.id = $1`,
-      [req.user.id]
-    );
+    let result;
+    if (req.user.role === 'company') {
+      result = await db.query(
+        `SELECT u.id, u.email, u.role, u.is_email_verified, u.created_at,
+                cp.company_name, cp.industry, cp.website_url, cp.is_verified, cp.trust_score
+         FROM users u
+         LEFT JOIN company_profiles cp ON u.id = cp.user_id
+         WHERE u.id = $1`,
+        [req.user.id]
+      );
+    } else {
+      result = await db.query(
+        `SELECT u.id, u.email, u.role, u.is_email_verified, u.created_at,
+                p.full_name, p.avatar_url, p.city, p.college_name, p.trust_score, p.talent_tier
+         FROM users u
+         LEFT JOIN profiles p ON u.id = p.user_id
+         WHERE u.id = $1`,
+        [req.user.id]
+      );
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'User not found' });

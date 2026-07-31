@@ -35,10 +35,16 @@ const resetPasswordValidation = [
   handleValidationErrors
 ];
 
+const verifyEmailValidation = [
+  body('token').notEmpty().withMessage('Verification token is required'),
+  handleValidationErrors
+];
+
 module.exports = {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
+  verifyEmailValidation,
   handleValidationErrors
 };

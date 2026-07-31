@@ -6,7 +6,8 @@ const {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
-  resetPasswordValidation
+  resetPasswordValidation,
+  verifyEmailValidation
 } = require('../validators/auth');
 
 /**
@@ -150,7 +151,7 @@ router.post('/reset-password', resetPasswordValidation, authController.resetPass
  *       200:
  *         description: Email verified
  */
-router.post('/verify-email', authController.verifyEmail);
+router.post('/verify-email', verifyEmailValidation, authController.verifyEmail);
 
 /**
  * @swagger

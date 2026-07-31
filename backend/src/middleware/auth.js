@@ -30,6 +30,15 @@ const authenticate = async (req, res, next) => {
       return res.status(403).json({ error: 'Account has been banned.' });
     }
 
+    // Verify session still exists (logged-out tokens are invalid)
+    const session = await db.query(
+      'SELECT id FROM user_sessions WHERE token_hash = $1 AND expires_at > NOW()',
+      [token]
+    );
+    if (session.rows.length === 0) {
+      return res.status(401).json({ error: 'Session expired. Please login again.' });
+    }
+
     req.user = user;
     next();
   } catch (error) {

@@ -8,7 +8,8 @@ import api from '../../services/api';
 import { LockClosedIcon, ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const schema = z.object({
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
