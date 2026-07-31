@@ -29,7 +29,17 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Login successful!');
-      navigate('/dashboard');
+      const user = useAuthStore.getState().user;
+      const role = user?.role;
+      if (role === 'admin') {
+        navigate('/admin');
+      } else if (role === 'alumni') {
+        navigate('/mentor');
+      } else if (role === 'company') {
+        navigate('/company');
+      } else {
+        navigate('/dashboard');
+      }
     } else {
       toast.error(result.error);
     }
