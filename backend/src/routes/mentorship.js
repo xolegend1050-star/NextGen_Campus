@@ -125,6 +125,8 @@ router.patch('/requests/:id/:action', authenticate, mentorshipController.updateR
  */
 router.get('/sessions', authenticate, mentorshipController.getSessions);
 
+router.post('/requests/:requestId/schedule', authenticate, mentorshipController.scheduleSession);
+
 /**
  * @swagger
  * /api/mentorship/sessions/{sessionId}/rate:

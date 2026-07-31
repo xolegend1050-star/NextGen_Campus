@@ -173,7 +173,9 @@ exports.requestMentorship = async (req, res, next) => {
 exports.updateRequestStatus = async (req, res, next) => {
   try {
     const requestId = req.params.requestId || req.params.id;
-    const status = req.body.status || req.params.action;
+    const rawStatus = req.body.status || req.params.action;
+    const statusMap = { accept: 'accepted', reject: 'rejected' };
+    const status = statusMap[rawStatus] || rawStatus;
 
     // Get request
     const request = await db.query(
@@ -234,6 +236,52 @@ exports.getSessions = async (req, res, next) => {
     );
 
     res.json({ sessions: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.scheduleSession = async (req, res, next) => {
+  try {
+    const { requestId } = req.params;
+    const { scheduled_at, session_type, notes } = req.body;
+
+    const request = await db.query(
+      'SELECT * FROM mentorship_requests WHERE id = $1',
+      [requestId]
+    );
+
+    if (request.rows.length === 0) {
+      return res.status(404).json({ error: 'Request not found' });
+    }
+
+    if (request.rows[0].status !== 'accepted') {
+      return res.status(400).json({ error: 'Request must be accepted before scheduling' });
+    }
+
+    if (request.rows[0].mentor_id !== req.user.id && request.rows[0].student_id !== req.user.id) {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const result = await db.query(
+      `INSERT INTO mentorship_sessions (request_id, student_id, mentor_id, session_type, scheduled_at, notes)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [requestId, request.rows[0].student_id, request.rows[0].mentor_id, session_type || 'chat', scheduled_at, notes || '']
+    );
+
+    const otherUserId = request.rows[0].mentor_id === req.user.id
+      ? request.rows[0].student_id
+      : request.rows[0].mentor_id;
+
+    await db.query(
+      `INSERT INTO notifications (user_id, type, title, message, data)
+       VALUES ($1, 'session_scheduled', 'Session Scheduled', 'A mentorship session has been scheduled', $2)`,
+      [otherUserId, JSON.stringify({ session_id: result.rows[0].id })]
+    );
+
+    logger.info(`Session scheduled: ${result.rows[0].id}`);
+    res.status(201).json({ session: result.rows[0] });
   } catch (error) {
     next(error);
   }

@@ -204,6 +204,85 @@ const seedSafe = async () => {
     }
     console.log('✅ Resources seeded');
 
+    // 9. Mentorship Requests
+    const existingRequests = await db.query('SELECT id FROM mentorship_requests LIMIT 1');
+    if (existingRequests.rows.length === 0) {
+      const request1Id = uuidv4();
+      const request2Id = uuidv4();
+      await db.query(
+        `INSERT INTO mentorship_requests (id, student_id, mentor_id, message, status, student_goals, preferred_session_type)
+         VALUES ($1, $2, $3, $4, 'accepted', $5, 'video')`,
+        [request1Id, studentIds[0], alumniIds[0], 'I need guidance for DSA placements at product companies.', 'Master DSA and system design for placement prep']
+      );
+      await db.query(
+        `INSERT INTO mentorship_requests (id, student_id, mentor_id, message, status, student_goals, preferred_session_type)
+         VALUES ($1, $2, $3, $4, 'pending', $5, 'chat')`,
+        [request2Id, studentIds[1], alumniIds[0], 'I want to learn full-stack development best practices.', 'Learn React + Node.js production patterns']
+      );
+      console.log('✅ Mentorship requests seeded (1 accepted, 1 pending)');
+    } else {
+      console.log('⏭️  Mentorship requests already exist');
+    }
+
+    // 10. Mentorship Sessions
+    const existingSessions = await db.query('SELECT id FROM mentorship_sessions LIMIT 1');
+    if (existingSessions.rows.length === 0) {
+      const acceptedRequest = await db.query("SELECT id, student_id, mentor_id FROM mentorship_requests WHERE status = 'accepted' LIMIT 1");
+      if (acceptedRequest.rows.length > 0) {
+        const req = acceptedRequest.rows[0];
+        const scheduledDate = new Date();
+        scheduledDate.setDate(scheduledDate.getDate() + 3);
+        const pastDate = new Date();
+        pastDate.setDate(pastDate.getDate() - 5);
+
+        await db.query(
+          `INSERT INTO mentorship_sessions (request_id, student_id, mentor_id, session_type, status, scheduled_at, notes)
+           VALUES ($1, $2, $3, 'video', 'scheduled', $4, 'Let''s discuss binary trees and graph algorithms')`,
+          [req.id, req.student_id, req.mentor_id, scheduledDate.toISOString()]
+        );
+        await db.query(
+          `INSERT INTO mentorship_sessions (request_id, student_id, mentor_id, session_type, status, scheduled_at, notes)
+           VALUES ($1, $2, $3, 'video', 'completed', $4, 'Covered basic DSA sorting and recursion')`,
+          [req.id, req.student_id, req.mentor_id, pastDate.toISOString()]
+        );
+        console.log('✅ Mentorship sessions seeded (1 upcoming, 1 completed)');
+      }
+    } else {
+      console.log('⏭️  Mentorship sessions already exist');
+    }
+
+    // 11. Chat Conversations & Messages
+    const existingConvos = await db.query('SELECT id FROM conversations LIMIT 1');
+    if (existingConvos.rows.length === 0) {
+      const convoId = uuidv4();
+      await db.query(
+        `INSERT INTO conversations (id, type, title, is_active)
+         VALUES ($1, 'mentorship', NULL, true)`,
+        [convoId]
+      );
+      await db.query(
+        `INSERT INTO conversation_participants (conversation_id, user_id)
+         VALUES ($1, $2), ($1, $3)`,
+        [convoId, studentIds[0], alumniIds[0]]
+      );
+      const messages = [
+        { sender: studentIds[0], content: 'Hi Vikram! I have a question about binary search trees.' },
+        { sender: alumniIds[0], content: 'Hey Sujal! Sure, what do you want to know?' },
+        { sender: studentIds[0], content: 'How do I balance a BST after inserting a new node?' },
+        { sender: alumniIds[0], content: 'Great question! You can use AVL or Red-Black tree rotations. Let me walk you through it in our next session.' }
+      ];
+      for (let i = 0; i < messages.length; i++) {
+        await db.query(
+          `INSERT INTO messages (conversation_id, sender_id, content, read_by)
+           VALUES ($1, $2, $3, $4)`,
+          [convoId, messages[i].sender, messages[i].content, [messages[i].sender]]
+        );
+      }
+      console.log('✅ Chat conversation with 4 messages seeded');
+    } else {
+      console.log('⏭️  Conversations already exist');
+    }
+
     // Count users
     const userCount = await db.query('SELECT role, COUNT(*) FROM users GROUP BY role');
     console.log('\n📊 Users by role:');
