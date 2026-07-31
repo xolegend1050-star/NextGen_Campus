@@ -42,7 +42,7 @@ const {
  *       200:
  *         description: List of doubts
  */
-router.get('/', getDoubtsValidation, doubtController.getAllDoubts);
+router.get('/', optionalAuth, getDoubtsValidation, doubtController.getAllDoubts);
 
 /**
  * @swagger

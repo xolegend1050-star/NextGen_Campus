@@ -31,12 +31,17 @@ const trustRoutes = require('./routes/trust');
 const badgeRoutes = require('./routes/badges');
 const verificationRoutes = require('./routes/verification');
 const aiRoutes = require('./routes/ai');
+const followRoutes = require('./routes/follows');
 
 const app = express();
 const httpServer = createServer(app);
 
 // Trust proxy (needed for rate limiter behind Render's reverse proxy)
 app.set('trust proxy', 1);
+
+// Online users tracking
+const onlineUsers = new Map();
+app.set('onlineUsers', onlineUsers);
 
 // Socket.IO setup
 const allowedOrigins = [
@@ -140,6 +145,7 @@ app.use('/api/trust', trustRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/follows', followRoutes);
 
 // 404 handler
 app.use((req, res) => {
@@ -177,6 +183,13 @@ io.use(async (socket, next) => {
 io.on('connection', (socket) => {
   logger.info(`Socket connected: ${socket.id} (user: ${socket.user.id})`);
 
+  // Track online status
+  onlineUsers.set(socket.user.id, socket.id);
+  io.emit('online_users', Array.from(onlineUsers.keys()));
+
+  // Update last_seen_at in DB
+  db.query('UPDATE users SET last_seen_at = NOW() WHERE id = $1', [socket.user.id]).catch(() => {});
+
   socket.on('join_room', (room) => {
     socket.join(room);
     logger.info(`User ${socket.user.id} joined room: ${room}`);
@@ -211,6 +224,9 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
+    onlineUsers.delete(socket.user.id);
+    io.emit('online_users', Array.from(onlineUsers.keys()));
+    db.query('UPDATE users SET last_seen_at = NOW() WHERE id = $1', [socket.user.id]).catch(() => {});
     logger.info(`Socket disconnected: ${socket.id} (user: ${socket.user.id})`);
   });
 });

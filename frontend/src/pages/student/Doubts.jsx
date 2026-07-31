@@ -22,7 +22,8 @@ const Doubts = () => {
     status: '',
     subject: '',
     sort: 'newest',
-    search: ''
+    search: '',
+    filter: ''
   });
 
   useEffect(() => {
@@ -41,6 +42,7 @@ const Doubts = () => {
       if (filters.status) params.append('status', filters.status);
       if (filters.subject) params.append('subject', filters.subject);
       if (filters.search) params.append('search', filters.search);
+      if (filters.filter) params.append('filter', filters.filter);
 
       const response = await api.get(`/doubts?${params}`);
       setDoubts(response.data.doubts);
@@ -73,6 +75,25 @@ const Doubts = () => {
       </div>
 
       {/* Filters */}
+      <div className="flex gap-2">
+        {[
+          { key: '', label: 'All' },
+          { key: 'friends', label: 'Friends' }
+        ].map(f => (
+          <button
+            key={f.key}
+            onClick={() => setFilters({ ...filters, filter: f.key })}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${
+              filters.filter === f.key
+                ? 'bg-primary-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       <div className="card">
         <div className="flex flex-col md:flex-row gap-4">
           {/* Search */}

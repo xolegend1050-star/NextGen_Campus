@@ -49,6 +49,10 @@ const AdminFlaggedContent = lazy(() => import('./pages/admin/FlaggedContent'));
 const AdminDisputes = lazy(() => import('./pages/admin/Disputes'));
 const AdminAuditLog = lazy(() => import('./pages/admin/AuditLog'));
 
+// Lazy-loaded Social Pages
+const People = lazy(() => import('./pages/social/People'));
+const Feed = lazy(() => import('./pages/social/Feed'));
+
 // Loading fallback
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -125,6 +129,8 @@ function App() {
             <Route path="notifications" element={<Notifications />} />
             <Route path="chat" element={<Chat />} />
             <Route path="resources" element={<Resources />} />
+            <Route path="people" element={<People />} />
+            <Route path="feed" element={<Feed />} />
           </Route>
 
           {/* Company Routes */}

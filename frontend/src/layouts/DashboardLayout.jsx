@@ -14,7 +14,9 @@ import {
   CogIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  UsersIcon,
+  NewspaperIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardLayout = () => {
@@ -35,6 +37,8 @@ const DashboardLayout = () => {
       { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
       { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
       { name: 'Chat', href: '/dashboard/chat', icon: ChatBubbleLeftIcon },
+      { name: 'People', href: '/dashboard/people', icon: UsersIcon },
+      { name: 'Feed', href: '/dashboard/feed', icon: NewspaperIcon },
     ];
 
     switch (user?.role) {

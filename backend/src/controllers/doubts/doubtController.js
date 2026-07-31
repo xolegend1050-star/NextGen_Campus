@@ -11,7 +11,7 @@ const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
 
 exports.getAllDoubts = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status, subject, sort = 'newest', search } = req.query;
+    const { page = 1, limit = 20, status, subject, sort = 'newest', search, filter } = req.query;
     const offset = (page - 1) * limit;
 
     let query = `
@@ -28,7 +28,11 @@ exports.getAllDoubts = async (req, res, next) => {
     let countQuery = 'SELECT COUNT(*) FROM doubts d';
     const params = [];
     const conditions = [];
-    const joins = [];
+
+    if (filter === 'friends' && req.user) {
+      conditions.push(`d.author_id IN (SELECT following_id FROM follows WHERE follower_id = $${params.length + 1})`);
+      params.push(req.user.id);
+    }
 
     if (status) {
       conditions.push(`d.status = $${params.length + 1}`);
