@@ -112,7 +112,19 @@ exports.getDoubtById = async (req, res, next) => {
       return res.status(404).json({ error: 'Doubt not found' });
     }
 
-    res.json({ doubt: result.rows[0] });
+    const doubt = result.rows[0];
+
+    if (req.user) {
+      const voteResult = await db.query(
+        'SELECT vote_type FROM doubt_votes WHERE user_id = $1 AND doubt_id = $2',
+        [req.user.id, id]
+      );
+      doubt.user_vote = voteResult.rows.length > 0 ? voteResult.rows[0].vote_type : 0;
+    } else {
+      doubt.user_vote = 0;
+    }
+
+    res.json({ doubt });
   } catch (error) {
     next(error);
   }
@@ -285,21 +297,22 @@ exports.voteDoubt = async (req, res, next) => {
     const { id } = req.params;
     const { vote_type } = req.body;
 
-    // Check if already voted
     const existingVote = await db.query(
       'SELECT id, vote_type FROM doubt_votes WHERE user_id = $1 AND doubt_id = $2',
       [req.user.id, id]
     );
 
     if (existingVote.rows.length > 0) {
-      // Update vote
       if (existingVote.rows[0].vote_type === vote_type) {
-        // Remove vote
         await db.query('DELETE FROM doubt_votes WHERE id = $1', [existingVote.rows[0].id]);
-        return res.json({ message: 'Vote removed' });
+        return res.json({ message: 'Vote removed', user_vote: 0 });
       } else {
-        await db.query('UPDATE doubt_votes SET vote_type = $1 WHERE id = $2', [vote_type, existingVote.rows[0].id]);
-        return res.json({ message: 'Vote updated' });
+        await db.query('DELETE FROM doubt_votes WHERE id = $1', [existingVote.rows[0].id]);
+        await db.query(
+          'INSERT INTO doubt_votes (user_id, doubt_id, vote_type) VALUES ($1, $2, $3)',
+          [req.user.id, id, vote_type]
+        );
+        return res.json({ message: 'Vote updated', user_vote: vote_type });
       }
     }
 
@@ -308,7 +321,7 @@ exports.voteDoubt = async (req, res, next) => {
       [req.user.id, id, vote_type]
     );
 
-    res.json({ message: 'Vote recorded' });
+    res.json({ message: 'Vote recorded', user_vote: vote_type });
   } catch (error) {
     next(error);
   }
@@ -319,7 +332,6 @@ exports.voteAnswer = async (req, res, next) => {
     const { answerId } = req.params;
     const { vote_type } = req.body;
 
-    // Check if already voted
     const existingVote = await db.query(
       'SELECT id, vote_type FROM doubt_votes WHERE user_id = $1 AND answer_id = $2',
       [req.user.id, answerId]
@@ -328,10 +340,14 @@ exports.voteAnswer = async (req, res, next) => {
     if (existingVote.rows.length > 0) {
       if (existingVote.rows[0].vote_type === vote_type) {
         await db.query('DELETE FROM doubt_votes WHERE id = $1', [existingVote.rows[0].id]);
-        return res.json({ message: 'Vote removed' });
+        return res.json({ message: 'Vote removed', user_vote: 0 });
       } else {
-        await db.query('UPDATE doubt_votes SET vote_type = $1 WHERE id = $2', [vote_type, existingVote.rows[0].id]);
-        return res.json({ message: 'Vote updated' });
+        await db.query('DELETE FROM doubt_votes WHERE id = $1', [existingVote.rows[0].id]);
+        await db.query(
+          'INSERT INTO doubt_votes (user_id, answer_id, vote_type) VALUES ($1, $2, $3)',
+          [req.user.id, answerId, vote_type]
+        );
+        return res.json({ message: 'Vote updated', user_vote: vote_type });
       }
     }
 
@@ -340,7 +356,7 @@ exports.voteAnswer = async (req, res, next) => {
       [req.user.id, answerId, vote_type]
     );
 
-    res.json({ message: 'Vote recorded' });
+    res.json({ message: 'Vote recorded', user_vote: vote_type });
   } catch (error) {
     next(error);
   }

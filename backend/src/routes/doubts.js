@@ -62,7 +62,7 @@ router.get('/', getDoubtsValidation, doubtController.getAllDoubts);
  *       404:
  *         description: Doubt not found
  */
-router.get('/:id', doubtController.getDoubtById);
+router.get('/:id', optionalAuth, doubtController.getDoubtById);
 
 /**
  * @swagger

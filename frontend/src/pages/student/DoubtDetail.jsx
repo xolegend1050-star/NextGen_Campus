@@ -106,14 +106,14 @@ const DoubtDetail = () => {
           <div className="flex flex-col items-center gap-1">
             <button
               onClick={() => voteDoubt(1)}
-              className="p-2 rounded-lg hover:bg-primary-50 text-gray-500 hover:text-primary-600"
+              className={`p-2 rounded-lg ${doubt.user_vote === 1 ? 'bg-primary-100 text-primary-600' : 'hover:bg-primary-50 text-gray-500 hover:text-primary-600'}`}
             >
               <HandThumbUpIcon className="h-6 w-6" />
             </button>
             <span className="text-xl font-semibold">{doubt.upvotes || 0}</span>
             <button
               onClick={() => voteDoubt(-1)}
-              className="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-600"
+              className={`p-2 rounded-lg ${doubt.user_vote === -1 ? 'bg-red-100 text-red-600' : 'hover:bg-red-50 text-gray-500 hover:text-red-600'}`}
             >
               <HandThumbDownIcon className="h-6 w-6" />
             </button>
