@@ -45,10 +45,12 @@ router.patch('/verifications/:id', adminController.reviewVerification);
 router.put('/verifications/:id', adminController.reviewVerification);
 
 // Flagged content routes
+router.get('/flagged-content', adminController.getFlaggedContent);
 router.patch('/flagged-content/:id', adminController.reviewFlaggedContent);
 router.put('/flagged-content/:id', adminController.reviewFlaggedContent);
 
 // Disputes routes
+router.get('/disputes', adminController.getDisputes);
 router.patch('/disputes/:id/resolve', adminController.resolveDispute);
 router.put('/disputes/:id', adminController.resolveDispute);
 

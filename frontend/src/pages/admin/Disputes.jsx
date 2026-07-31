@@ -71,13 +71,13 @@ const AdminDisputes = () => {
                     <div>
                       <h3 className="font-medium text-gray-900">{dispute.gig_title || 'Gig'}</h3>
                       <p className="text-sm text-gray-500">
-                        Amount: ₹{dispute.amount || dispute.transaction_amount || 'N/A'}
+                        Amount: ₹{(dispute.compensation || 0).toLocaleString()}
                       </p>
                       <p className="text-sm text-gray-700 mt-1">
                         {dispute.reason || dispute.description || 'No description'}
                       </p>
                       <p className="text-xs text-gray-400 mt-1">
-                        Filed by: {dispute.filed_by_name || 'User'} • {new Date(dispute.created_at).toLocaleDateString()}
+                        Filed by: {dispute.raiser_name || 'User'} • {new Date(dispute.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>

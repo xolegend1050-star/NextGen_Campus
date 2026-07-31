@@ -29,16 +29,24 @@ const AdminAuditLog = () => {
   };
 
   const getActionColor = (action) => {
-    if (action?.includes('ban') || action?.includes('delete') || action?.includes('reject')) return 'danger';
-    if (action?.includes('approve') || action?.includes('accept') || action?.includes('verify')) return 'success';
+    if (action?.includes('ban') || action?.includes('delete') || action?.includes('reject') || action?.includes('flag')) return 'danger';
+    if (action?.includes('approve') || action?.includes('accept') || action?.includes('verify') || action?.includes('unflag')) return 'success';
     return 'gray';
+  };
+
+  const formatAction = (action) => {
+    if (!action) return 'unknown';
+    return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
   if (loading) return <LoadingSpinner text="Loading audit log..." />;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Audit Log</h1>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Audit Log</h1>
+        <p className="text-gray-500">Track all admin actions across the platform</p>
+      </div>
 
       {logs.length > 0 ? (
         <>
@@ -57,13 +65,13 @@ const AdminAuditLog = () => {
                 {logs.map(log => (
                   <tr key={log.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <Badge variant={getActionColor(log.action)}>
-                        {log.action || 'unknown'}
+                      <Badge variant={getActionColor(log.action_type)}>
+                        {formatAction(log.action_type)}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{log.admin_name || log.user_name || 'System'}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500">{log.target_type || '-'} {log.target_id ? `#${log.target_id}` : ''}</td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{log.details || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-900">{log.admin_name || 'Admin'}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{log.target_resource_type || '-'} {log.target_resource_id ? `#${String(log.target_resource_id).slice(0, 8)}` : ''}</td>
+                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">{log.reason || '-'}</td>
                     <td className="px-6 py-4 text-sm text-gray-400">{new Date(log.created_at).toLocaleString()}</td>
                   </tr>
                 ))}

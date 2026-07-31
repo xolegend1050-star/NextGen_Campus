@@ -55,19 +55,16 @@ const AdminFlaggedContent = () => {
                     </div>
                     <div>
                       <h3 className="font-medium text-gray-900">
-                        {item.content_type || 'Content'} — {item.reason || 'Reported'}
+                        <span className="capitalize">{item.content_type}</span> — {item.reason || 'Reported'}
                       </h3>
-                      {item.content_preview && (
+                      {item.description && (
                         <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-2 rounded">
-                          &quot;{item.content_preview}&quot;
+                          &quot;{item.description}&quot;
                         </p>
                       )}
                       <p className="text-sm text-gray-500 mt-1">
                         Reported by: {item.reporter_name || 'User'} • {new Date(item.created_at).toLocaleDateString()}
                       </p>
-                      {item.report_reason && (
-                        <p className="text-sm text-gray-500">Reason: {item.report_reason}</p>
-                      )}
                     </div>
                   </div>
                   <Badge variant="danger">Flagged</Badge>

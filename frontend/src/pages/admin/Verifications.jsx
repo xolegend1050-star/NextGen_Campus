@@ -65,20 +65,27 @@ const AdminVerifications = () => {
               <div key={req.id} className="card">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                      <DocumentIcon className="h-5 w-5 text-primary-600" />
+                    <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-sm">
+                      {(req.full_name || 'U').charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{req.user_name || req.full_name || 'User'}</h3>
-                      <p className="text-sm text-gray-500">Type: {req.verification_type || 'ID Verification'}</p>
+                      <h3 className="font-semibold text-gray-900">{req.full_name || 'User'}</h3>
+                      <p className="text-sm text-gray-500">{req.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {req.verification_type?.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+                          {req.tier === 'tier1_auto' ? 'Auto (Tier 1)' : 'Manual (Tier 2)'}
+                        </span>
+                      </div>
                       {req.document_url && (
-                        <a href={req.document_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:text-primary-700">
+                        <a href={req.document_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-600 hover:text-primary-700 mt-1 inline-block">
                           View Document
                         </a>
                       )}
-                      {req.notes && <p className="text-sm text-gray-700 mt-1">Notes: {req.notes}</p>}
                       <p className="text-xs text-gray-400 mt-1">
-                        Submitted: {new Date(req.created_at).toLocaleDateString()}
+                        Submitted: {new Date(req.created_at).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -99,7 +106,12 @@ const AdminVerifications = () => {
                     </div>
                   )}
                   {filter !== 'pending' && (
-                    <Badge variant={filter === 'approved' ? 'success' : 'danger'}>{req.status}</Badge>
+                    <div className="flex flex-col items-end gap-1">
+                      <Badge variant={filter === 'approved' ? 'success' : 'danger'}>{req.status}</Badge>
+                      {req.rejection_reason && (
+                        <p className="text-xs text-red-500 max-w-[200px] text-right">{req.rejection_reason}</p>
+                      )}
+                    </div>
                   )}
                 </div>
               </div>

@@ -16,7 +16,11 @@ import {
   Bars3Icon,
   XMarkIcon,
   UsersIcon,
-  NewspaperIcon
+  NewspaperIcon,
+  ShieldCheckIcon,
+  FlagIcon,
+  ExclamationTriangleIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardLayout = () => {
@@ -68,11 +72,11 @@ const DashboardLayout = () => {
       case 'admin':
         return [
           { name: 'Dashboard', href: '/admin', icon: HomeIcon },
-          { name: 'Users', href: '/admin/users', icon: UserIcon },
-          { name: 'Verifications', href: '/admin/verifications', icon: CogIcon },
-          { name: 'Flagged Content', href: '/admin/flagged-content', icon: CogIcon },
-          { name: 'Disputes', href: '/admin/disputes', icon: CogIcon },
-          { name: 'Audit Log', href: '/admin/audit-log', icon: CogIcon },
+          { name: 'Users', href: '/admin/users', icon: UsersIcon },
+          { name: 'Verifications', href: '/admin/verifications', icon: ShieldCheckIcon },
+          { name: 'Flagged Content', href: '/admin/flagged-content', icon: FlagIcon },
+          { name: 'Disputes', href: '/admin/disputes', icon: ExclamationTriangleIcon },
+          { name: 'Audit Log', href: '/admin/audit-log', icon: DocumentTextIcon },
         ];
       default:
         return commonItems;
