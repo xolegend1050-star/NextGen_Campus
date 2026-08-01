@@ -9,6 +9,23 @@ const {
   resetPasswordValidation,
   verifyEmailValidation
 } = require('../validators/auth');
+const rateLimit = require('express-rate-limit');
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+const strictAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many attempts. Please try again after 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 /**
  * @swagger
@@ -41,7 +58,7 @@ const {
  *       409:
  *         description: Email already exists
  */
-router.post('/register', registerValidation, authController.register);
+router.post('/register', authLimiter, registerValidation, authController.register);
 
 /**
  * @swagger
@@ -67,7 +84,7 @@ router.post('/register', registerValidation, authController.register);
  *       401:
  *         description: Invalid credentials
  */
-router.post('/login', loginValidation, authController.login);
+router.post('/login', authLimiter, loginValidation, authController.login);
 
 /**
  * @swagger
@@ -105,7 +122,7 @@ router.get('/me', authenticate, authController.getMe);
  *       200:
  *         description: Reset email sent
  */
-router.post('/forgot-password', forgotPasswordValidation, authController.forgotPassword);
+router.post('/forgot-password', strictAuthLimiter, forgotPasswordValidation, authController.forgotPassword);
 
 /**
  * @swagger
@@ -151,7 +168,7 @@ router.post('/reset-password', resetPasswordValidation, authController.resetPass
  *       200:
  *         description: Email verified
  */
-router.post('/verify-email', verifyEmailValidation, authController.verifyEmail);
+router.post('/verify-email', strictAuthLimiter, verifyEmailValidation, authController.verifyEmail);
 
 /**
  * @swagger

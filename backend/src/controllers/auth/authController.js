@@ -7,10 +7,10 @@ const { sendPasswordResetEmail, sendVerificationEmail } = require('../../utils/e
 
 const generateTokens = (userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   });
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   });
   return { token, refreshToken };
 };
@@ -22,7 +22,12 @@ exports.register = async (req, res, next) => {
     // Check if user exists
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'Email already registered' });
+      return res.json({
+        message: 'If this email is not registered, a verification link has been sent.',
+        user: null,
+        token: null,
+        refreshToken: null
+      });
     }
 
     // Hash password
@@ -243,7 +248,7 @@ exports.resetPassword = async (req, res, next) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid or expired reset token' });
+      return res.status(400).json({ error: 'Invalid or expired reset link' });
     }
 
     const userId = result.rows[0].user_id;
@@ -278,7 +283,7 @@ exports.verifyEmail = async (req, res, next) => {
     );
 
     if (result.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid or expired verification token' });
+      return res.status(400).json({ error: 'Invalid or expired verification link' });
     }
 
     const userId = result.rows[0].user_id;
@@ -320,7 +325,7 @@ exports.refreshToken = async (req, res, next) => {
     // Verify the refresh token
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
     } catch (_err) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }

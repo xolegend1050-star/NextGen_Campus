@@ -1,6 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import api from '../services/api';
+import { disconnectSocket } from '../utils/socket';
+
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+};
 
 export const useAuthStore = create(
   persist(
@@ -13,12 +23,12 @@ export const useAuthStore = create(
 
       setUser: (user) => set({ user }),
 
-      login: async (email, password) => {
+      login: async (email, password, rememberMe = true) => {
         set({ isLoading: true });
         try {
           const response = await api.post('/auth/login', { email, password });
           const { user, token, refreshToken } = response.data;
-          
+
           set({
             user,
             token,
@@ -27,8 +37,9 @@ export const useAuthStore = create(
             isLoading: false
           });
 
-          // Set auth header
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          if (!rememberMe) {
+            localStorage.removeItem('nextgen-auth');
+          }
 
           return { success: true };
         } catch (error) {
@@ -45,16 +56,18 @@ export const useAuthStore = create(
         try {
           const response = await api.post('/auth/register', data);
           const { user, token, refreshToken } = response.data;
-          
-          set({
-            user,
-            token,
-            refreshToken,
-            isAuthenticated: true,
-            isLoading: false
-          });
 
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+          if (user && token) {
+            set({
+              user,
+              token,
+              refreshToken,
+              isAuthenticated: true,
+              isLoading: false
+            });
+          } else {
+            set({ isLoading: false });
+          }
 
           return { success: true };
         } catch (error) {
@@ -72,13 +85,13 @@ export const useAuthStore = create(
         } catch (error) {
           // Logout even if API call fails
         } finally {
+          disconnectSocket();
           set({
             user: null,
             token: null,
             refreshToken: null,
             isAuthenticated: false
           });
-          delete api.defaults.headers.common['Authorization'];
         }
       },
 
@@ -89,9 +102,8 @@ export const useAuthStore = create(
         try {
           const response = await api.post('/auth/refresh', { refreshToken });
           const { token } = response.data;
-          
+
           set({ token });
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         } catch (error) {
           get().logout();
         }
@@ -107,9 +119,14 @@ export const useAuthStore = create(
       },
 
       initializeAuth: () => {
-        const { token } = get();
-        if (token) {
-          api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const { token, refreshToken } = get();
+        if (token && !isTokenExpired(token)) {
+          return;
+        }
+        if (refreshToken && !isTokenExpired(refreshToken)) {
+          get().refreshAccessToken();
+        } else {
+          get().logout();
         }
       }
     }),

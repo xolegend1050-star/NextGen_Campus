@@ -42,15 +42,20 @@ const Register = () => {
     const result = await registerUser(submitData);
     
     if (result.success) {
-      toast.success('Registration successful! Please verify your email.');
       const user = useAuthStore.getState().user;
-      const role = user?.role;
-      if (role === 'alumni') {
-        navigate('/mentor');
-      } else if (role === 'company') {
-        navigate('/company');
+      if (user) {
+        toast.success('Registration successful! Please verify your email.');
+        const role = user?.role;
+        if (role === 'alumni') {
+          navigate('/mentor/dashboard');
+        } else if (role === 'company') {
+          navigate('/company/dashboard');
+        } else {
+          navigate('/dashboard');
+        }
       } else {
-        navigate('/dashboard');
+        toast.success('If this email is not registered, a verification link has been sent.');
+        navigate('/login');
       }
     } else {
       toast.error(result.error);

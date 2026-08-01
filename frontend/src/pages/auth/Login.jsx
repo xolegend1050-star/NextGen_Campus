@@ -25,18 +25,18 @@ const Login = () => {
   });
 
   const onSubmit = async (data) => {
-    const result = await login(data.email, data.password);
-    
+    const result = await login(data.email, data.password, data.rememberMe);
+
     if (result.success) {
       toast.success('Login successful!');
       const user = useAuthStore.getState().user;
       const role = user?.role;
       if (role === 'admin') {
-        navigate('/admin');
+        navigate('/admin/dashboard');
       } else if (role === 'alumni') {
-        navigate('/mentor');
+        navigate('/mentor/dashboard');
       } else if (role === 'company') {
-        navigate('/company');
+        navigate('/company/dashboard');
       } else {
         navigate('/dashboard');
       }
@@ -102,7 +102,7 @@ const Login = () => {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+                <input {...register('rememberMe')} type="checkbox" className="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
               <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700">
