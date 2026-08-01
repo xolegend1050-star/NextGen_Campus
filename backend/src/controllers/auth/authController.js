@@ -220,8 +220,10 @@ exports.forgotPassword = async (req, res, next) => {
       [userId, resetToken]
     );
 
-    // Send email with reset link
-    await sendPasswordResetEmail(email, resetToken);
+    // Send email with reset link (non-blocking)
+    sendPasswordResetEmail(email, resetToken).catch(err => {
+      logger.warn('Password reset email failed (non-blocking):', err.message);
+    });
     logger.info(`Password reset requested for: ${email}`);
 
     res.json({ message: 'If the email exists, a reset link has been sent' });

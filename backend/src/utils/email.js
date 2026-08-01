@@ -1,45 +1,25 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 const logger = require('../utils/logger');
 
-function createTransporter() {
-  const smtpHost = process.env.SMTP_HOST;
-  const smtpPort = process.env.SMTP_PORT;
-  const smtpUser = process.env.SMTP_USER;
-  const smtpPass = process.env.SMTP_PASS;
-
-  logger.info(`Email config — host: ${smtpHost || 'NOT SET'}, port: ${smtpPort || 'NOT SET'}, user: ${smtpUser || 'NOT SET'}, pass: ${smtpPass ? '***' : 'NOT SET'}`);
-
-  if (!smtpHost || !smtpUser || !smtpPass) {
-    logger.warn('SMTP env vars not configured — emails will NOT be sent');
+function getClient() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    logger.error('RESEND_API_KEY not set — emails will NOT be sent');
     return null;
   }
-
-  return nodemailer.createTransport({
-    host: smtpHost,
-    port: parseInt(smtpPort) || 587,
-    secure: false,
-    auth: {
-      user: smtpUser,
-      pass: smtpPass
-    },
-    connectionTimeout: 10000,
-    greetingTimeout: 10000,
-    socketTimeout: 10000
-  });
+  return new Resend(apiKey);
 }
 
 async function sendPasswordResetEmail(email, resetToken) {
-  const transport = createTransporter();
-  if (!transport) {
-    logger.error('Cannot send password reset email — SMTP not configured');
-    return false;
-  }
+  const client = getClient();
+  if (!client) return false;
 
   try {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <onboarding@resend.dev>';
 
-    const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+    const { error } = await client.emails.send({
+      from: fromEmail,
       to: email,
       subject: 'Password Reset Request - NextGen Campus',
       html: `
@@ -55,7 +35,12 @@ async function sendPasswordResetEmail(email, resetToken) {
       `
     });
 
-    logger.info(`Password reset email sent to: ${email}, messageId: ${info.messageId}`);
+    if (error) {
+      logger.error(`Resend API error for ${email}:`, error.message);
+      return false;
+    }
+
+    logger.info(`Password reset email sent to: ${email}`);
     return true;
   } catch (error) {
     logger.error(`Failed to send password reset email to ${email}:`, error.message);
@@ -64,17 +49,15 @@ async function sendPasswordResetEmail(email, resetToken) {
 }
 
 async function sendVerificationEmail(email, verificationToken) {
-  const transport = createTransporter();
-  if (!transport) {
-    logger.error('Cannot send verification email — SMTP not configured');
-    return false;
-  }
+  const client = getClient();
+  if (!client) return false;
 
   try {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <onboarding@resend.dev>';
 
-    const info = await transport.sendMail({
-      from: process.env.EMAIL_FROM || process.env.SMTP_USER,
+    const { error } = await client.emails.send({
+      from: fromEmail,
       to: email,
       subject: 'Verify Your Email - NextGen Campus',
       html: `
@@ -87,7 +70,12 @@ async function sendVerificationEmail(email, verificationToken) {
       `
     });
 
-    logger.info(`Verification email sent to: ${email}, messageId: ${info.messageId}`);
+    if (error) {
+      logger.error(`Resend API error for ${email}:`, error.message);
+      return false;
+    }
+
+    logger.info(`Verification email sent to: ${email}`);
     return true;
   } catch (error) {
     logger.error(`Failed to send verification email to ${email}:`, error.message);
