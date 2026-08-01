@@ -10,6 +10,9 @@ env/
 .env
 .env.local
 .env.production
+**/.env
+**/.env.local
+**/.env.production
 
 # Build outputs
 dist/
@@ -50,3 +53,6 @@ temp/
 
 # Supabase
 .supabase/
+
+# Sensitive docs (contain secrets)
+SESSION-LOG.md
