@@ -54,15 +54,8 @@ const Login = () => {
 
       if (result.success) {
         toast.success(`${state === 'github' ? 'GitHub' : 'Google'} login successful!`);
-        // Use window.location for OAuth redirects to avoid React Router timing issues.
-        // The auth state is already persisted to localStorage by Zustand, so a clean
-        // page load will pick it up and render the correct route.
-        const user = useAuthStore.getState().user;
-        const role = user?.role;
-        if (role === 'admin') window.location.href = '/admin/dashboard';
-        else if (role === 'alumni') window.location.href = '/mentor/dashboard';
-        else if (role === 'company') window.location.href = '/company/dashboard';
-        else window.location.href = '/dashboard';
+        // GuestRoute wrapping the Login route will automatically redirect
+        // to the correct dashboard when isAuthenticated becomes true
       } else {
         toast.error(result.error);
       }
@@ -90,8 +83,7 @@ const Login = () => {
 
     if (result.success) {
       toast.success('Login successful!');
-      const user = useAuthStore.getState().user;
-      navigateByRole(user);
+      // GuestRoute will automatically redirect to the correct dashboard
     } else {
       toast.error(result.error);
     }
