@@ -127,11 +127,10 @@ export const useAuthStore = create(
 
         try {
           const response = await api.post('/auth/refresh', { refreshToken });
-          const { token } = response.data;
-
-          set({ token });
+          const { token, refreshToken: newRefreshToken } = response.data;
+          set({ token, refreshToken: newRefreshToken || refreshToken });
         } catch (error) {
-          get().logout();
+          // Don't logout here — let ProtectedRoute handle it on next auth check
         }
       },
 
@@ -140,19 +139,21 @@ export const useAuthStore = create(
           const response = await api.get('/auth/me');
           set({ user: response.data.user });
         } catch (error) {
-          get().logout();
+          // Don't logout — the interceptor handles token refresh on 401
         }
       },
 
       initializeAuth: () => {
-        const { token, refreshToken } = get();
+        const { token, refreshToken, isAuthenticated } = get();
+        // Skip if already authenticated (e.g. just logged in via OAuth)
+        if (isAuthenticated && token) return;
         if (token && !isTokenExpired(token)) {
           return;
         }
         if (refreshToken && !isTokenExpired(refreshToken)) {
           get().refreshAccessToken();
         } else {
-          get().logout();
+          set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
         }
       }
     }),
