@@ -30,7 +30,7 @@ exports.googleLogin = async (req, res, next) => {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`,
+            redirect_uri: `${(process.env.FRONTEND_URL || 'http://localhost:3000').trim()}/login`,
             grant_type: 'authorization_code'
           })
         });
