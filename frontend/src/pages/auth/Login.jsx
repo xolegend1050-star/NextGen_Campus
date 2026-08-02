@@ -27,12 +27,17 @@ const Login = () => {
 
   const handleOAuthRedirect = async () => {
     const code = searchParams.get('code');
-    const provider = searchParams.get('provider');
-    if (code && provider === 'github') {
+    const state = searchParams.get('state');
+    if (code && state === 'github') {
       const result = await githubLogin(code);
       if (result.success) {
         toast.success('GitHub login successful!');
-        navigate('/dashboard');
+        const user = useAuthStore.getState().user;
+        const role = user?.role;
+        if (role === 'admin') navigate('/admin/dashboard');
+        else if (role === 'alumni') navigate('/mentor/dashboard');
+        else if (role === 'company') navigate('/company/dashboard');
+        else navigate('/dashboard');
       } else {
         toast.error(result.error);
       }
@@ -78,7 +83,7 @@ const Login = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = `${window.location.origin}/login`;
     const scope = 'user:email';
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}`;
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github`;
   };
 
   const onSubmit = async (data) => {
