@@ -55,43 +55,37 @@ const Login = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     if (!clientId) return;
 
-    const handleCredential = async (response) => {
-      const result = await googleLogin(response.credential);
-      if (result.success) {
-        toast.success('Google login successful!');
-        const user = useAuthStore.getState().user;
-        const role = user?.role;
-        if (role === 'admin') navigate('/admin/dashboard');
-        else if (role === 'alumni') navigate('/mentor/dashboard');
-        else if (role === 'company') navigate('/company/dashboard');
-        else navigate('/dashboard');
-      } else {
-        toast.error(result.error);
-      }
-    };
-
     const waitForGoogle = (retries = 0) => {
-      if (window.google?.accounts?.id) {
+      if (window.google?.accounts?.id && googleBtnRef.current) {
         window.google.accounts.id.initialize({
           client_id: clientId,
-          callback: handleCredential
+          callback: async (response) => {
+            const result = await useAuthStore.getState().googleLogin(response.credential);
+            if (result.success) {
+              toast.success('Google login successful!');
+              const user = useAuthStore.getState().user;
+              const role = user?.role;
+              if (role === 'admin') navigate('/admin/dashboard');
+              else if (role === 'alumni') navigate('/mentor/dashboard');
+              else if (role === 'company') navigate('/company/dashboard');
+              else navigate('/dashboard');
+            } else {
+              toast.error(result.error);
+            }
+          }
         });
-        if (googleBtnRef.current) {
-          window.google.accounts.id.renderButton(googleBtnRef.current, {
-            theme: 'outline',
-            size: 'large',
-            width: '100%',
-            text: 'continue_with'
-          });
-        }
-      } else if (retries < 20) {
+        window.google.accounts.id.renderButton(googleBtnRef.current, {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'continue_with'
+        });
+      } else if (retries < 30) {
         setTimeout(() => waitForGoogle(retries + 1), 200);
       }
     };
     waitForGoogle();
   }, []);
-
-  // Google credential callback is inside the useEffect above
 
   const handleGitHubLogin = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
