@@ -50,6 +50,9 @@ const Login = () => {
         return;
       }
 
+      // Clean URL params before navigating to prevent re-triggering
+      window.history.replaceState({}, '', '/login');
+
       if (result.success) {
         toast.success(`${state === 'github' ? 'GitHub' : 'Google'} login successful!`);
         const user = useAuthStore.getState().user;
@@ -57,7 +60,6 @@ const Login = () => {
       } else {
         toast.error(result.error);
       }
-      window.history.replaceState({}, '', '/login');
     };
 
     handleOAuth();
