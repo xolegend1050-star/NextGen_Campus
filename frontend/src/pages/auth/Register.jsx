@@ -5,13 +5,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
+import PasswordStrength from '../../components/common/PasswordStrength';
 
 const registerSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/, 'Password must contain uppercase, lowercase, number, and special character'),
   confirmPassword: z.string(),
   role: z.enum(['student', 'alumni', 'company'], { required_error: 'Please select a role' }),
   college_name: z.string().optional(),
@@ -187,6 +188,7 @@ const Register = () => {
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
               )}
+              <PasswordStrength password={watch('password') || ''} />
             </div>
 
             <div>

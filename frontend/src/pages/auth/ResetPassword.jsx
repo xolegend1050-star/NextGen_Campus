@@ -5,11 +5,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import PasswordStrength from '../../components/common/PasswordStrength';
 import { LockClosedIcon, ArrowLeftIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 
 const schema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters')
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, 'Password must contain uppercase, lowercase, and number'),
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/, 'Password must contain uppercase, lowercase, number, and special character'),
   confirmPassword: z.string()
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
@@ -21,7 +22,7 @@ const ResetPassword = () => {
   const token = searchParams.get('token');
   const [isReset, setIsReset] = useState(false);
 
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm({
     resolver: zodResolver(schema)
   });
 
@@ -75,6 +76,7 @@ const ResetPassword = () => {
                 placeholder="••••••••"
               />
               {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+              <PasswordStrength password={watch('password') || ''} />
             </div>
 
             <div>

@@ -11,7 +11,7 @@ const handleValidationErrors = (req, res, next) => {
 const registerValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain uppercase, lowercase, and number'),
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/).withMessage('Password must contain uppercase, lowercase, number, and special character'),
   body('role').isIn(['student', 'alumni', 'company']).withMessage('Invalid role'),
   body('full_name').trim().notEmpty().withMessage('Full name is required'),
   handleValidationErrors
@@ -31,7 +31,7 @@ const forgotPasswordValidation = [
 const resetPasswordValidation = [
   body('token').notEmpty().withMessage('Reset token is required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/).withMessage('Password must contain uppercase, lowercase, and number'),
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])/).withMessage('Password must contain uppercase, lowercase, number, and special character'),
   handleValidationErrors
 ];
 
