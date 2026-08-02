@@ -49,7 +49,27 @@ const Login = () => {
     handleOAuthRedirect();
   }, []);
 
-  // Google Identity Services callback
+  // Initialize Google Identity Services once on mount
+  useEffect(() => {
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) return;
+
+    const waitForGoogle = (retries = 0) => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            window.handleGoogleCredential(response);
+          }
+        });
+      } else if (retries < 20) {
+        setTimeout(() => waitForGoogle(retries + 1), 200);
+      }
+    };
+    waitForGoogle();
+  }, []);
+
+  // Google credential callback
   useEffect(() => {
     window.handleGoogleCredential = async (response) => {
       const result = await googleLogin(response.credential);
@@ -68,33 +88,11 @@ const Login = () => {
   }, []);
 
   const handleGoogleLogin = () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) {
-      toast.error('Google Sign-In is not configured.');
-      return;
+    if (window.google?.accounts?.id) {
+      window.google.accounts.id.prompt();
+    } else {
+      toast.error('Google Sign-In is still loading. Please try again.');
     }
-    const tryGoogle = (retries = 0) => {
-      if (window.google?.accounts?.id) {
-        // Only initialize once
-        if (!window._googleInitialized) {
-          window.google.accounts.id.initialize({
-            client_id: clientId,
-            callback: window.handleGoogleCredential
-          });
-          window._googleInitialized = true;
-        }
-        window.google.accounts.id.prompt((notification) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            toast.error('Google Sign-In popup was blocked. Try email login instead.');
-          }
-        });
-      } else if (retries < 10) {
-        setTimeout(() => tryGoogle(retries + 1), 300);
-      } else {
-        toast.error('Google Sign-In is not available. Please try again later.');
-      }
-    };
-    tryGoogle();
   };
 
   const handleGitHubLogin = () => {
