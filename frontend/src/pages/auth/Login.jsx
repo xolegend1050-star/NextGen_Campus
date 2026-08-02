@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,8 +15,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, isLoading, githubLogin } = useAuthStore();
-  const googleInitialized = useRef(false);
+  const { login, isLoading } = useAuthStore();
 
   const {
     register,
@@ -34,60 +33,41 @@ const Login = () => {
     else navigate('/dashboard');
   };
 
-  const handleOAuthRedirect = async () => {
+  // Handle OAuth redirects (GitHub and Google)
+  useEffect(() => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
-    if (code && state === 'github') {
-      const result = await githubLogin(code);
+
+    if (!code || !state) return;
+
+    const handleOAuth = async () => {
+      let result;
+      if (state === 'github') {
+        result = await useAuthStore.getState().githubLogin(code);
+      } else if (state === 'google') {
+        result = await useAuthStore.getState().googleLogin(code);
+      } else {
+        return;
+      }
+
       if (result.success) {
-        toast.success('GitHub login successful!');
+        toast.success(`${state === 'github' ? 'GitHub' : 'Google'} login successful!`);
         const user = useAuthStore.getState().user;
         navigateByRole(user);
       } else {
         toast.error(result.error);
       }
       window.history.replaceState({}, '', '/login');
-    }
-  };
-
-  useEffect(() => {
-    handleOAuthRedirect();
-  }, []);
-
-  // Initialize Google Identity Services once
-  useEffect(() => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-    if (!clientId) return;
-
-    const waitForGoogle = (retries = 0) => {
-      if (window.google?.accounts?.id && !googleInitialized.current) {
-        googleInitialized.current = true;
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: async (response) => {
-            const result = await useAuthStore.getState().googleLogin(response.credential);
-            if (result.success) {
-              toast.success('Google login successful!');
-              const user = useAuthStore.getState().user;
-              navigateByRole(user);
-            } else {
-              toast.error(result.error);
-            }
-          }
-        });
-      } else if (retries < 30) {
-        setTimeout(() => waitForGoogle(retries + 1), 200);
-      }
     };
-    waitForGoogle();
-  }, []);
+
+    handleOAuth();
+  }, [searchParams]);
 
   const handleGoogleLogin = () => {
-    if (window.google?.accounts?.id && googleInitialized.current) {
-      window.google.accounts.id.prompt();
-    } else {
-      toast.error('Google Sign-In is loading... please try again.');
-    }
+    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    const redirectUri = `${window.location.origin}/login`;
+    const scope = 'openid email profile';
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=google`;
   };
 
   const handleGitHubLogin = () => {
@@ -103,16 +83,7 @@ const Login = () => {
     if (result.success) {
       toast.success('Login successful!');
       const user = useAuthStore.getState().user;
-      const role = user?.role;
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (role === 'alumni') {
-        navigate('/mentor/dashboard');
-      } else if (role === 'company') {
-        navigate('/company/dashboard');
-      } else {
-        navigate('/dashboard');
-      }
+      navigateByRole(user);
     } else {
       toast.error(result.error);
     }

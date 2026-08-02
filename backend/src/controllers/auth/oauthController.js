@@ -15,24 +15,61 @@ const generateTokens = (userId) => {
 
 exports.googleLogin = async (req, res, next) => {
   try {
-    const { credential, role } = req.body;
+    const { code, credential, role } = req.body;
 
-    if (!credential) {
-      return res.status(400).json({ error: 'Google credential is required' });
+    let email, name, picture, googleId;
+
+    if (code) {
+      // Authorization code flow (redirect-based OAuth)
+      let tokenResponse;
+      try {
+        tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            code,
+            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_secret: process.env.GOOGLE_CLIENT_SECRET,
+            redirect_uri: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login`,
+            grant_type: 'authorization_code'
+          })
+        });
+      } catch (err) {
+        return res.status(500).json({ error: 'Failed to connect to Google' });
+      }
+
+      const tokenData = await tokenResponse.json();
+
+      if (tokenData.error) {
+        return res.status(401).json({ error: 'Google authentication failed', details: tokenData.error_description });
+      }
+
+      // Decode the id_token to get user info
+      try {
+        const parts = tokenData.id_token.split('.');
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        googleId = payload.sub;
+        email = payload.email;
+        name = payload.name;
+        picture = payload.picture;
+      } catch (err) {
+        return res.status(400).json({ error: 'Failed to decode Google token' });
+      }
+    } else if (credential) {
+      // Legacy credential flow (Google Identity Services SDK)
+      try {
+        const parts = credential.split('.');
+        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        googleId = payload.sub;
+        email = payload.email;
+        name = payload.name;
+        picture = payload.picture;
+      } catch (err) {
+        return res.status(400).json({ error: 'Invalid Google credential' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Google authorization code or credential is required' });
     }
-
-    // Decode the Google JWT to get user info (Google's JWT is signed by Google)
-    // We decode without verification since Google's SDK handles verification client-side
-    let payload;
-    try {
-      // Split the JWT and decode the payload
-      const parts = credential.split('.');
-      payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
-    } catch (err) {
-      return res.status(400).json({ error: 'Invalid Google credential' });
-    }
-
-    const { sub: googleId, email, name, picture } = payload;
 
     if (!email) {
       return res.status(400).json({ error: 'Email not available from Google account' });

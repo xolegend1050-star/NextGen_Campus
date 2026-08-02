@@ -79,10 +79,10 @@ export const useAuthStore = create(
         }
       },
 
-      googleLogin: async (credential, role = 'student') => {
+      googleLogin: async (code, role = 'student') => {
         set({ isLoading: true });
         try {
-          const response = await api.post('/auth/google', { credential, role });
+          const response = await api.post('/auth/google', { code, role });
           const { user, token, refreshToken } = response.data;
           set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
           return { success: true };
