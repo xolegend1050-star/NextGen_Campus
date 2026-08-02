@@ -127,7 +127,7 @@ function App() {
           </Route>
 
           {/* Auth Routes */}
-          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
           <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
           <Route path="/reset-password" element={<ResetPassword />} />
