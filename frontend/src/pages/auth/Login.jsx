@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -16,6 +16,7 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { login, isLoading } = useAuthStore();
+  const oauthHandled = useRef(false);
 
   const {
     register,
@@ -27,10 +28,10 @@ const Login = () => {
 
   const navigateByRole = (user) => {
     const role = user?.role;
-    if (role === 'admin') navigate('/admin/dashboard');
-    else if (role === 'alumni') navigate('/mentor/dashboard');
-    else if (role === 'company') navigate('/company/dashboard');
-    else navigate('/dashboard');
+    if (role === 'admin') navigate('/admin/dashboard', { replace: true });
+    else if (role === 'alumni') navigate('/mentor/dashboard', { replace: true });
+    else if (role === 'company') navigate('/company/dashboard', { replace: true });
+    else navigate('/dashboard', { replace: true });
   };
 
   // Handle OAuth redirects (GitHub and Google)
@@ -38,7 +39,8 @@ const Login = () => {
     const code = searchParams.get('code');
     const state = searchParams.get('state');
 
-    if (!code || !state) return;
+    if (!code || !state || oauthHandled.current) return;
+    oauthHandled.current = true;
 
     const handleOAuth = async () => {
       let result;
@@ -49,9 +51,6 @@ const Login = () => {
       } else {
         return;
       }
-
-      // Clean URL params before navigating to prevent re-triggering
-      window.history.replaceState({}, '', '/login');
 
       if (result.success) {
         toast.success(`${state === 'github' ? 'GitHub' : 'Google'} login successful!`);
