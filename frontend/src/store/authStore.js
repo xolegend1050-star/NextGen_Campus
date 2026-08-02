@@ -79,6 +79,32 @@ export const useAuthStore = create(
         }
       },
 
+      googleLogin: async (credential, role = 'student') => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/auth/google', { credential, role });
+          const { user, token, refreshToken } = response.data;
+          set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.response?.data?.error || 'Google login failed' };
+        }
+      },
+
+      githubLogin: async (code, role = 'student') => {
+        set({ isLoading: true });
+        try {
+          const response = await api.post('/auth/github', { code, role });
+          const { user, token, refreshToken } = response.data;
+          set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return { success: false, error: error.response?.data?.error || 'GitHub login failed' };
+        }
+      },
+
       logout: async () => {
         try {
           await api.post('/auth/logout');

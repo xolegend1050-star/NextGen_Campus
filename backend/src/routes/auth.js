@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/auth/authController');
+const oauthController = require('../controllers/auth/oauthController');
 const { authenticate } = require('../middleware/auth');
 const {
   registerValidation,
@@ -207,5 +208,9 @@ router.post('/logout', authenticate, authController.logout);
  *         description: Invalid refresh token
  */
 router.post('/refresh', authController.refreshToken);
+
+// OAuth routes
+router.post('/google', authLimiter, oauthController.googleLogin);
+router.post('/github', authLimiter, oauthController.githubLogin);
 
 module.exports = router;
