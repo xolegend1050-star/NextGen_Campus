@@ -1,13 +1,14 @@
-const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
 const logger = require('../utils/logger');
 
 function getClient() {
-  const apiKey = process.env.RESEND_API_KEY;
+  const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
-    logger.error('RESEND_API_KEY not set — emails will NOT be sent');
+    logger.error('SENDGRID_API_KEY not set — emails will NOT be sent');
     return null;
   }
-  return new Resend(apiKey);
+  sgMail.setApiKey(apiKey);
+  return sgMail;
 }
 
 async function sendPasswordResetEmail(email, resetToken) {
@@ -16,9 +17,9 @@ async function sendPasswordResetEmail(email, resetToken) {
 
   try {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <onboarding@resend.dev>';
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <noreply@nextgencampus.com>';
 
-    const { error } = await client.emails.send({
+    await client.send({
       from: fromEmail,
       to: email,
       subject: 'Password Reset Request - NextGen Campus',
@@ -35,11 +36,6 @@ async function sendPasswordResetEmail(email, resetToken) {
       `
     });
 
-    if (error) {
-      logger.error(`Resend API error for ${email}:`, error.message);
-      return false;
-    }
-
     logger.info(`Password reset email sent to: ${email}`);
     return true;
   } catch (error) {
@@ -54,9 +50,9 @@ async function sendVerificationEmail(email, verificationToken) {
 
   try {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
-    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <onboarding@resend.dev>';
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <noreply@nextgencampus.com>';
 
-    const { error } = await client.emails.send({
+    await client.send({
       from: fromEmail,
       to: email,
       subject: 'Verify Your Email - NextGen Campus',
@@ -69,11 +65,6 @@ async function sendVerificationEmail(email, verificationToken) {
         </div>
       `
     });
-
-    if (error) {
-      logger.error(`Resend API error for ${email}:`, error.message);
-      return false;
-    }
 
     logger.info(`Verification email sent to: ${email}`);
     return true;
