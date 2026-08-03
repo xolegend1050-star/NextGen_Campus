@@ -15,7 +15,7 @@ async function testEmail() {
 
   const msg = {
     to: 'renukaborhade902@gmail.com', // Test email
-    from: 'NextGen Campus <noreply@nextgencampus.com>',
+    from: 'NextGen Campus <xolegend1050@gmail.com>',
     subject: 'Test Email - NextGen Campus',
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

@@ -17,7 +17,7 @@ async function sendPasswordResetEmail(email, resetToken) {
 
   try {
     const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <noreply@nextgencampus.com>';
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <xolegend1050@gmail.com>';
 
     await client.send({
       from: fromEmail,
@@ -50,7 +50,7 @@ async function sendVerificationEmail(email, verificationToken) {
 
   try {
     const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${verificationToken}`;
-    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <noreply@nextgencampus.com>';
+    const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <xolegend1050@gmail.com>';
 
     await client.send({
       from: fromEmail,
