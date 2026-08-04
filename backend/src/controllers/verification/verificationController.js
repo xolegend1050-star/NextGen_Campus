@@ -1,6 +1,19 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const {
+  sendVerificationSubmittedEmail,
+  sendVerificationApprovedEmail,
+  sendVerificationRejectedEmail
+} = require('../../utils/email');
+
+// Known college email domains (extend as needed)
+const COLLEGE_DOMAINS = [
+  '.edu', '.ac.in', '.edu.in', '.ac.uk', '.edu.au',
+  'gmail.com', 'outlook.com' // For demo - remove in production
+];
+
+const LINKEDIN_REGEX = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
 
 exports.getVerificationStatus = async (req, res, next) => {
   try {
@@ -49,13 +62,29 @@ exports.submitVerification = async (req, res, next) => {
 
     // Check for existing pending verification
     const existing = await db.query(
-      `SELECT id FROM verifications 
+      `SELECT id FROM verifications
        WHERE user_id = $1 AND verification_type = $2 AND status = 'pending'`,
       [req.user.id, verification_type]
     );
 
     if (existing.rows.length > 0) {
       return res.status(400).json({ error: 'You already have a pending verification of this type' });
+    }
+
+    // Validate college email domain
+    if (verification_type === 'student_college_email' && metadata?.college_email) {
+      const domain = metadata.college_email.split('@')[1]?.toLowerCase();
+      const isCollegeDomain = COLLEGE_DOMAINS.some(d => domain?.endsWith(d));
+      if (!isCollegeDomain) {
+        return res.status(400).json({ error: 'Please use a valid college email address' });
+      }
+    }
+
+    // Validate LinkedIn URL
+    if (verification_type === 'alumni_linkedin' && metadata?.linkedin_url) {
+      if (!LINKEDIN_REGEX.test(metadata.linkedin_url)) {
+        return res.status(400).json({ error: 'Invalid LinkedIn URL format' });
+      }
     }
 
     const result = await db.query(
@@ -65,27 +94,49 @@ exports.submitVerification = async (req, res, next) => {
       [req.user.id, verification_type, tier, document_url || null, JSON.stringify(metadata || {})]
     );
 
-    // For tier1 auto-verification, check and auto-approve
+    // Tier 1 auto-verification logic
     if (tier === 'tier1_auto') {
-      // Auto-approve college email verification
       if (verification_type === 'student_college_email') {
-        const email = req.user.email;
-        const domain = email.split('@')[1];
+        // Send verification email with token
+        const token = uuidv4();
+        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-        // Check if domain is a known college domain
-        // For demo purposes, auto-approve
+        await db.query(
+          `INSERT INTO verification_tokens (user_id, token, verification_type, expires_at)
+           VALUES ($1, $2, $3, $4)`,
+          [req.user.id, token, verification_type, expiresAt]
+        );
+
+        // Send verification email
+        const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+        await sendEmail({
+          to: metadata.college_email || req.user.email,
+          subject: 'Verify Your College Email - NextGen Campus',
+          html: `<p>Click <a href="${verifyUrl}">here</a> to verify your college email.</p>`
+        });
+
+        logger.info(`Verification email sent to ${req.user.id}`);
+      }
+
+      if (verification_type === 'alumni_linkedin') {
+        // LinkedIn URL validation is format-based, auto-approve
         await db.query(
           `UPDATE verifications SET status = 'approved', reviewed_at = NOW() WHERE id = $1`,
           [result.rows[0].id]
         );
-
-        await db.query('UPDATE users SET is_email_verified = true WHERE id = $1', [req.user.id]);
-
-        logger.info(`Auto-verification approved for user ${req.user.id}`);
+        logger.info(`LinkedIn verification auto-approved for user ${req.user.id}`);
       }
     }
 
     logger.info(`Verification submitted: ${result.rows[0].id} (${verification_type})`);
+
+    // Send submitted confirmation email (non-blocking)
+    sendVerificationSubmittedEmail(
+      req.user.email,
+      verification_type,
+      req.user.full_name
+    ).catch(() => {});
+
     res.status(201).json({ verification: result.rows[0] });
   } catch (error) {
     next(error);
@@ -97,7 +148,7 @@ exports.verifyEmail = async (req, res, next) => {
     const { token } = req.body;
 
     const result = await db.query(
-      `SELECT * FROM verification_tokens 
+      `SELECT * FROM verification_tokens
        WHERE token = $1 AND user_id = $2 AND used = false AND expires_at > NOW()`,
       [token, req.user.id]
     );
@@ -106,10 +157,26 @@ exports.verifyEmail = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid or expired verification token' });
     }
 
+    // Approve the verification
+    const tokenData = result.rows[0];
+    await db.query(
+      `UPDATE verifications SET status = 'approved', reviewed_at = NOW()
+       WHERE user_id = $1 AND verification_type = $2 AND status = 'pending'`,
+      [req.user.id, tokenData.verification_type]
+    );
+
     await db.query('UPDATE users SET is_email_verified = true WHERE id = $1', [req.user.id]);
     await db.query('UPDATE verification_tokens SET used = true WHERE token = $1', [token]);
 
     logger.info(`Email verified for user ${req.user.id}`);
+
+    // Send approved email (non-blocking)
+    sendVerificationApprovedEmail(
+      req.user.email,
+      tokenData.verification_type,
+      req.user.full_name
+    ).catch(() => {});
+
     res.json({ message: 'Email verified successfully' });
   } catch (error) {
     next(error);

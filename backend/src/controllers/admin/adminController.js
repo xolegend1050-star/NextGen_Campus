@@ -1,5 +1,7 @@
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const { sendVerificationApprovedEmail, sendVerificationRejectedEmail } = require('../../utils/email');
+const { awardPoints } = require('../../utils/trustTiers');
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
@@ -179,9 +181,17 @@ exports.updateUserRole = async (req, res, next) => {
 
 exports.getPendingVerifications = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20, status } = req.query;
+    const { page = 1, limit = 20, status, type } = req.query;
     const offset = (page - 1) * limit;
     const statusFilter = status && status !== 'all' ? status : 'pending';
+
+    let whereClause = 'WHERE v.status = $1';
+    const params = [statusFilter];
+
+    if (type && type !== 'all') {
+      params.push(type);
+      whereClause += ` AND v.verification_type = $${params.length}`;
+    }
 
     const result = await db.query(
       `SELECT v.*,
@@ -190,15 +200,15 @@ exports.getPendingVerifications = async (req, res, next) => {
        FROM verifications v
        JOIN users u ON v.user_id = u.id
        LEFT JOIN profiles p ON u.id = p.user_id
-       WHERE v.status = $1
+       ${whereClause}
        ORDER BY v.created_at ASC
-       LIMIT $2 OFFSET $3`,
-      [statusFilter, limit, offset]
+       LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
+      [...params, limit, offset]
     );
 
     const count = await db.query(
-      'SELECT COUNT(*) FROM verifications WHERE status = $1',
-      [statusFilter]
+      `SELECT COUNT(*) FROM verifications v ${whereClause}`,
+      params
     );
 
     res.json({
@@ -237,12 +247,33 @@ exports.reviewVerification = async (req, res, next) => {
       [status, req.user.id, rejection_reason || null, id]
     );
 
-    // If approved, update user verification status
+    // If approved, update user verification status and award badge
     if (status === 'approved') {
       await db.query(
         'UPDATE users SET is_email_verified = true WHERE id = $1',
         [verification.rows[0].user_id]
       );
+
+      // Badge auto-award based on verification type
+      const vType = verification.rows[0].verification_type;
+      const userId = verification.rows[0].user_id;
+      let badgeName = null;
+      if (vType === 'student_college_email' || vType === 'student_id_card') badgeName = 'Verified Student';
+      else if (vType === 'alumni_linkedin' || vType === 'alumni_college_id') badgeName = 'Verified Alumni';
+      else if (vType === 'company_domain' || vType === 'company_gst') badgeName = 'Verified Company';
+
+      if (badgeName) {
+        const badge = await db.query('SELECT id FROM badges WHERE name = $1', [badgeName]);
+        if (badge.rows.length > 0) {
+          await db.query(
+            `INSERT INTO user_badges (user_id, badge_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+            [userId, badge.rows[0].id]
+          );
+        }
+      }
+
+      // Award trust score points via centralized system
+      await awardPoints(userId, 'verification_approved', vType, id);
     }
 
     // Log admin action
@@ -262,6 +293,14 @@ exports.reviewVerification = async (req, res, next) => {
        VALUES ($1, 'verification_approved', 'Verification Update', $2, $3)`,
       [verification.rows[0].user_id, notificationMessage, JSON.stringify({ verification_id: id, status })]
     );
+
+    // Send email notification (non-blocking)
+    const vUser = await db.query('SELECT email FROM users WHERE id = $1', [verification.rows[0].user_id]);
+    const userEmail = vUser.rows[0]?.email;
+    if (userEmail) {
+      const emailFn = status === 'approved' ? sendVerificationApprovedEmail : sendVerificationRejectedEmail;
+      emailFn(userEmail, verification.rows[0].verification_type, null, rejection_reason).catch(() => {});
+    }
 
     logger.info(`Verification ${status}: ${id}`);
     res.json({ message: `Verification ${status}` });

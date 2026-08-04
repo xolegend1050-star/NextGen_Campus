@@ -8,13 +8,16 @@ import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Badge from '../../components/common/Badge';
 import Modal from '../../components/common/Modal';
+import ExperienceSection from '../../components/profile/ExperienceSection';
+import ProjectsSection from '../../components/profile/ProjectsSection';
 import {
   UserIcon,
   PencilIcon,
   CheckIcon,
   XMarkIcon,
   PlusIcon,
-  TrashIcon
+  TrashIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline';
 
 const profileSchema = z.object({
@@ -40,6 +43,10 @@ const Profile = () => {
   const [skills, setSkills] = useState([]);
   const [newSkill, setNewSkill] = useState('');
   const [showSkillModal, setShowSkillModal] = useState(false);
+  const [badges, setBadges] = useState([]);
+  const [verifications, setVerifications] = useState([]);
+  const [experience, setExperience] = useState([]);
+  const [projects, setProjects] = useState([]);
 
   const {
     register,
@@ -56,10 +63,20 @@ const Profile = () => {
 
   const fetchProfile = async () => {
     try {
-      const response = await api.get('/auth/me');
-      setProfile(response.data.user);
-      setSkills(response.data.user.skills || []);
-      reset(response.data.user);
+      const [profileRes, badgesRes, verificationsRes, expRes, projRes] = await Promise.all([
+        api.get('/auth/me'),
+        api.get('/auth/me/badges').catch(() => ({ data: { badges: [] } })),
+        api.get('/verification/status').catch(() => ({ data: { verifications: [] } })),
+        api.get('/profiles/me/experience').catch(() => ({ data: { experience: [] } })),
+        api.get('/profiles/me/projects').catch(() => ({ data: { projects: [] } }))
+      ]);
+      setProfile(profileRes.data.user);
+      setSkills(profileRes.data.user.skills || []);
+      setBadges(badgesRes.data.badges || []);
+      setVerifications(verificationsRes.data.verifications || []);
+      setExperience(expRes.data.experience || []);
+      setProjects(projRes.data.projects || []);
+      reset(profileRes.data.user);
     } catch (error) {
       toast.error('Failed to load profile');
     } finally {
@@ -120,6 +137,13 @@ const Profile = () => {
                   {profile?.is_email_verified ? 'Verified' : 'Unverified'}
                 </Badge>
                 <Badge variant="info">Trust Score: {profile?.trust_score || 0}</Badge>
+            <Badge variant={
+              (profile?.trust_score || 0) >= 70 ? 'success' :
+              (profile?.trust_score || 0) >= 30 ? 'warning' : 'gray'
+            }>
+              {(profile?.trust_score || 0) >= 70 ? 'Featured' :
+               (profile?.trust_score || 0) >= 30 ? 'Rising' : 'New'}
+            </Badge>
               </div>
             </div>
           </div>
@@ -269,6 +293,20 @@ const Profile = () => {
           </div>
         </div>
 
+        {/* Experience */}
+        <ExperienceSection
+          experience={experience}
+          onUpdate={fetchProfile}
+          editing={editing}
+        />
+
+        {/* Projects */}
+        <ProjectsSection
+          projects={projects}
+          onUpdate={fetchProfile}
+          editing={editing}
+        />
+
         {/* Skills */}
         <div className="card mt-6 space-y-4">
           <div className="flex items-center justify-between">
@@ -306,6 +344,53 @@ const Profile = () => {
             )}
           </div>
         </div>
+
+        {/* Verification Badges */}
+        {badges.length > 0 && (
+          <div className="card mt-6 space-y-4">
+            <h2 className="text-lg font-semibold">Badges</h2>
+            <div className="flex flex-wrap gap-3">
+              {badges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="flex items-center gap-2 bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-full px-4 py-2"
+                >
+                  <span className="text-lg">{badge.icon_url || '🏅'}</span>
+                  <span className="text-sm font-medium text-primary-700">{badge.name}</span>
+                  <span className="text-xs text-primary-500">+{badge.points_value}pts</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Verification Status */}
+        {verifications.length > 0 && (
+          <div className="card mt-6 space-y-4">
+            <h2 className="text-lg font-semibold">Verification Status</h2>
+            <div className="space-y-2">
+              {verifications.map((v) => (
+                <div key={v.id} className="flex items-center justify-between py-2 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      v.status === 'approved' ? 'bg-green-500' :
+                      v.status === 'pending' ? 'bg-yellow-500' : 'bg-red-500'
+                    }`} />
+                    <span className="text-sm font-medium text-gray-700">
+                      {v.verification_type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}
+                    </span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    v.status === 'approved' ? 'bg-green-100 text-green-700' :
+                    v.status === 'pending' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {v.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Social Links */}
         <div className="card mt-6 space-y-6">

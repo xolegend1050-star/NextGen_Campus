@@ -102,6 +102,7 @@ router.post('/login', authLimiter, loginValidation, authController.login);
  *         description: Unauthorized
  */
 router.get('/me', authenticate, authController.getMe);
+router.get('/me/badges', authenticate, authController.getUserBadges);
 
 /**
  * @swagger

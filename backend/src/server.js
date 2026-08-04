@@ -32,6 +32,7 @@ const badgeRoutes = require('./routes/badges');
 const verificationRoutes = require('./routes/verification');
 const aiRoutes = require('./routes/ai');
 const followRoutes = require('./routes/follows');
+const uploadRoutes = require('./routes/upload');
 
 const app = express();
 const httpServer = createServer(app);
@@ -146,6 +147,10 @@ app.use('/api/badges', badgeRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/follows', followRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// Static file serving for uploads
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // 404 handler
 app.use((req, res) => {

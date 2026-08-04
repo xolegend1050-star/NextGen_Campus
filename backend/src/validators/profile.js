@@ -26,6 +26,60 @@ const updateProfileValidation = [
   handleValidationErrors
 ];
 
+const addExperienceValidation = [
+  body('title').trim().notEmpty().withMessage('Title is required'),
+  body('company_name').optional().trim(),
+  body('description').optional().trim().isLength({ max: 2000 }),
+  body('start_date').isISO8601().withMessage('Valid start date required'),
+  body('end_date').optional({ nullable: true }).isISO8601().withMessage('Invalid end date'),
+  body('is_current').optional().isBoolean(),
+  handleValidationErrors
+];
+
+const updateExperienceValidation = [
+  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+  body('company_name').optional().trim(),
+  body('description').optional().trim().isLength({ max: 2000 }),
+  body('start_date').optional().isISO8601().withMessage('Invalid start date'),
+  body('end_date').optional({ nullable: true }).isISO8601().withMessage('Invalid end date'),
+  body('is_current').optional().isBoolean(),
+  handleValidationErrors
+];
+
+const addProjectValidation = [
+  body('title').trim().notEmpty().withMessage('Title is required'),
+  body('description').optional().trim().isLength({ max: 2000 }),
+  body('project_url').optional().isURL().withMessage('Invalid project URL'),
+  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
+  body('technologies').optional().isArray({ max: 15 }),
+  body('technologies.*').optional().trim().notEmpty(),
+  body('image_url').optional().isURL().withMessage('Invalid image URL'),
+  handleValidationErrors
+];
+
+const updateProjectValidation = [
+  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
+  body('description').optional().trim().isLength({ max: 2000 }),
+  body('project_url').optional().isURL().withMessage('Invalid project URL'),
+  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
+  body('technologies').optional().isArray({ max: 15 }),
+  body('technologies.*').optional().trim().notEmpty(),
+  body('image_url').optional().isURL().withMessage('Invalid image URL'),
+  handleValidationErrors
+];
+
+const updateSkillsValidation = [
+  body('skills').isArray({ min: 0, max: 30 }).withMessage('Skills must be an array with max 30 items'),
+  body('skills.*').optional().trim().notEmpty().withMessage('Skill name cannot be empty'),
+  handleValidationErrors
+];
+
+const addSkillsValidation = [
+  body('skills').isArray({ min: 1, max: 10 }).withMessage('Provide 1-10 skills to add'),
+  body('skills.*').trim().notEmpty().withMessage('Skill name cannot be empty'),
+  handleValidationErrors
+];
+
 const updateAlumniValidation = [
   body('graduation_year').isInt({ min: 1990, max: 2024 }).withMessage('Invalid graduation year'),
   body('current_company').optional().trim().notEmpty(),
@@ -40,11 +94,11 @@ const updateAlumniValidation = [
 const updateCompanyValidation = [
   body('company_name').trim().notEmpty().withMessage('Company name is required'),
   body('description').optional().trim().isLength({ max: 2000 }),
+  body('website_url').optional().isURL().withMessage('Invalid website URL'),
   body('industry').optional().trim().notEmpty(),
   body('company_size').optional().isIn(['1-10', '11-50', '51-200', '201-500', '500+']),
-  body('website_url').optional().isURL(),
-  body('linkedin_url').optional().isURL(),
-  body('gst_number').optional().matches(/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/),
+  body('headquarters_city').optional().trim().notEmpty(),
+  body('headquarters_state').optional().trim().notEmpty(),
   handleValidationErrors
 ];
 
@@ -52,5 +106,10 @@ module.exports = {
   updateProfileValidation,
   updateAlumniValidation,
   updateCompanyValidation,
-  handleValidationErrors
+  addExperienceValidation,
+  updateExperienceValidation,
+  addProjectValidation,
+  updateProjectValidation,
+  updateSkillsValidation,
+  addSkillsValidation
 };

@@ -74,4 +74,108 @@ async function sendVerificationEmail(email, verificationToken) {
   }
 }
 
-module.exports = { sendPasswordResetEmail, sendVerificationEmail };
+async function sendVerificationSubmittedEmail(email, verificationType, userName) {
+  const client = getClient();
+  if (!client) return false;
+
+  try {
+    const typeLabel = verificationType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    await client.send({
+      from: fromEmail,
+      to: email,
+      subject: `Verification Request Received - ${typeLabel} - NextGen Campus`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4f46e5;">Verification Request Received</h2>
+          <p>Hi ${userName || 'there'},</p>
+          <p>We've received your <strong>${typeLabel}</strong> verification request. Our team will review it shortly.</p>
+          <p>You'll receive an email once your verification has been approved or rejected.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
+        </div>
+      `
+    });
+
+    logger.info(`Verification submitted email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to send verification submitted email to ${email}:`, error.message);
+    return false;
+  }
+}
+
+async function sendVerificationApprovedEmail(email, verificationType, userName) {
+  const client = getClient();
+  if (!client) return false;
+
+  try {
+    const typeLabel = verificationType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    await client.send({
+      from: fromEmail,
+      to: email,
+      subject: `Verification Approved - ${typeLabel} - NextGen Campus`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #10b981;">Verification Approved!</h2>
+          <p>Hi ${userName || 'there'},</p>
+          <p>Your <strong>${typeLabel}</strong> verification has been approved.</p>
+          <p>You've earned a verification badge and your trust score has been updated.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/profile" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">View Profile</a>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
+        </div>
+      `
+    });
+
+    logger.info(`Verification approved email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to send verification approved email to ${email}:`, error.message);
+    return false;
+  }
+}
+
+async function sendVerificationRejectedEmail(email, verificationType, userName, reason) {
+  const client = getClient();
+  if (!client) return false;
+
+  try {
+    const typeLabel = verificationType.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    await client.send({
+      from: fromEmail,
+      to: email,
+      subject: `Verification Rejected - ${typeLabel} - NextGen Campus`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #ef4444;">Verification Rejected</h2>
+          <p>Hi ${userName || 'there'},</p>
+          <p>Your <strong>${typeLabel}</strong> verification has been rejected.</p>
+          ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
+          <p>You can submit a new verification request after addressing the issue.</p>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/verification" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">Try Again</a>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
+        </div>
+      `
+    });
+
+    logger.info(`Verification rejected email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to send verification rejected email to ${email}:`, error.message);
+    return false;
+  }
+}
+
+const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <xolegend1050@gmail.com>';
+
+module.exports = {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  sendVerificationSubmittedEmail,
+  sendVerificationApprovedEmail,
+  sendVerificationRejectedEmail
+};

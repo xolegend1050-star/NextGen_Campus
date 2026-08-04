@@ -30,17 +30,20 @@ const Wallet = lazy(() => import('./pages/student/Wallet'));
 const Notifications = lazy(() => import('./pages/student/Notifications'));
 const Chat = lazy(() => import('./pages/student/Chat'));
 const Resources = lazy(() => import('./pages/student/Resources'));
+const StudentVerification = lazy(() => import('./pages/student/Verification'));
 
 // Lazy-loaded Company Pages
 const CompanyDashboard = lazy(() => import('./pages/company/Dashboard'));
 const PostGig = lazy(() => import('./pages/company/PostGig'));
 const ManageGigs = lazy(() => import('./pages/company/ManageGigs'));
 const ViewApplications = lazy(() => import('./pages/company/ViewApplications'));
+const CompanyVerification = lazy(() => import('./pages/company/Verification'));
 
 // Lazy-loaded Mentor Pages
 const MentorDashboard = lazy(() => import('./pages/mentor/Dashboard'));
 const MentorRequests = lazy(() => import('./pages/mentor/Requests'));
 const MentorSessions = lazy(() => import('./pages/mentor/Sessions'));
+const AlumniVerification = lazy(() => import('./pages/mentor/Verification'));
 
 // Lazy-loaded Admin Pages
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'));
@@ -156,6 +159,7 @@ function App() {
             <Route path="notifications" element={<Notifications />} />
             <Route path="chat" element={<Chat />} />
             <Route path="resources" element={<Resources />} />
+            <Route path="verification" element={<StudentVerification />} />
             <Route path="people" element={<People />} />
             <Route path="feed" element={<Feed />} />
           </Route>
@@ -173,6 +177,7 @@ function App() {
             <Route path="post-gig" element={<PostGig />} />
             <Route path="manage-gigs" element={<ManageGigs />} />
             <Route path="gigs/:id/applications" element={<ViewApplications />} />
+            <Route path="verification" element={<CompanyVerification />} />
           </Route>
 
           {/* Mentor Routes */}
@@ -187,6 +192,7 @@ function App() {
             <Route index element={<MentorDashboard />} />
             <Route path="requests" element={<MentorRequests />} />
             <Route path="sessions" element={<MentorSessions />} />
+            <Route path="verification" element={<AlumniVerification />} />
           </Route>
 
           {/* Admin Routes */}

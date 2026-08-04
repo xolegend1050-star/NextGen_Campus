@@ -371,3 +371,19 @@ exports.refreshToken = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getUserBadges = async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `SELECT b.id, b.name, b.description, b.icon_url, b.points_value, ub.earned_at
+       FROM user_badges ub
+       JOIN badges b ON ub.badge_id = b.id
+       WHERE ub.user_id = $1
+       ORDER BY ub.earned_at DESC`,
+      [req.user.id]
+    );
+    res.json({ badges: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};

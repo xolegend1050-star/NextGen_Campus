@@ -53,6 +53,7 @@ const DashboardLayout = () => {
           { name: 'Mentors', href: '/dashboard/mentors', icon: AcademicCapIcon },
           { name: 'Gigs', href: '/dashboard/gigs', icon: BriefcaseIcon },
           { name: 'My Applications', href: '/dashboard/my-applications', icon: BriefcaseIcon },
+          { name: 'Verification', href: '/dashboard/verification', icon: ShieldCheckIcon },
           { name: 'Wallet', href: '/dashboard/wallet', icon: WalletIcon },
           { name: 'Resources', href: '/dashboard/resources', icon: BookOpenIcon },
         ];
@@ -61,6 +62,7 @@ const DashboardLayout = () => {
           ...commonItems,
           { name: 'Mentor Requests', href: '/mentor/requests', icon: AcademicCapIcon },
           { name: 'Sessions', href: '/mentor/sessions', icon: AcademicCapIcon },
+          { name: 'Verification', href: '/mentor/verification', icon: ShieldCheckIcon },
           { name: 'Resources', href: '/dashboard/resources', icon: BookOpenIcon },
         ];
       case 'company':
@@ -68,6 +70,7 @@ const DashboardLayout = () => {
           ...commonItems,
           { name: 'Post Gig', href: '/company/post-gig', icon: BriefcaseIcon },
           { name: 'Manage Gigs', href: '/company/manage-gigs', icon: BriefcaseIcon },
+          { name: 'Verification', href: '/company/verification', icon: ShieldCheckIcon },
         ];
       case 'admin':
         return [

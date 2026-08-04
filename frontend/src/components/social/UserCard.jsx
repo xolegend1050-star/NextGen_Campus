@@ -63,6 +63,9 @@ const UserCard = ({ user, onFollowChange }) => {
             <p className="text-xs text-gray-400 mt-1 line-clamp-2">{user.bio}</p>
           )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {user.is_verified && (
+              <Badge variant="success">Verified</Badge>
+            )}
             {user.talent_tier && user.talent_tier !== 'new' && (
               <Badge variant={user.talent_tier === 'featured' ? 'success' : 'warning'}>
                 {user.talent_tier}
