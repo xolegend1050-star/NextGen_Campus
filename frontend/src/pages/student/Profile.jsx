@@ -86,7 +86,7 @@ const Profile = () => {
 
   const onSubmit = async (data) => {
     try {
-      await api.put(`/profiles/${user.id}`, { ...data, skills });
+      await api.put('/profiles/me', { ...data, skills });
       toast.success('Profile updated successfully');
       setEditing(false);
       fetchProfile();
