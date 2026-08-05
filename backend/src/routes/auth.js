@@ -214,4 +214,58 @@ router.post('/refresh', authController.refreshToken);
 router.post('/google', authLimiter, oauthController.googleLogin);
 router.post('/github', authLimiter, oauthController.githubLogin);
 
+// =====================================================
+// OTP VERIFICATION (Company accounts only)
+// =====================================================
+
+/**
+ * @swagger
+ * /api/auth/send-otp:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Resend OTP code (company accounts only)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tempToken]
+ *             properties:
+ *               tempToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent successfully
+ *       401:
+ *         description: Invalid or expired session
+ */
+router.post('/send-otp', strictAuthLimiter, authController.sendOtp);
+
+/**
+ * @swagger
+ * /api/auth/verify-otp:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Verify OTP code and complete login (company accounts only)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tempToken, otp]
+ *             properties:
+ *               tempToken:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP verified, login successful
+ *       401:
+ *         description: Invalid OTP or expired session
+ */
+router.post('/verify-otp', strictAuthLimiter, authController.verifyOtp);
+
 module.exports = router;

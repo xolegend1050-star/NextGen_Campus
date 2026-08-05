@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
-const { sendPasswordResetEmail, sendVerificationEmail } = require('../../utils/email');
+const { sendPasswordResetEmail, sendVerificationEmail, sendOtpEmail } = require('../../utils/email');
+const { storeOtp, verifyOtp: verifyOtpCode, OTP_EXPIRY_MINUTES } = require('../../utils/otp');
 
 const generateTokens = (userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -119,7 +120,7 @@ exports.login = async (req, res, next) => {
 
     // Get user
     const result = await db.query(
-      'SELECT id, email, password_hash, role, is_active, is_banned FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, role, is_active, is_banned, skip_otp FROM users WHERE email = $1',
       [email]
     );
 
@@ -141,6 +142,35 @@ exports.login = async (req, res, next) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Users need OTP verification before receiving full tokens (unless skip_otp is true)
+    if (!user.skip_otp) {
+      const tempToken = jwt.sign(
+        { userId: user.id, purpose: 'otp_verification' },
+        process.env.JWT_SECRET,
+        { expiresIn: '10m' }
+      );
+
+      const { code } = await storeOtp(user.id);
+
+      // Send OTP via email (non-blocking)
+      sendOtpEmail(user.email, code).catch(err =>
+        logger.error('Failed to send OTP email:', err.message)
+      );
+
+      logger.info(`OTP sent to user ${user.email}`);
+
+      return res.json({
+        otp_required: true,
+        tempToken,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role
+        },
+        message: `OTP sent to ${user.email}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`
+      });
     }
 
     // Generate tokens
@@ -383,6 +413,137 @@ exports.getUserBadges = async (req, res, next) => {
       [req.user.id]
     );
     res.json({ badges: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// =====================================================
+// OTP VERIFICATION (Company accounts only)
+// =====================================================
+
+exports.sendOtp = async (req, res, next) => {
+  try {
+    const { tempToken } = req.body;
+
+    if (!tempToken) {
+      return res.status(400).json({ error: 'Temporary token required' });
+    }
+
+    // Verify temp token
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (_err) {
+      return res.status(401).json({ error: 'Invalid or expired session. Please login again.' });
+    }
+
+    if (decoded.purpose !== 'otp_verification') {
+      return res.status(401).json({ error: 'Invalid token purpose' });
+    }
+
+    // Get user
+    const userResult = await db.query(
+      'SELECT id, email, role FROM users WHERE id = $1 AND role = $2',
+      [decoded.userId, 'company']
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Company user not found' });
+    }
+
+    const user = userResult.rows[0];
+
+    // Generate and store new OTP
+    const { code } = await storeOtp(user.id);
+
+    // Send OTP via email (non-blocking)
+    sendOtpEmail(user.email, code).catch(err =>
+      logger.error('Failed to send OTP email:', err.message)
+    );
+
+    logger.info(`OTP resent to company user ${user.email}`);
+
+    res.json({
+      message: `OTP sent to ${user.email}. Valid for ${OTP_EXPIRY_MINUTES} minutes.`
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.verifyOtp = async (req, res, next) => {
+  try {
+    const { tempToken, otp } = req.body;
+
+    if (!tempToken || !otp) {
+      return res.status(400).json({ error: 'Temporary token and OTP code required' });
+    }
+
+    // Verify temp token
+    let decoded;
+    try {
+      decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    } catch (_err) {
+      return res.status(401).json({ error: 'Invalid or expired session. Please login again.' });
+    }
+
+    if (decoded.purpose !== 'otp_verification') {
+      return res.status(401).json({ error: 'Invalid token purpose' });
+    }
+
+    // Verify OTP
+    const result = await verifyOtpCode(decoded.userId, otp);
+
+    if (!result.success) {
+      return res.status(401).json({ error: result.error });
+    }
+
+    // OTP verified — now generate full tokens
+    const { token, refreshToken } = generateTokens(decoded.userId);
+
+    // Get full user info
+    const userResult = await db.query(
+      `SELECT u.id, u.email, u.role, u.is_active, u.is_banned,
+              cp.company_name, cp.industry, cp.website_url, cp.is_verified, cp.trust_score
+       FROM users u
+       LEFT JOIN company_profiles cp ON u.id = cp.user_id
+       WHERE u.id = $1`,
+      [decoded.userId]
+    );
+
+    const user = userResult.rows[0];
+
+    // Create session
+    await db.query(
+      `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
+       VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
+      [user.id, token, refreshToken]
+    );
+
+    // Update last login
+    await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
+
+    logger.info(`OTP verified, login completed for company user: ${user.email}`);
+
+    res.json({
+      message: 'OTP verified. Login successful.',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        is_email_verified: user.is_email_verified,
+        company: {
+          company_name: user.company_name,
+          industry: user.industry,
+          website_url: user.website_url,
+          is_verified: user.is_verified,
+          trust_score: user.trust_score
+        }
+      },
+      token,
+      refreshToken
+    });
   } catch (error) {
     next(error);
   }

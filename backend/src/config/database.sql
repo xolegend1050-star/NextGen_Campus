@@ -25,6 +25,7 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     is_banned BOOLEAN DEFAULT FALSE,
     ban_reason TEXT,
+    skip_otp BOOLEAN DEFAULT FALSE,
     last_login_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -49,6 +50,24 @@ CREATE TABLE password_resets (
     used BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- =====================================================
+-- LOGIN OTP VERIFICATION (Company accounts only)
+-- =====================================================
+
+CREATE TABLE login_otps (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    otp_code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_login_otps_user ON login_otps(user_id);
+CREATE INDEX idx_login_otps_code ON login_otps(otp_code);
 
 -- =====================================================
 -- MODULE 2: TIERED VERIFICATION MODULE
@@ -1006,6 +1025,20 @@ CREATE TRIGGER trigger_create_notification_prefs
     AFTER INSERT ON users
     FOR EACH ROW
     EXECUTE FUNCTION create_notification_prefs();
+
+-- Cleanup expired login OTPs (runs on each insert)
+CREATE OR REPLACE FUNCTION cleanup_expired_otps()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM login_otps WHERE expires_at < NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE TRIGGER trigger_cleanup_otps
+    BEFORE INSERT ON login_otps
+    FOR EACH ROW
+    EXECUTE FUNCTION cleanup_expired_otps();
 
 -- Update doubt upvote count
 CREATE OR REPLACE FUNCTION update_doubt_votes()

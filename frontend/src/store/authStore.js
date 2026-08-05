@@ -20,6 +20,8 @@ export const useAuthStore = create(
       refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
+      otpRequired: false,
+      tempToken: null,
 
       setUser: (user) => set({ user }),
 
@@ -27,7 +29,18 @@ export const useAuthStore = create(
         set({ isLoading: true });
         try {
           const response = await api.post('/auth/login', { email, password });
-          const { user, token, refreshToken } = response.data;
+          const { user, token, refreshToken, otp_required, tempToken, message } = response.data;
+
+          // Company users need OTP verification
+          if (otp_required) {
+            set({
+              isLoading: false,
+              otpRequired: true,
+              tempToken,
+              user
+            });
+            return { success: true, otpRequired: true, message };
+          }
 
           set({
             user,
@@ -49,6 +62,50 @@ export const useAuthStore = create(
             error: error.response?.data?.error || 'Login failed'
           };
         }
+      },
+
+      verifyOtp: async (otp) => {
+        set({ isLoading: true });
+        try {
+          const { tempToken } = get();
+          const response = await api.post('/auth/verify-otp', { tempToken, otp });
+          const { user, token, refreshToken } = response.data;
+
+          set({
+            user,
+            token,
+            refreshToken,
+            isAuthenticated: true,
+            isLoading: false,
+            otpRequired: false,
+            tempToken: null
+          });
+
+          return { success: true };
+        } catch (error) {
+          set({ isLoading: false });
+          return {
+            success: false,
+            error: error.response?.data?.error || 'OTP verification failed'
+          };
+        }
+      },
+
+      resendOtp: async () => {
+        try {
+          const { tempToken } = get();
+          const response = await api.post('/auth/send-otp', { tempToken });
+          return { success: true, message: response.data.message };
+        } catch (error) {
+          return {
+            success: false,
+            error: error.response?.data?.error || 'Failed to resend OTP'
+          };
+        }
+      },
+
+      cancelOtp: () => {
+        set({ otpRequired: false, tempToken: null, user: null });
       },
 
       register: async (data) => {
@@ -163,7 +220,9 @@ export const useAuthStore = create(
         user: state.user,
         token: state.token,
         refreshToken: state.refreshToken,
-        isAuthenticated: state.isAuthenticated
+        isAuthenticated: state.isAuthenticated,
+        otpRequired: state.otpRequired,
+        tempToken: state.tempToken
       })
     }
   )

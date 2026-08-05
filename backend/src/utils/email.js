@@ -172,10 +172,43 @@ async function sendVerificationRejectedEmail(email, verificationType, userName, 
 
 const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <xolegend1050@gmail.com>';
 
+async function sendOtpEmail(email, otpCode) {
+  const client = getClient();
+  if (!client) return false;
+
+  try {
+    await client.send({
+      from: fromEmail,
+      to: email,
+      subject: 'Your Login OTP - NextGen Campus',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #4f46e5;">Login Verification</h2>
+          <p>Your One-Time Password (OTP) for login is:</p>
+          <div style="background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #1f2937;">${otpCode}</span>
+          </div>
+          <p style="color: #666; font-size: 14px;">This OTP expires in 5 minutes. Do not share it with anyone.</p>
+          <p style="color: #666; font-size: 14px;">If you didn't request this, please ignore this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
+        </div>
+      `
+    });
+
+    logger.info(`OTP email sent to: ${email}`);
+    return true;
+  } catch (error) {
+    logger.error(`Failed to send OTP email to ${email}:`, error.message);
+    return false;
+  }
+}
+
 module.exports = {
   sendPasswordResetEmail,
   sendVerificationEmail,
   sendVerificationSubmittedEmail,
   sendVerificationApprovedEmail,
-  sendVerificationRejectedEmail
+  sendVerificationRejectedEmail,
+  sendOtpEmail
 };
