@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import {
@@ -25,6 +25,7 @@ import {
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuthStore();
@@ -34,10 +35,34 @@ const DashboardLayout = () => {
     navigate('/login');
   };
 
+  // Fetch unread notification count
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const { default: api } = await import('../services/api');
+        const res = await api.get('/notifications?unreadOnly=true&limit=1');
+        setUnreadCount(res.data?.unreadCount || 0);
+      } catch {
+        // Silent fail — not critical
+      }
+    };
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Check if a nav item is active (supports nested routes)
+  const isActive = (href) => {
+    if (href === '/dashboard' || href === '/mentor' || href === '/company' || href === '/admin') {
+      return location.pathname === href;
+    }
+    return location.pathname.startsWith(href);
+  };
+
   // Navigation items based on role
   const getNavItems = () => {
     const commonItems = [
-      { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+      { name: 'Dashboard', href: user?.role === 'alumni' ? '/mentor' : user?.role === 'company' ? '/company' : '/dashboard', icon: HomeIcon },
       { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
       { name: 'Notifications', href: '/dashboard/notifications', icon: BellIcon },
       { name: 'Chat', href: '/dashboard/chat', icon: ChatBubbleLeftIcon },
@@ -88,6 +113,10 @@ const DashboardLayout = () => {
 
   const navItems = getNavItems();
 
+  // Get user display name and initial
+  const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
+  const avatarInitial = displayName.charAt(0).toUpperCase();
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile sidebar */}
@@ -107,7 +136,7 @@ const DashboardLayout = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`sidebar-link ${location.pathname === item.href ? 'sidebar-link-active' : ''}`}
+                className={`sidebar-link ${isActive(item.href) ? 'sidebar-link-active' : ''}`}
                 onClick={() => setSidebarOpen(false)}
               >
                 <item.icon className="h-5 w-5" />
@@ -140,7 +169,7 @@ const DashboardLayout = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`sidebar-link ${location.pathname === item.href ? 'sidebar-link-active' : ''}`}
+                className={`sidebar-link ${isActive(item.href) ? 'sidebar-link-active' : ''}`}
               >
                 <item.icon className="h-5 w-5" />
                 {item.name}
@@ -150,11 +179,11 @@ const DashboardLayout = () => {
           <div className="p-4 border-t">
             <div className="flex items-center gap-3 mb-4">
               <div className="avatar avatar-md bg-primary-100 text-primary-600 flex items-center justify-center font-semibold">
-                {user?.email?.charAt(0).toUpperCase()}
+                {avatarInitial}
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {user?.email}
+                  {displayName}
                 </p>
                 <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
               </div>
@@ -184,7 +213,9 @@ const DashboardLayout = () => {
           <div className="flex items-center gap-4">
             <Link to="/dashboard/notifications" className="relative p-2 hover:bg-gray-100 rounded-full">
               <BellIcon className="h-6 w-6 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              )}
             </Link>
           </div>
         </div>

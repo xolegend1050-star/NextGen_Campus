@@ -31,7 +31,8 @@ const testConnection = async () => {
   }
 };
 
-testConnection();
+// Only test connection when explicitly required
+// testConnection();
 
 module.exports = {
   query: (text, params) => pool.query(text, params),

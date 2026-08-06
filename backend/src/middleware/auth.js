@@ -1,5 +1,8 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const db = require('../config/database');
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const authenticate = async (req, res, next) => {
   try {
@@ -33,7 +36,7 @@ const authenticate = async (req, res, next) => {
     // Verify session still exists (logged-out tokens are invalid)
     const session = await db.query(
       'SELECT id FROM user_sessions WHERE token_hash = $1 AND expires_at > NOW()',
-      [token]
+      [hashToken(token)]
     );
     if (session.rows.length === 0) {
       return res.status(401).json({ error: 'Session expired. Please login again.' });

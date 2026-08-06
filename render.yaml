@@ -59,6 +59,8 @@ services:
     envVars:
       - key: GEMINI_API_KEY
         sync: false
+      - key: PORT
+        value: "5001"
       - key: AI_SERVICE_URL
         value: http://localhost:5001
       - key: DATABASE_URL

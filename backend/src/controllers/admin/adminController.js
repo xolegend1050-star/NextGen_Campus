@@ -85,7 +85,7 @@ exports.getUsers = async (req, res, next) => {
                         p.full_name, p.avatar_url, p.trust_score, p.talent_tier
                  FROM users u
                  LEFT JOIN profiles p ON u.id = p.user_id`;
-    let countQuery = 'SELECT COUNT(*) FROM users';
+    let countQuery = `SELECT COUNT(*) FROM users u LEFT JOIN profiles p ON u.id = p.user_id`;
     const params = [];
     const conditions = [];
 
@@ -367,19 +367,47 @@ exports.reviewFlaggedContent = async (req, res, next) => {
       [req.user.id, action, id]
     );
 
-    // If ban action, ban the user
+    // If ban action, ban the CONTENT AUTHOR (not the reporter)
     if (action === 'ban') {
-      await db.query(
-        'UPDATE users SET is_banned = true, ban_reason = $1 WHERE id = $2',
-        [reason, flagged.rows[0].reported_by]
-      );
+      // Look up the content author based on content type
+      let authorId = null;
+      switch (flagged.rows[0].content_type) {
+        case 'company': {
+          const author = await db.query('SELECT user_id FROM company_profiles WHERE user_id = $1', [flagged.rows[0].content_id]);
+          authorId = author.rows[0]?.user_id;
+          break;
+        }
+        case 'doubt': {
+          const author = await db.query('SELECT author_id FROM doubts WHERE id = $1', [flagged.rows[0].content_id]);
+          authorId = author.rows[0]?.author_id;
+          break;
+        }
+        case 'answer': {
+          const author = await db.query('SELECT author_id FROM doubt_answers WHERE id = $1', [flagged.rows[0].content_id]);
+          authorId = author.rows[0]?.author_id;
+          break;
+        }
+        case 'mentor': {
+          const author = await db.query('SELECT alumni_id FROM mentorship_requests WHERE id = $1', [flagged.rows[0].content_id]);
+          authorId = author.rows[0]?.alumni_id;
+          break;
+        }
+        default:
+          break;
+      }
+      if (authorId) {
+        await db.query(
+          'UPDATE users SET is_banned = true, ban_reason = $1 WHERE id = $2',
+          [reason, authorId]
+        );
+      }
     }
 
     // Log admin action
     await db.query(
       `INSERT INTO admin_audit_log (admin_id, action_type, target_user_id, reason, target_resource_type, target_resource_id)
        VALUES ($1, 'flag_content', $2, $3, $4, $5)`,
-      [req.user.id, flagged.rows[0].reported_by, reason, flagged.rows[0].content_type, flagged.rows[0].content_id]
+      [req.user.id, authorId || flagged.rows[0].reported_by, reason, flagged.rows[0].content_type, flagged.rows[0].content_id]
     );
 
     logger.info(`Flagged content reviewed: ${id}, action: ${action}`);

@@ -196,7 +196,20 @@ io.on('connection', (socket) => {
   // Update last_seen_at in DB
   db.query('UPDATE users SET last_seen_at = NOW() WHERE id = $1', [socket.user.id]).catch(() => {});
 
-  socket.on('join_room', (room) => {
+  socket.on('join_room', async (room) => {
+    // Authorization: verify user is a participant of this conversation
+    // Room format: "conversation_{conversationId}"
+    const conversationId = room.replace('conversation_', '');
+    if (conversationId && conversationId !== room) {
+      const isParticipant = await db.query(
+        'SELECT id FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+        [conversationId, socket.user.id]
+      );
+      if (isParticipant.rows.length === 0) {
+        socket.emit('error', { message: 'Not authorized to join this room' });
+        return;
+      }
+    }
     socket.join(room);
     logger.info(`User ${socket.user.id} joined room: ${room}`);
   });
@@ -206,9 +219,27 @@ io.on('connection', (socket) => {
     logger.info(`User ${socket.user.id} left room: ${room}`);
   });
 
-  socket.on('send_message', (data) => {
+  socket.on('send_message', async (data) => {
+    // Persist message to database
+    const conversationId = data.room?.replace('conversation_', '');
+    let savedMessage = null;
+    if (conversationId && data.content) {
+      try {
+        const result = await db.query(
+          `INSERT INTO messages (conversation_id, sender_id, content, message_type)
+           VALUES ($1, $2, $3, $4)
+           RETURNING *`,
+          [conversationId, socket.user.id, data.content, data.message_type || 'text']
+        );
+        savedMessage = result.rows[0];
+      } catch (err) {
+        logger.error('Failed to persist socket message:', err.message);
+      }
+    }
+
     io.to(data.room).emit('receive_message', {
       ...data,
+      ...(savedMessage ? { id: savedMessage.id, created_at: savedMessage.created_at } : {}),
       sender_id: socket.user.id,
       sender_name: socket.user.email,
       timestamp: new Date().toISOString()

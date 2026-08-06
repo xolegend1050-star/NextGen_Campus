@@ -1,6 +1,7 @@
 const axios = require('axios');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const { awardPoints } = require('../../utils/trustTiers');
 
 const sanitizeInput = (str) => {
   if (typeof str !== 'string') return str;
@@ -257,12 +258,8 @@ exports.answerDoubt = async (req, res, next) => {
       await db.query("UPDATE doubts SET status = 'answered' WHERE id = $1", [id]);
     }
 
-    // Award points to answerer
-    await db.query(
-      `INSERT INTO points_history (user_id, points, reason, reference_type, reference_id)
-       VALUES ($1, 10, 'Answered a doubt', 'doubt_answer', $2)`,
-      [req.user.id, result.rows[0].id]
-    );
+    // Award points to answerer (also updates trust score)
+    await awardPoints(req.user.id, 'doubt_answered', 'doubt_answer', result.rows[0].id);
 
     logger.info(`Doubt answered: ${id} by user ${req.user.id}`);
 
@@ -394,13 +391,9 @@ exports.acceptAnswer = async (req, res, next) => {
     // Update doubt status
     await db.query("UPDATE doubts SET status = 'closed', accepted_answer_id = $1 WHERE id = $2", [answerId, id]);
 
-    // Award points to answer author
+    // Award points to answer author (also updates trust score)
     const answerAuthor = await db.query('SELECT author_id FROM doubt_answers WHERE id = $1', [answerId]);
-    await db.query(
-      `INSERT INTO points_history (user_id, points, reason, reference_type, reference_id)
-       VALUES ($1, 25, 'Answer accepted', 'doubt_accepted', $2)`,
-      [answerAuthor.rows[0].author_id, answerId]
-    );
+    await awardPoints(answerAuthor.rows[0].author_id, 'answer_accepted', 'doubt_accepted', answerId);
 
     res.json({ message: 'Answer accepted' });
   } catch (error) {

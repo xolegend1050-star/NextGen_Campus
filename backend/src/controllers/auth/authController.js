@@ -1,10 +1,14 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
 const { sendPasswordResetEmail, sendVerificationEmail, sendOtpEmail } = require('../../utils/email');
 const { storeOtp, verifyOtp: verifyOtpCode, OTP_EXPIRY_MINUTES } = require('../../utils/otp');
+
+// Hash tokens for secure storage (SHA-256, not bcrypt — tokens are high-entropy)
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const generateTokens = (userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -23,11 +27,8 @@ exports.register = async (req, res, next) => {
     // Check if user exists
     const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUser.rows.length > 0) {
-      return res.json({
-        message: 'If this email is not registered, a verification link has been sent.',
-        user: null,
-        token: null,
-        refreshToken: null
+      return res.status(409).json({
+        error: 'An account with this email already exists'
       });
     }
 
@@ -68,11 +69,11 @@ exports.register = async (req, res, next) => {
     // Generate tokens
     const { token, refreshToken } = generateTokens(user.id);
 
-    // Store session
+    // Store session (hash tokens for security)
     await db.query(
       `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
-      [user.id, token, refreshToken]
+      [user.id, hashToken(token), hashToken(refreshToken)]
     );
 
     // Determine verification type based on role
@@ -179,11 +180,11 @@ exports.login = async (req, res, next) => {
     // Update last login
     await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);
 
-    // Store session
+    // Store session (hash tokens for security)
     await db.query(
       `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
-      [user.id, token, refreshToken]
+      [user.id, hashToken(token), hashToken(refreshToken)]
     );
 
     logger.info(`User logged in: ${email}`);
@@ -334,7 +335,7 @@ exports.logout = async (req, res, next) => {
     const authHeader = req.headers.authorization;
     const token = authHeader.split(' ')[1];
 
-    await db.query('DELETE FROM user_sessions WHERE token_hash = $1', [token]);
+    await db.query('DELETE FROM user_sessions WHERE token_hash = $1', [hashToken(token)]);
 
     logger.info(`User logged out: ${req.user.id}`);
 
@@ -363,7 +364,7 @@ exports.refreshToken = async (req, res, next) => {
     // Check session exists
     const session = await db.query(
       'SELECT * FROM user_sessions WHERE refresh_token_hash = $1',
-      [refreshToken]
+      [hashToken(refreshToken)]
     );
 
     if (session.rows.length === 0) {
@@ -383,12 +384,12 @@ exports.refreshToken = async (req, res, next) => {
     // Generate new tokens
     const tokens = generateTokens(decoded.userId);
 
-    // Update session
+    // Update session (hash tokens)
     await db.query(
       `UPDATE user_sessions
        SET token_hash = $1, refresh_token_hash = $2, expires_at = NOW() + INTERVAL '7 days'
        WHERE id = $3`,
-      [tokens.token, tokens.refreshToken, session.rows[0].id]
+      [hashToken(tokens.token), hashToken(tokens.refreshToken), session.rows[0].id]
     );
 
     logger.info(`Token refreshed for user: ${decoded.userId}`);
@@ -514,11 +515,11 @@ exports.verifyOtp = async (req, res, next) => {
 
     const user = userResult.rows[0];
 
-    // Create session
+    // Create session (hash tokens)
     await db.query(
       `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
-      [user.id, token, refreshToken]
+      [user.id, hashToken(token), hashToken(refreshToken)]
     );
 
     // Update last login

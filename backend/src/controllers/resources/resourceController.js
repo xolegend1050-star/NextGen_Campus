@@ -1,6 +1,7 @@
 const axios = require('axios');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const { awardPoints } = require('../../utils/trustTiers');
 
 const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
 
@@ -207,12 +208,8 @@ exports.practiceInterview = async (req, res, next) => {
       [question_id]
     );
 
-    // Award points
-    await db.query(
-      `INSERT INTO points_history (user_id, points, reason, reference_type, reference_id)
-       VALUES ($1, 15, 'Completed interview practice', 'interview_practice', $2)`,
-      [req.user.id, result.rows[0].id]
-    );
+    // Award points (also updates trust score)
+    await awardPoints(req.user.id, 'interview_practice', 'interview_practice', result.rows[0].id);
 
     logger.info(`Interview practice completed: ${question_id}`);
     res.status(201).json({ practice: result.rows[0] });

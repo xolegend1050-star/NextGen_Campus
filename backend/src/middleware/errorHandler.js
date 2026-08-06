@@ -36,9 +36,10 @@ const errorHandler = (err, req, res, next) => {
     return res.status(err.statusCode).json({ error: err.message });
   }
 
+  const isProduction = process.env.NODE_ENV === 'production';
   res.status(500).json({
-    error: err.message || 'Internal server error',
-    code: err.code || null
+    error: isProduction ? 'Internal server error' : (err.message || 'Internal server error'),
+    ...(isProduction ? {} : { code: err.code || null })
   });
 };
 

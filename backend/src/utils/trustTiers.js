@@ -18,7 +18,8 @@ const POINTS = {
   mentor_session_completed: 25,
   profile_completed: 10,
   daily_login_streak_7: 15,
-  daily_login_streak_30: 50
+  daily_login_streak_30: 50,
+  interview_practice: 15
 };
 
 // Time-decay: lose this many points per day of inactivity (after 30-day grace period)

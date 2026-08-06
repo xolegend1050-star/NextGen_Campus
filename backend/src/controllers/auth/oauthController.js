@@ -1,7 +1,10 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const generateTokens = (userId) => {
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
@@ -56,10 +59,17 @@ exports.googleLogin = async (req, res, next) => {
         return res.status(400).json({ error: 'Failed to decode Google token' });
       }
     } else if (credential) {
-      // Legacy credential flow (Google Identity Services SDK)
+      // Credential flow (Google Identity Services SDK)
+      // Verify the JWT with Google's tokeninfo endpoint
       try {
-        const parts = credential.split('.');
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        const verifyResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${credential}`);
+        if (!verifyResponse.ok) {
+          return res.status(401).json({ error: 'Invalid Google credential — verification failed' });
+        }
+        const payload = await verifyResponse.json();
+        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+          return res.status(401).json({ error: 'Google credential audience mismatch' });
+        }
         googleId = payload.sub;
         email = payload.email;
         name = payload.name;
@@ -140,11 +150,11 @@ exports.googleLogin = async (req, res, next) => {
     // Generate tokens
     const tokens = generateTokens(user.id);
 
-    // Store session
+    // Store session (hash tokens)
     await db.query(
       `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
-      [user.id, tokens.token, tokens.refreshToken]
+      [user.id, hashToken(tokens.token), hashToken(tokens.refreshToken)]
     );
 
     // Update last login

@@ -1,7 +1,11 @@
 import { io } from 'socket.io-client';
 import { useAuthStore } from '../store/authStore';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://nextgen-campus-api.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_API_URL
+  ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')  // Strip /api suffix if present
+  : import.meta.env.PROD
+    ? 'https://nextgen-campus-api.onrender.com'
+    : window.location.origin;
 
 let socket = null;
 
@@ -11,7 +15,7 @@ export const getSocket = () => {
   const { token } = useAuthStore.getState();
   if (!token) return null;
 
-  socket = io(API_URL, {
+  socket = io(SOCKET_URL, {
     auth: { token },
     transports: ['websocket', 'polling']
   });

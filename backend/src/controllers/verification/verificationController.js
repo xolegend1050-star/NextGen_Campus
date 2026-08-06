@@ -4,7 +4,8 @@ const logger = require('../../utils/logger');
 const {
   sendVerificationSubmittedEmail,
   sendVerificationApprovedEmail,
-  sendVerificationRejectedEmail
+  sendVerificationRejectedEmail,
+  sendVerificationEmail
 } = require('../../utils/email');
 
 // Known college email domains (extend as needed)
@@ -109,11 +110,10 @@ exports.submitVerification = async (req, res, next) => {
 
         // Send verification email
         const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
-        await sendEmail({
-          to: metadata.college_email || req.user.email,
-          subject: 'Verify Your College Email - NextGen Campus',
-          html: `<p>Click <a href="${verifyUrl}">here</a> to verify your college email.</p>`
-        });
+        await sendVerificationEmail(
+          metadata.college_email || req.user.email,
+          token
+        );
 
         logger.info(`Verification email sent to ${req.user.id}`);
       }
@@ -131,10 +131,12 @@ exports.submitVerification = async (req, res, next) => {
     logger.info(`Verification submitted: ${result.rows[0].id} (${verification_type})`);
 
     // Send submitted confirmation email (non-blocking)
+    const profileResult = await db.query('SELECT full_name FROM profiles WHERE user_id = $1', [req.user.id]);
+    const userName = profileResult.rows[0]?.full_name || null;
     sendVerificationSubmittedEmail(
       req.user.email,
       verification_type,
-      req.user.full_name
+      userName
     ).catch(() => {});
 
     res.status(201).json({ verification: result.rows[0] });
@@ -171,10 +173,11 @@ exports.verifyEmail = async (req, res, next) => {
     logger.info(`Email verified for user ${req.user.id}`);
 
     // Send approved email (non-blocking)
+    const profileResult2 = await db.query('SELECT full_name FROM profiles WHERE user_id = $1', [req.user.id]);
     sendVerificationApprovedEmail(
       req.user.email,
       tokenData.verification_type,
-      req.user.full_name
+      profileResult2.rows[0]?.full_name || null
     ).catch(() => {});
 
     res.json({ message: 'Email verified successfully' });
