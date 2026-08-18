@@ -47,6 +47,16 @@ exports.submitVerification = async (req, res, next) => {
   try {
     const { verification_type, document_url, metadata } = req.body;
 
+    // Validate role-to-type mapping
+    const ROLE_TYPE_MAP = {
+      student: ['student_college_email', 'student_id_card'],
+      alumni: ['alumni_linkedin', 'alumni_college_id'],
+      company: ['company_domain', 'company_gst']
+    };
+    if (!ROLE_TYPE_MAP[req.user.role]?.includes(verification_type)) {
+      return res.status(403).json({ error: 'Verification type not allowed for your role' });
+    }
+
     // Determine tier based on verification type
     let tier;
     switch (verification_type) {
@@ -62,6 +72,16 @@ exports.submitVerification = async (req, res, next) => {
         break;
       default:
         return res.status(400).json({ error: 'Invalid verification type' });
+    }
+
+    // Require document for tier2 types
+    if (tier === 'tier2_manual' && !document_url) {
+      return res.status(400).json({ error: 'Document URL is required for this verification type' });
+    }
+
+    // Validate document URL is from our upload endpoint
+    if (document_url && !document_url.startsWith('/uploads/verification/')) {
+      return res.status(400).json({ error: 'Invalid document URL' });
     }
 
     // Check for existing pending verification
@@ -81,6 +101,19 @@ exports.submitVerification = async (req, res, next) => {
       const isCollegeDomain = COLLEGE_DOMAINS.some(d => domain?.endsWith(d));
       if (!isCollegeDomain) {
         return res.status(400).json({ error: 'Please use a valid college email address' });
+      }
+    }
+
+    // Validate company domain email
+    if (verification_type === 'company_domain') {
+      if (!metadata?.company_email || !metadata.company_email.includes('@')) {
+        return res.status(400).json({ error: 'Valid company email is required' });
+      }
+      const domain = metadata.company_email.split('@')[1]?.toLowerCase();
+      // Reject free email providers for company verification
+      const freeProviders = ['gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com', 'aol.com', 'icloud.com'];
+      if (freeProviders.includes(domain)) {
+        return res.status(400).json({ error: 'Please use your company email, not a personal email' });
       }
     }
 

@@ -10,6 +10,11 @@ CREATE INDEX IF NOT EXISTS idx_verifications_status ON verifications(status);
 CREATE INDEX IF NOT EXISTS idx_verifications_type ON verifications(verification_type);
 CREATE INDEX IF NOT EXISTS idx_verifications_user_status ON verifications(user_id, status);
 
+-- Prevent duplicate pending verifications
+CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_pending_verification
+  ON verifications(user_id, verification_type)
+  WHERE status = 'pending';
+
 -- Trust score history indexes
 CREATE INDEX IF NOT EXISTS idx_trust_history_user_id ON trust_score_history(user_id);
 CREATE INDEX IF NOT EXISTS idx_trust_history_created_at ON trust_score_history(created_at);

@@ -169,7 +169,7 @@ exports.updateUserRole = async (req, res, next) => {
     }
     await db.query('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
     await db.query(
-      `INSERT INTO admin_audit_log (admin_id, action_type, target_user_id, reason) VALUES ($1, 'change_role', $2, $3)`,
+      `INSERT INTO admin_audit_log (admin_id, action_type, target_user_id, reason) VALUES ($1, 'update_settings', $2, $3)`,
       [req.user.id, id, `Changed role to ${role}`]
     );
     logger.info(`User role updated: ${id} -> ${role}`);
@@ -230,6 +230,10 @@ exports.reviewVerification = async (req, res, next) => {
     const { id } = req.params;
     const { status, rejection_reason } = req.body;
 
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status. Must be approved or rejected.' });
+    }
+
     const verification = await db.query(
       'SELECT * FROM verifications WHERE id = $1',
       [id]
@@ -237,6 +241,10 @@ exports.reviewVerification = async (req, res, next) => {
 
     if (verification.rows.length === 0) {
       return res.status(404).json({ error: 'Verification not found' });
+    }
+
+    if (verification.rows[0].status !== 'pending') {
+      return res.status(400).json({ error: 'Verification already reviewed' });
     }
 
     // Update verification status
@@ -249,10 +257,13 @@ exports.reviewVerification = async (req, res, next) => {
 
     // If approved, update user verification status and award badge
     if (status === 'approved') {
-      await db.query(
-        'UPDATE users SET is_email_verified = true WHERE id = $1',
-        [verification.rows[0].user_id]
-      );
+      // Only set is_email_verified for email-based verifications
+      if (verification.rows[0].verification_type === 'student_college_email') {
+        await db.query(
+          'UPDATE users SET is_email_verified = true WHERE id = $1',
+          [verification.rows[0].user_id]
+        );
+      }
 
       // Badge auto-award based on verification type
       const vType = verification.rows[0].verification_type;
