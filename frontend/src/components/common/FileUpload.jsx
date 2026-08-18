@@ -1,5 +1,6 @@
-import { useState, useRef } from 'react';
-import { CloudArrowUpIcon, XMarkIcon, DocumentIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { useState, useRef, useEffect } from 'react';
+import toast from 'react-hot-toast';
+import { CloudArrowUpIcon, XMarkIcon, DocumentIcon } from '@heroicons/react/24/outline';
 import api from '../../services/api';
 
 const FileUpload = ({ onUpload, onError, accept = '.jpg,.jpeg,.png,.pdf', maxSizeMB = 5, multiple = false }) => {
@@ -8,18 +9,22 @@ const FileUpload = ({ onUpload, onError, accept = '.jpg,.jpeg,.png,.pdf', maxSiz
   const [previews, setPreviews] = useState([]);
   const inputRef = useRef(null);
 
+  useEffect(() => {
+    return () => {
+      previews.forEach(p => { if (p.preview) URL.revokeObjectURL(p.preview); });
+    };
+  }, [previews]);
+
   const handleFiles = async (files) => {
     const fileArr = Array.from(files);
 
-    // Validate sizes
     for (const file of fileArr) {
       if (file.size > maxSizeMB * 1024 * 1024) {
-        onError?.(`${file.name} exceeds ${maxSizeMB}MB limit`);
+        toast.error(`${file.name} exceeds ${maxSizeMB}MB limit`);
         return;
       }
     }
 
-    // Show previews
     const newPreviews = fileArr.map(file => ({
       file,
       name: file.name,
@@ -29,8 +34,9 @@ const FileUpload = ({ onUpload, onError, accept = '.jpg,.jpeg,.png,.pdf', maxSiz
     }));
     setPreviews(prev => [...prev, ...newPreviews]);
 
-    // Upload each file
     setUploading(true);
+    const results = [];
+    const errors = [];
     for (const file of fileArr) {
       try {
         const formData = new FormData();
@@ -38,12 +44,15 @@ const FileUpload = ({ onUpload, onError, accept = '.jpg,.jpeg,.png,.pdf', maxSiz
         const response = await api.post('/upload/document', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        onUpload?.(response.data);
+        results.push(response.data);
       } catch (err) {
-        onError?.(err.response?.data?.error || 'Upload failed');
+        errors.push(err.response?.data?.error || 'Upload failed');
       }
     }
     setUploading(false);
+
+    if (results.length > 0) onUpload?.(results.length === 1 ? results[0] : results);
+    if (errors.length > 0) onError?.(errors.join(', '));
   };
 
   const handleDrag = (e) => {
@@ -61,7 +70,11 @@ const FileUpload = ({ onUpload, onError, accept = '.jpg,.jpeg,.png,.pdf', maxSiz
   };
 
   const removePreview = (index) => {
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => {
+      const removed = prev[index];
+      if (removed?.preview) URL.revokeObjectURL(removed.preview);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   return (
