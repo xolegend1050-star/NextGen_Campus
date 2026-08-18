@@ -18,7 +18,7 @@
   }
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
   }
   .btn-primary:active {
     transform: translateY(0);
@@ -30,7 +30,7 @@
   }
   .btn-secondary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+    box-shadow: 0 4px 14px rgba(147, 51, 234, 0.35);
   }
 
   .btn-outline {
@@ -52,7 +52,7 @@
   .input-field {
     @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg transition-all duration-200;
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
-    @apply focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)];
+    @apply focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)];
   }
 
   .input-error {
@@ -117,7 +117,7 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-primary-600 transition-all duration-200 rounded-lg text-sm font-medium;
+    @apply flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-primary-50 hover:text-primary-600 transition-all duration-200 rounded-lg text-sm font-medium;
   }
 
   .sidebar-link:hover {
@@ -125,7 +125,7 @@
   }
 
   .sidebar-link-active {
-    @apply bg-primary-50 text-primary-600 font-semibold;
+    @apply bg-primary-50 text-primary-700 font-semibold;
     box-shadow: inset 3px 0 0 theme('colors.primary.600');
   }
 
@@ -169,11 +169,17 @@
   .stat-card::after {
     content: '';
     @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(59, 130, 246, 0.06) 100%);
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, rgba(168, 85, 247, 0.06) 100%);
   }
 
   .stat-card:hover::after {
     @apply opacity-100;
+  }
+
+  /* Gradient text utility */
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, theme('colors.primary.600'), theme('colors.secondary.500'));
   }
 
   /* Smooth scrollbar */

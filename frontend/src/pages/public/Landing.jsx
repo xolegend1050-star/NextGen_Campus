@@ -9,7 +9,7 @@ const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16 items-center">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary-600 to-secondary-600 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
                 <span className="text-white font-bold text-xl">N</span>
               </div>
               <span className="text-xl font-bold text-gray-900">NextGen Campus</span>
@@ -35,7 +35,7 @@ const Landing = () => {
             transition={{ duration: 0.5 }}
           >
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Empowering <span className="text-primary-600">Tier 2/3</span> Students
+              Empowering <span className="gradient-text">Tier 2/3</span> Students
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
               Connect with alumni mentors, solve doubts, and get real work experience 
@@ -133,12 +133,12 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-primary-600">
+      <section className="py-20 bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-600">
         <div className="max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-white mb-6">
             Ready to Transform Your Career?
           </h2>
-          <p className="text-xl text-primary-100 mb-8">
+          <p className="text-xl text-white/80 mb-8">
             Join thousands of students who are already building their future with NextGen Campus.
           </p>
           <Link
@@ -156,7 +156,7 @@ const Landing = () => {
           <div className="grid md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center shadow-lg shadow-primary-500/25">
                   <span className="text-white font-bold text-xl">N</span>
                 </div>
                 <span className="text-xl font-bold text-white">NextGen Campus</span>

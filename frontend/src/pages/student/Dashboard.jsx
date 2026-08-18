@@ -89,11 +89,11 @@ const StudentDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-primary-600 via-primary-500 to-secondary-600 rounded-xl p-6 text-white shadow-lg shadow-primary-500/20">
         <h1 className="text-2xl font-bold mb-2">
-          Welcome back, {user?.full_name || 'Student'}! 👋
+          Welcome back, {user?.full_name || 'Student'}!
         </h1>
-        <p className="text-primary-100">
+        <p className="text-white/80">
           Keep up the great work. Here&apos;s your progress overview.
         </p>
         <div className="flex items-center gap-4 mt-4">

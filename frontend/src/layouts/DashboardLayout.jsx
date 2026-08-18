@@ -128,12 +128,12 @@ const DashboardLayout = () => {
 
       {/* Mobile sidebar */}
       <div className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex items-center justify-between h-16 px-4 border-b">
-          <Link to="/dashboard" className="text-xl font-bold text-primary-600" onClick={() => setSidebarOpen(false)}>
+        <div className="flex items-center justify-between h-16 px-4 bg-gradient-to-r from-primary-600 to-secondary-600">
+          <Link to="/dashboard" className="text-xl font-bold text-white" onClick={() => setSidebarOpen(false)}>
             NextGen Campus
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
-            <XMarkIcon className="h-5 w-5 text-gray-500" />
+          <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+            <XMarkIcon className="h-5 w-5" />
           </button>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
@@ -162,9 +162,10 @@ const DashboardLayout = () => {
 
       {/* Desktop sidebar */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
-          <div className="flex items-center h-16 px-4 border-b">
-            <Link to="/dashboard" className="text-xl font-bold text-primary-600">
+        <div className="flex flex-col flex-grow bg-white border-r border-gray-100 shadow-sm">
+          {/* Logo header with gradient */}
+          <div className="flex items-center h-16 px-4 bg-gradient-to-r from-primary-600 to-secondary-600">
+            <Link to="/dashboard" className="text-xl font-bold text-white">
               NextGen Campus
             </Link>
           </div>
@@ -180,9 +181,9 @@ const DashboardLayout = () => {
               </Link>
             ))}
           </nav>
-          <div className="p-4 border-t">
+          <div className="p-4 border-t border-gray-100">
             <div className="flex items-center gap-3 mb-4">
-              <div className="avatar avatar-md bg-primary-100 text-primary-600 flex items-center justify-center font-semibold">
+              <div className="avatar avatar-md bg-gradient-to-br from-primary-500 to-secondary-500 text-white flex items-center justify-center font-semibold shadow-md">
                 {avatarInitial}
               </div>
               <div className="flex-1 min-w-0">
@@ -206,7 +207,7 @@ const DashboardLayout = () => {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b lg:px-6">
+        <div className="sticky top-0 z-40 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b border-gray-100 lg:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 rounded-md lg:hidden hover:bg-gray-100 transition-colors"
@@ -215,8 +216,8 @@ const DashboardLayout = () => {
           </button>
           <div className="flex-1 lg:flex-none" />
           <div className="flex items-center gap-4">
-            <Link to="/dashboard/notifications" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <BellIcon className="h-6 w-6 text-gray-600" />
+            <Link to="/dashboard/notifications" className="relative p-2 hover:bg-primary-50 rounded-full transition-colors">
+              <BellIcon className="h-6 w-6 text-gray-600 hover:text-primary-600 transition-colors" />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               )}
