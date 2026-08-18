@@ -7,10 +7,13 @@ const logger = require('../../utils/logger');
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const generateTokens = (userId) => {
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET must be set in environment variables');
+  }
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   });
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   });
   return { token, refreshToken };
@@ -47,16 +50,22 @@ exports.googleLogin = async (req, res, next) => {
         return res.status(401).json({ error: 'Google authentication failed', details: tokenData.error_description });
       }
 
-      // Decode the id_token to get user info
+      // Verify id_token with Google's tokeninfo endpoint (validates signature)
       try {
-        const parts = tokenData.id_token.split('.');
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+        const verifyResponse = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${tokenData.id_token}`);
+        if (!verifyResponse.ok) {
+          return res.status(401).json({ error: 'Google id_token verification failed' });
+        }
+        const payload = await verifyResponse.json();
+        if (payload.aud !== process.env.GOOGLE_CLIENT_ID) {
+          return res.status(401).json({ error: 'Google token audience mismatch' });
+        }
         googleId = payload.sub;
         email = payload.email;
         name = payload.name;
         picture = payload.picture;
       } catch (err) {
-        return res.status(400).json({ error: 'Failed to decode Google token' });
+        return res.status(400).json({ error: 'Failed to verify Google token' });
       }
     } else if (credential) {
       // Credential flow (Google Identity Services SDK)
@@ -114,8 +123,9 @@ exports.googleLogin = async (req, res, next) => {
       }
     } else {
       // New user — create account
-      const userRole = role || 'student';
-      const randomPassword = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 10);
+      const allowedRoles = ['student', 'alumni', 'company'];
+      const userRole = allowedRoles.includes(role) ? role : 'student';
+      const randomPassword = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 12);
 
       result = await db.query(
         `INSERT INTO users (email, password_hash, role, auth_provider, provider_id, is_email_verified)
@@ -275,8 +285,9 @@ exports.githubLogin = async (req, res, next) => {
       }
     } else {
       // New user
-      const userRole = role || 'student';
-      const randomPassword = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 10);
+      const allowedRoles = ['student', 'alumni', 'company'];
+      const userRole = allowedRoles.includes(role) ? role : 'student';
+      const randomPassword = await bcrypt.hash(require('crypto').randomBytes(32).toString('hex'), 12);
 
       result = await db.query(
         `INSERT INTO users (email, password_hash, role, auth_provider, provider_id, is_email_verified)
@@ -313,7 +324,7 @@ exports.githubLogin = async (req, res, next) => {
     await db.query(
       `INSERT INTO user_sessions (user_id, token_hash, refresh_token_hash, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '7 days')`,
-      [user.id, tokens.token, tokens.refreshToken]
+      [user.id, hashToken(tokens.token), hashToken(tokens.refreshToken)]
     );
 
     await db.query('UPDATE users SET last_login_at = NOW() WHERE id = $1', [user.id]);

@@ -11,10 +11,13 @@ const { storeOtp, verifyOtp: verifyOtpCode, OTP_EXPIRY_MINUTES } = require('../.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const generateTokens = (userId) => {
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET must be set in environment variables');
+  }
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   });
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
+  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   });
   return { token, refreshToken };
@@ -89,7 +92,7 @@ exports.register = async (req, res, next) => {
     await db.query(
       `INSERT INTO verification_tokens (user_id, token, verification_type, expires_at)
        VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours')`,
-      [user.id, verificationToken, verificationType]
+      [user.id, hashToken(verificationToken), verificationType]
     );
 
     logger.info(`New user registered: ${email} (${role})`);
@@ -248,12 +251,18 @@ exports.forgotPassword = async (req, res, next) => {
     }
 
     const userId = result.rows[0].id;
+    // Invalidate old reset tokens for this user
+    await db.query(
+      'UPDATE password_resets SET used = true WHERE user_id = $1 AND used = false',
+      [userId]
+    );
+
     const resetToken = uuidv4();
 
     await db.query(
       `INSERT INTO password_resets (user_id, token_hash, expires_at)
        VALUES ($1, $2, NOW() + INTERVAL '1 hour')`,
-      [userId, resetToken]
+      [userId, hashToken(resetToken)]
     );
 
     // Send email with reset link (non-blocking)
@@ -275,7 +284,7 @@ exports.resetPassword = async (req, res, next) => {
     const result = await db.query(
       `SELECT user_id FROM password_resets
        WHERE token_hash = $1 AND used = false AND expires_at > NOW()`,
-      [token]
+      [hashToken(token)]
     );
 
     if (result.rows.length === 0) {
@@ -290,7 +299,7 @@ exports.resetPassword = async (req, res, next) => {
     await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [password_hash, userId]);
 
     // Mark token as used
-    await db.query('UPDATE password_resets SET used = true WHERE token_hash = $1', [token]);
+    await db.query('UPDATE password_resets SET used = true WHERE token_hash = $1', [hashToken(token)]);
 
     // Invalidate all sessions
     await db.query('DELETE FROM user_sessions WHERE user_id = $1', [userId]);
@@ -310,7 +319,7 @@ exports.verifyEmail = async (req, res, next) => {
     const result = await db.query(
       `SELECT user_id FROM verification_tokens
        WHERE token = $1 AND used = false AND expires_at > NOW()`,
-      [token]
+      [hashToken(token)]
     );
 
     if (result.rows.length === 0) {
@@ -320,7 +329,7 @@ exports.verifyEmail = async (req, res, next) => {
     const userId = result.rows[0].user_id;
 
     await db.query('UPDATE users SET is_email_verified = true WHERE id = $1', [userId]);
-    await db.query('UPDATE verification_tokens SET used = true WHERE token = $1', [token]);
+    await db.query('UPDATE verification_tokens SET used = true WHERE token = $1', [hashToken(token)]);
 
     logger.info(`Email verified for user: ${userId}`);
 
@@ -356,7 +365,7 @@ exports.refreshToken = async (req, res, next) => {
     // Verify the refresh token
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     } catch (_err) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
@@ -514,6 +523,10 @@ exports.verifyOtp = async (req, res, next) => {
     );
 
     const user = userResult.rows[0];
+
+    if (!user) {
+      return res.status(401).json({ error: 'User not found' });
+    }
 
     // Create session (hash tokens)
     await db.query(
