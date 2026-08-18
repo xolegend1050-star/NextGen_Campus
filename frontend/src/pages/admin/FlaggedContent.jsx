@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -22,7 +23,7 @@ const AdminFlaggedContent = () => {
       setItems(response.data.flagged || []);
       setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
-      console.error('Failed to fetch flagged content:', error);
+      toast.error('Failed to fetch flagged content');
     } finally {
       setLoading(false);
     }
@@ -32,8 +33,9 @@ const AdminFlaggedContent = () => {
     try {
       await api.patch(`/admin/flagged-content/${id}`, { action });
       setItems(items.filter(i => i.id !== id));
+      toast.success('Action completed');
     } catch (error) {
-      alert('Failed to perform action');
+      toast.error('Failed to perform action');
     }
   };
 

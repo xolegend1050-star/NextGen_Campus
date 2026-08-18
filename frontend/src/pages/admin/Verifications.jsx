@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
 import Pagination from '../../components/common/Pagination';
-import { CheckIcon, XMarkIcon, DocumentIcon, EyeIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, XMarkIcon, EyeIcon, FunnelIcon } from '@heroicons/react/24/outline';
 
 const AdminVerifications = () => {
   const [requests, setRequests] = useState([]);
@@ -14,6 +15,7 @@ const AdminVerifications = () => {
   const [showRejectModal, setShowRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
   const [showPreview, setShowPreview] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
 
   useEffect(() => {
     fetchRequests();
@@ -28,33 +30,42 @@ const AdminVerifications = () => {
       setRequests(response.data.requests || []);
       setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
-      console.error('Failed to fetch verification requests:', error);
+      toast.error('Failed to fetch verification requests');
     } finally {
       setLoading(false);
     }
   };
 
   const handleApprove = async (id) => {
+    setActionLoading(id);
     try {
       await api.patch(`/admin/verifications/${id}`, { status: 'approved' });
       setRequests(reqs => reqs.filter(r => r.id !== id));
+      toast.success('Verification approved');
     } catch (error) {
-      alert('Failed to update verification');
+      toast.error('Failed to update verification');
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleReject = async () => {
     if (!showRejectModal) return;
+    const id = showRejectModal.id;
+    setActionLoading(id);
     try {
-      await api.patch(`/admin/verifications/${showRejectModal.id}`, {
+      await api.patch(`/admin/verifications/${id}`, {
         status: 'rejected',
         rejection_reason: rejectReason
       });
-      setRequests(reqs => reqs.filter(r => r.id !== showRejectModal.id));
+      setRequests(reqs => reqs.filter(r => r.id !== id));
       setShowRejectModal(null);
       setRejectReason('');
+      toast.success('Verification rejected');
     } catch (error) {
-      alert('Failed to update verification');
+      toast.error('Failed to update verification');
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -161,13 +172,15 @@ const AdminVerifications = () => {
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleApprove(req.id)}
-                          className="btn-primary text-sm flex items-center gap-1"
+                          disabled={actionLoading === req.id}
+                          className="btn-primary text-sm flex items-center gap-1 disabled:opacity-50"
                         >
-                          <CheckIcon className="h-4 w-4" /> Approve
+                          <CheckIcon className="h-4 w-4" /> {actionLoading === req.id ? 'Processing...' : 'Approve'}
                         </button>
                         <button
                           onClick={() => setShowRejectModal(req)}
-                          className="btn-outline text-sm text-red-600 border-red-300 hover:bg-red-50 flex items-center gap-1"
+                          disabled={actionLoading === req.id}
+                          className="btn-outline text-sm text-red-600 border-red-300 hover:bg-red-50 flex items-center gap-1 disabled:opacity-50"
                         >
                           <XMarkIcon className="h-4 w-4" /> Reject
                         </button>

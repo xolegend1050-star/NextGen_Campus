@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -26,7 +27,7 @@ const AdminUsers = () => {
       setUsers(response.data.users || []);
       setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      toast.error('Failed to fetch users');
     } finally {
       setLoading(false);
     }
@@ -37,8 +38,9 @@ const AdminUsers = () => {
     try {
       await api.patch(`/admin/users/${userId}/${isBanned ? 'unban' : 'ban'}`);
       setUsers(users.map(u => u.id === userId ? { ...u, is_banned: !isBanned } : u));
+      toast.success(isBanned ? 'User unbanned' : 'User banned');
     } catch (error) {
-      alert('Failed to update user');
+      toast.error('Failed to update user');
     }
   };
 
@@ -46,8 +48,9 @@ const AdminUsers = () => {
     try {
       await api.patch(`/admin/users/${userId}/role`, { role });
       setUsers(users.map(u => u.id === userId ? { ...u, role } : u));
+      toast.success('Role updated');
     } catch (error) {
-      alert('Failed to update role');
+      toast.error('Failed to update role');
     }
   };
 

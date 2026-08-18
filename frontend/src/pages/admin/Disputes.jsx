@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -23,7 +24,7 @@ const AdminDisputes = () => {
       setDisputes(response.data.disputes || []);
       setPagination(response.data.pagination || { page: 1, pages: 1, total: 0 });
     } catch (error) {
-      console.error('Failed to fetch disputes:', error);
+      toast.error('Failed to fetch disputes');
     } finally {
       setLoading(false);
     }
@@ -33,8 +34,9 @@ const AdminDisputes = () => {
     try {
       await api.patch(`/admin/disputes/${id}/resolve`, { resolution });
       setDisputes(d => d.filter(dis => dis.id !== id));
+      toast.success('Dispute resolved');
     } catch (error) {
-      alert('Failed to resolve dispute');
+      toast.error('Failed to resolve dispute');
     }
   };
 
