@@ -11,13 +11,11 @@ const { storeOtp, verifyOtp: verifyOtpCode, OTP_EXPIRY_MINUTES } = require('../.
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 const generateTokens = (userId) => {
-  if (!process.env.JWT_REFRESH_SECRET) {
-    throw new Error('JWT_REFRESH_SECRET must be set in environment variables');
-  }
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh';
   const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   });
-  const refreshToken = jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, {
+  const refreshToken = jwt.sign({ userId }, refreshSecret, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   });
   return { token, refreshToken };
@@ -378,7 +376,7 @@ exports.refreshToken = async (req, res, next) => {
     // Verify the refresh token
     let decoded;
     try {
-      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh');
     } catch (_err) {
       return res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
