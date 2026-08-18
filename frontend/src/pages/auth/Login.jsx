@@ -55,20 +55,26 @@ const Login = () => {
     if (!code || !state || oauthHandled.current) return;
     oauthHandled.current = true;
 
+    // Verify CSRF state parameter
+    const savedState = sessionStorage.getItem('oauth_state');
+    sessionStorage.removeItem('oauth_state');
+    if (!savedState || savedState !== state) {
+      toast.error('Invalid OAuth state. Please try again.');
+      return;
+    }
+
     const handleOAuth = async () => {
       let result;
-      if (state === 'github') {
+      // Determine provider from the state we saved (not from the URL state)
+      const provider = savedState.includes('github') ? 'github' : 'google';
+      if (provider === 'github') {
         result = await useAuthStore.getState().githubLogin(code);
-      } else if (state === 'google') {
-        result = await useAuthStore.getState().googleLogin(code);
       } else {
-        return;
+        result = await useAuthStore.getState().googleLogin(code);
       }
 
       if (result.success) {
-        toast.success(`${state === 'github' ? 'GitHub' : 'Google'} login successful!`);
-        // GuestRoute wrapping the Login route will automatically redirect
-        // to the correct dashboard when isAuthenticated becomes true
+        toast.success(`${provider === 'github' ? 'GitHub' : 'Google'} login successful!`);
       } else {
         toast.error(result.error);
       }
@@ -81,14 +87,18 @@ const Login = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const redirectUri = `${window.location.origin}/login`;
     const scope = 'openid email profile';
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=google`;
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('oauth_state', state);
+    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
   };
 
   const handleGitHubLogin = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
     const redirectUri = `${window.location.origin}/login`;
     const scope = 'user:email';
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github`;
+    const state = crypto.randomUUID();
+    sessionStorage.setItem('oauth_state', state);
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
   };
 
   const onSubmit = async (data) => {

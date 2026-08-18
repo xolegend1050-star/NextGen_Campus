@@ -105,7 +105,7 @@ export const useAuthStore = create(
       },
 
       cancelOtp: () => {
-        set({ otpRequired: false, tempToken: null, user: null });
+        set({ otpRequired: false, tempToken: null, user: null, isLoading: false });
       },
 
       register: async (data) => {
@@ -202,14 +202,13 @@ export const useAuthStore = create(
 
       initializeAuth: () => {
         const { token, refreshToken, isAuthenticated } = get();
-        // Skip if already authenticated (e.g. just logged in via OAuth)
-        if (isAuthenticated && token) return;
-        if (token && !isTokenExpired(token)) {
-          return;
-        }
+        // Skip if already authenticated with a valid token
+        if (isAuthenticated && token && !isTokenExpired(token)) return;
+        // If token is expired but refresh token is valid, attempt refresh
         if (refreshToken && !isTokenExpired(refreshToken)) {
           get().refreshAccessToken();
         } else {
+          // Both tokens invalid — clear state
           set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
         }
       }

@@ -33,21 +33,49 @@ api.interceptors.request.use(
 );
 
 // Response interceptor — handle 401 with one refresh attempt
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return api(originalRequest);
+        }).catch(err => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const raw = localStorage.getItem('nextgen-auth');
         if (!raw) {
+          isRefreshing = false;
+          processQueue(error);
           return Promise.reject(error);
         }
         const auth = JSON.parse(raw);
         if (!auth?.state?.refreshToken) {
+          isRefreshing = false;
+          processQueue(error);
           return Promise.reject(error);
         }
 
@@ -62,10 +90,15 @@ api.interceptors.response.use(
         auth.state.refreshToken = refreshToken;
         localStorage.setItem('nextgen-auth', JSON.stringify(auth));
 
+        isRefreshing = false;
+        processQueue(null, token);
+
         // Retry original request
         originalRequest.headers.Authorization = `Bearer ${token}`;
         return api(originalRequest);
       } catch (refreshError) {
+        isRefreshing = false;
+        processQueue(refreshError);
         // Refresh failed — only clear if we're sure token is expired
         // Don't wipe storage on network errors
         if (refreshError.response?.status === 401) {

@@ -84,10 +84,15 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 // Guest Route Component (redirect if already logged in)
 const GuestRoute = ({ children }) => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    const role = user?.role;
+    const dashboard = role === 'admin' ? '/admin/dashboard'
+      : role === 'alumni' ? '/mentor/dashboard'
+      : role === 'company' ? '/company/dashboard'
+      : '/dashboard';
+    return <Navigate to={dashboard} replace />;
   }
 
   return children;

@@ -128,13 +128,16 @@ const AdminVerifications = () => {
                       </div>
 
                       {/* Metadata display */}
-                      {req.metadata && Object.keys(JSON.parse(req.metadata || '{}')).length > 0 && (
-                        <div className="mt-2 text-xs text-gray-500 space-y-0.5">
-                          {Object.entries(JSON.parse(req.metadata || '{}')).map(([key, val]) => (
-                            <p key={key}><span className="font-medium">{key.replace(/_/g, ' ')}:</span> {val}</p>
-                          ))}
-                        </div>
-                      )}
+                      {req.metadata && (() => {
+                        const parsed = typeof req.metadata === 'string' ? JSON.parse(req.metadata || '{}') : (req.metadata || {});
+                        return Object.keys(parsed).length > 0 && (
+                          <div className="mt-2 text-xs text-gray-500 space-y-0.5">
+                            {Object.entries(parsed).map(([key, val]) => (
+                              <p key={key}><span className="font-medium">{key.replace(/_/g, ' ')}:</span> {String(val)}</p>
+                            ))}
+                          </div>
+                        );
+                      })()}
 
                       {/* Document preview link */}
                       {req.document_url && (
