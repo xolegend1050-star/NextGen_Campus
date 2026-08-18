@@ -43,7 +43,10 @@ function calculateDecay(lastActiveAt) {
 
 async function recalculateTrustScore(userId) {
   const profile = await db.query(
-    'SELECT trust_score, last_active_at FROM profiles WHERE user_id = $1',
+    `SELECT p.trust_score, u.last_seen_at
+     FROM profiles p
+     JOIN users u ON p.user_id = u.id
+     WHERE p.user_id = $1`,
     [userId]
   );
   if (profile.rows.length === 0) return null;
@@ -55,14 +58,15 @@ async function recalculateTrustScore(userId) {
   );
 
   const earned = parseInt(history.rows[0].total_earned) || 0;
-  const decay = calculateDecay(profile.rows[0].last_active_at);
+  const decay = calculateDecay(profile.rows[0].last_seen_at);
   const newScore = Math.max(0, earned - decay);
   const oldScore = profile.rows[0].trust_score;
 
   if (newScore !== oldScore) {
+    const newTier = getTier(newScore).label.toLowerCase();
     await db.query(
-      'UPDATE profiles SET trust_score = $1 WHERE user_id = $2',
-      [newScore, userId]
+      'UPDATE profiles SET trust_score = $1, talent_tier = $2 WHERE user_id = $3',
+      [newScore, newTier, userId]
     );
 
     // Record the decay if applicable
@@ -98,9 +102,10 @@ async function awardPoints(userId, actionType, referenceType = null, referenceId
   const oldScore = profile.rows[0].trust_score;
   const newScore = Math.min(oldScore + points, 200); // Cap at 200
 
+  const newTier = getTier(newScore).label.toLowerCase();
   await db.query(
-    'UPDATE profiles SET trust_score = $1 WHERE user_id = $2',
-    [newScore, userId]
+    'UPDATE profiles SET trust_score = $1, talent_tier = $2 WHERE user_id = $3',
+    [newScore, newTier, userId]
   );
 
   await db.query(

@@ -277,10 +277,11 @@ exports.reviewVerification = async (req, res, next) => {
     }
 
     // Log admin action
+    const auditAction = status === 'approved' ? 'approve_verification' : 'reject_verification';
     await db.query(
       `INSERT INTO admin_audit_log (admin_id, action_type, target_user_id, reason, target_resource_type, target_resource_id)
-       VALUES ($1, 'approve_verification', $2, $3, 'verification', $4)`,
-      [req.user.id, verification.rows[0].user_id, rejection_reason || 'Verification reviewed', id]
+       VALUES ($1, $2, $3, $4, 'verification', $5)`,
+      [req.user.id, auditAction, verification.rows[0].user_id, rejection_reason || 'Verification reviewed', id]
     );
 
     // Create notification for user
@@ -388,8 +389,8 @@ exports.reviewFlaggedContent = async (req, res, next) => {
           break;
         }
         case 'mentor': {
-          const author = await db.query('SELECT alumni_id FROM mentorship_requests WHERE id = $1', [flagged.rows[0].content_id]);
-          authorId = author.rows[0]?.alumni_id;
+          const author = await db.query('SELECT mentor_id FROM mentorship_requests WHERE id = $1', [flagged.rows[0].content_id]);
+          authorId = author.rows[0]?.mentor_id;
           break;
         }
         default:

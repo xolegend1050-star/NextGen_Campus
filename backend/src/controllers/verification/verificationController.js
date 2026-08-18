@@ -126,6 +126,15 @@ exports.submitVerification = async (req, res, next) => {
         );
         logger.info(`LinkedIn verification auto-approved for user ${req.user.id}`);
       }
+
+      if (verification_type === 'company_domain') {
+        // Company domain email is Tier 1 — auto-approve after domain check
+        await db.query(
+          `UPDATE verifications SET status = 'approved', reviewed_at = NOW() WHERE id = $1`,
+          [result.rows[0].id]
+        );
+        logger.info(`Company domain verification auto-approved for user ${req.user.id}`);
+      }
     }
 
     logger.info(`Verification submitted: ${result.rows[0].id} (${verification_type})`);
