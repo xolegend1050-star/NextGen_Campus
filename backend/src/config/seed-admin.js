@@ -46,7 +46,7 @@ const seedAdminData = async () => {
         { user_id: student1, type: 'student_college_email', tier: 'tier1_auto', status: 'pending', doc_url: '/docs/sujal-id.pdf', doc_type: 'application/pdf' },
         { user_id: student2, type: 'student_id_card', tier: 'tier2_manual', status: 'pending', doc_url: '/docs/priya-id.jpg', doc_type: 'image/jpeg' },
         { user_id: student3, type: 'student_college_email', tier: 'tier1_auto', status: 'pending', doc_url: '/docs/rahul-email.png', doc_type: 'image/png' },
-        { user_id: alumni1, type: 'alumni_linkedin', tier: 'tier2_manual', status: 'approved', reviewed_by: adminId, doc_url: '/docs/vikram-linkedin.pdf', doc_type: 'application/pdf' },
+        { user_id: alumni1, type: 'alumni_linkedin', tier: 'tier1_auto', status: 'approved', reviewed_by: adminId, doc_url: '/docs/vikram-linkedin.pdf', doc_type: 'application/pdf' },
         { user_id: alumni2, type: 'alumni_college_id', tier: 'tier2_manual', status: 'rejected', reviewed_by: adminId, rejection_reason: 'Document is blurry, please rescan.', doc_url: '/docs/neha-id.pdf', doc_type: 'application/pdf' },
       ];
       for (const v of verifications) {
