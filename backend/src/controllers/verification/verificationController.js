@@ -1,6 +1,9 @@
 const { v4: uuidv4 } = require('uuid');
+const fs = require('fs');
+const path = require('path');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const { analyzeIDCard } = require('../../utils/ocr');
 const {
   sendVerificationSubmittedEmail,
   sendVerificationApprovedEmail,
@@ -94,6 +97,30 @@ exports.submitVerification = async (req, res, next) => {
        RETURNING *`,
       [req.user.id, verification_type, tier, document_url || null, JSON.stringify(metadata || {})]
     );
+
+    // Run OCR on student ID card uploads for admin review labels
+    if (verification_type === 'student_id_card' && document_url) {
+      try {
+        const filePath = path.join(__dirname, '../../uploads/verification', path.basename(document_url));
+        if (fs.existsSync(filePath)) {
+          const imageBuffer = fs.readFileSync(filePath);
+          const profileResult = await db.query('SELECT full_name FROM profiles WHERE user_id = $1', [req.user.id]);
+          const profileName = profileResult.rows[0]?.full_name || null;
+
+          const ocrResult = await analyzeIDCard(imageBuffer, profileName);
+
+          await db.query(
+            'UPDATE verifications SET ocr_result = $1 WHERE id = $2',
+            [JSON.stringify(ocrResult), result.rows[0].id]
+          );
+
+          result.rows[0].ocr_result = ocrResult;
+          logger.info(`OCR completed for verification ${result.rows[0].id}: confidence=${ocrResult.confidence}%`);
+        }
+      } catch (ocrError) {
+        logger.error('OCR processing failed (non-blocking):', ocrError.message);
+      }
+    }
 
     // Tier 1 auto-verification logic
     if (tier === 'tier1_auto') {

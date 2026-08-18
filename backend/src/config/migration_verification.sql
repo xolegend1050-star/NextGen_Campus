@@ -1,5 +1,8 @@
--- Migration: Add performance indexes for verification and related tables
+-- Migration: Add performance indexes and OCR support for verification tables
 -- Run after database.sql seed
+
+-- Add OCR result column to verifications
+ALTER TABLE verifications ADD COLUMN IF NOT EXISTS ocr_result JSONB;
 
 -- Verification lookup indexes
 CREATE INDEX IF NOT EXISTS idx_verifications_user_id ON verifications(user_id);
