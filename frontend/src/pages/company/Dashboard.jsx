@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { CardSkeleton } from '../../components/common/Skeleton';
 import Badge from '../../components/common/Badge';
 import {
   BriefcaseIcon,
@@ -38,7 +38,7 @@ const CompanyDashboard = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Loading dashboard..." />;
+  if (loading) return <CardSkeleton count={3} />;
 
   const statCards = [
     { title: 'Total Gigs', value: stats?.totalGigs || 0, icon: BriefcaseIcon, color: 'bg-primary-100 text-primary-600' },

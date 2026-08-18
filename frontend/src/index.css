@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,44 +7,75 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   }
 }
 
 @layer components {
+  /* Buttons — enhanced with hover/press effects */
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: none;
   }
 
   .btn-secondary {
-    @apply bg-secondary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-secondary-700 transition-colors focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2;
+    @apply bg-secondary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-secondary-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-secondary-500 focus:ring-offset-2;
+  }
+  .btn-secondary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
   }
 
   .btn-outline {
-    @apply border-2 border-primary-600 text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-colors;
+    @apply border-2 border-primary-600 text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-all duration-200;
+  }
+  .btn-outline:hover {
+    transform: translateY(-1px);
   }
 
   .btn-danger {
-    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors;
+    @apply bg-red-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-700 transition-all duration-200;
+  }
+  .btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
   }
 
+  /* Inputs — focus glow */
   .input-field {
-    @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply w-full px-4 py-2.5 border border-gray-300 rounded-lg transition-all duration-200;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+    @apply focus:shadow-[0_0_0_3px_rgba(59,130,246,0.15)];
   }
 
   .input-error {
     @apply border-red-500 focus:ring-red-500;
+    @apply focus:shadow-[0_0_0_3px_rgba(239,68,68,0.15)];
   }
 
+  /* Cards — hover lift */
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6;
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 p-6 transition-all duration-200;
   }
 
   .card-hover {
-    @apply card hover:shadow-md transition-shadow cursor-pointer;
+    @apply card hover:shadow-md cursor-pointer;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
   }
 
+  /* Badges */
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors duration-200;
   }
 
   .badge-primary {
@@ -61,6 +94,7 @@
     @apply bg-red-100 text-red-800;
   }
 
+  /* Avatars */
   .avatar {
     @apply rounded-full object-cover;
   }
@@ -77,16 +111,83 @@
     @apply w-16 h-16;
   }
 
+  /* Sidebar */
   .sidebar {
     @apply bg-white border-r border-gray-200 h-full;
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 hover:text-primary-600 transition-colors rounded-lg;
+    @apply flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-50 hover:text-primary-600 transition-all duration-200 rounded-lg text-sm font-medium;
+  }
+
+  .sidebar-link:hover {
+    transform: translateX(2px);
   }
 
   .sidebar-link-active {
-    @apply bg-primary-50 text-primary-600 font-medium;
+    @apply bg-primary-50 text-primary-600 font-semibold;
+    box-shadow: inset 3px 0 0 theme('colors.primary.600');
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-gray-200 rounded-lg animate-pulse;
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .skeleton-text {
+    @apply skeleton h-4 rounded;
+  }
+
+  .skeleton-heading {
+    @apply skeleton h-6 rounded w-1/3;
+  }
+
+  .skeleton-avatar {
+    @apply skeleton rounded-full;
+  }
+
+  .skeleton-card {
+    @apply card;
+    background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  /* Page transition wrapper */
+  .page-enter {
+    @apply animate-fade-in;
+  }
+
+  /* Stat card pulse on hover */
+  .stat-card {
+    @apply card relative overflow-hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.03) 0%, rgba(59, 130, 246, 0.06) 100%);
+  }
+
+  .stat-card:hover::after {
+    @apply opacity-100;
+  }
+
+  /* Smooth scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
   }
 }
 
@@ -113,4 +214,19 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* Stagger animation for lists */
+  .stagger-item {
+    animation: slideUp 0.3s ease-out forwards;
+    opacity: 0;
+  }
+
+  .stagger-item:nth-child(1) { animation-delay: 0.05s; }
+  .stagger-item:nth-child(2) { animation-delay: 0.1s; }
+  .stagger-item:nth-child(3) { animation-delay: 0.15s; }
+  .stagger-item:nth-child(4) { animation-delay: 0.2s; }
+  .stagger-item:nth-child(5) { animation-delay: 0.25s; }
+  .stagger-item:nth-child(6) { animation-delay: 0.3s; }
+  .stagger-item:nth-child(7) { animation-delay: 0.35s; }
+  .stagger-item:nth-child(8) { animation-delay: 0.4s; }
 }

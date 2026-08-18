@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { AdminDashboardSkeleton } from '../../components/common/Skeleton';
 import {
   UsersIcon,
   ShieldCheckIcon,
@@ -41,7 +41,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Loading admin dashboard..." />;
+  if (loading) return <AdminDashboardSkeleton />;
 
   const statCards = [
     { title: 'Total Users', value: stats?.users?.total || 0, subtitle: `${stats?.users?.students || 0} students, ${stats?.users?.alumni || 0} alumni`, icon: UsersIcon, color: 'bg-blue-100 text-blue-600', link: '/admin/users' },

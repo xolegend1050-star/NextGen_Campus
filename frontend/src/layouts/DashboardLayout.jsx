@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
+import api from '../services/api';
 import {
   HomeIcon,
   UserIcon,
@@ -11,7 +12,6 @@ import {
   BellIcon,
   ChatBubbleLeftIcon,
   BookOpenIcon,
-  CogIcon,
   ArrowLeftOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
@@ -28,39 +28,40 @@ const DashboardLayout = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const user = useAuthStore(state => state.user);
+  const logout = useAuthStore(state => state.logout);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
   // Fetch unread notification count
   useEffect(() => {
+    let cancelled = false;
     const fetchNotifications = async () => {
       try {
-        const { default: api } = await import('../services/api');
         const res = await api.get('/notifications?unreadOnly=true&limit=1');
-        setUnreadCount(res.data?.unreadCount || 0);
+        if (!cancelled) setUnreadCount(res.data?.unreadCount || 0);
       } catch {
-        // Silent fail — not critical
+        // Silent fail
       }
     };
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
+    return () => { cancelled = true; clearInterval(interval); };
   }, []);
 
-  // Check if a nav item is active (supports nested routes)
-  const isActive = (href) => {
+  // Check if a nav item is active
+  const isActive = useCallback((href) => {
     if (href === '/dashboard' || href === '/mentor' || href === '/company' || href === '/admin') {
       return location.pathname === href;
     }
     return location.pathname.startsWith(href);
-  };
+  }, [location.pathname]);
 
-  // Navigation items based on role
-  const getNavItems = () => {
+  // Navigation items based on role — memoized
+  const navItems = useMemo(() => {
     const commonItems = [
       { name: 'Dashboard', href: user?.role === 'alumni' ? '/mentor' : user?.role === 'company' ? '/company' : '/dashboard', icon: HomeIcon },
       { name: 'Profile', href: '/dashboard/profile', icon: UserIcon },
@@ -109,9 +110,7 @@ const DashboardLayout = () => {
       default:
         return commonItems;
     }
-  };
-
-  const navItems = getNavItems();
+  }, [user?.role]);
 
   // Get user display name and initial
   const displayName = user?.full_name || user?.email?.split('@')[0] || 'User';
@@ -119,40 +118,45 @@ const DashboardLayout = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile sidebar backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden transition-opacity"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 flex flex-col w-64 bg-white">
-          <div className="flex items-center justify-between h-16 px-4 border-b">
-            <Link to="/dashboard" className="text-xl font-bold text-primary-600">
-              NextGen Campus
-            </Link>
-            <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-md hover:bg-gray-100">
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className={`sidebar-link ${isActive(item.href) ? 'sidebar-link-active' : ''}`}
-                onClick={() => setSidebarOpen(false)}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-          <div className="p-4 border-t">
-            <button
-              onClick={handleLogout}
-              className="sidebar-link w-full text-red-600 hover:bg-red-50"
+      <div className={`fixed inset-y-0 left-0 z-50 flex flex-col w-64 bg-white transform transition-transform duration-300 ease-in-out lg:hidden ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="flex items-center justify-between h-16 px-4 border-b">
+          <Link to="/dashboard" className="text-xl font-bold text-primary-600" onClick={() => setSidebarOpen(false)}>
+            NextGen Campus
+          </Link>
+          <button onClick={() => setSidebarOpen(false)} className="p-2 rounded-md hover:bg-gray-100 transition-colors">
+            <XMarkIcon className="h-5 w-5 text-gray-500" />
+          </button>
+        </div>
+        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              className={`sidebar-link ${isActive(item.href) ? 'sidebar-link-active' : ''}`}
+              onClick={() => setSidebarOpen(false)}
             >
-              <ArrowLeftOnRectangleIcon className="h-5 w-5" />
-              Logout
-            </button>
-          </div>
+              <item.icon className="h-5 w-5" />
+              {item.name}
+            </Link>
+          ))}
+        </nav>
+        <div className="p-4 border-t">
+          <button
+            onClick={handleLogout}
+            className="sidebar-link w-full text-red-600 hover:bg-red-50"
+          >
+            <ArrowLeftOnRectangleIcon className="h-5 w-5" />
+            Logout
+          </button>
         </div>
       </div>
 
@@ -164,7 +168,7 @@ const DashboardLayout = () => {
               NextGen Campus
             </Link>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
+          <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
             {navItems.map((item) => (
               <Link
                 key={item.name}
@@ -202,19 +206,19 @@ const DashboardLayout = () => {
       {/* Main content */}
       <div className="lg:pl-64">
         {/* Top bar */}
-        <div className="sticky top-0 z-40 flex items-center h-16 px-4 bg-white border-b lg:px-6">
+        <div className="sticky top-0 z-40 flex items-center h-16 px-4 bg-white/80 backdrop-blur-md border-b lg:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="p-2 rounded-md lg:hidden hover:bg-gray-100"
+            className="p-2 rounded-md lg:hidden hover:bg-gray-100 transition-colors"
           >
             <Bars3Icon className="h-6 w-6" />
           </button>
           <div className="flex-1 lg:flex-none" />
           <div className="flex items-center gap-4">
-            <Link to="/dashboard/notifications" className="relative p-2 hover:bg-gray-100 rounded-full">
+            <Link to="/dashboard/notifications" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
               <BellIcon className="h-6 w-6 text-gray-600" />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse" />
               )}
             </Link>
           </div>

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { lazy, Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
@@ -57,19 +57,30 @@ const AdminAuditLog = lazy(() => import('./pages/admin/AuditLog'));
 const People = lazy(() => import('./pages/social/People'));
 const Feed = lazy(() => import('./pages/social/Feed'));
 
-// Loading fallback
+// Loading fallback — minimal spinner
 const Loading = () => (
   <div className="min-h-screen flex items-center justify-center bg-gray-50">
     <div className="text-center">
-      <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-gray-600 font-medium">Loading...</p>
+      <div className="w-10 h-10 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+      <p className="text-gray-500 text-sm">Loading...</p>
+    </div>
+  </div>
+);
+
+// Inline loading for Suspense boundaries inside dashboard
+const PageLoading = () => (
+  <div className="flex items-center justify-center py-20">
+    <div className="text-center">
+      <div className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+      <p className="text-gray-400 text-sm">Loading page...</p>
     </div>
   </div>
 );
 
 // Protected Route Component
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, isAuthenticated } = useAuthStore();
+  const user = useAuthStore(state => state.user);
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
@@ -84,7 +95,8 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 // Guest Route Component (redirect if already logged in)
 const GuestRoute = ({ children }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const user = useAuthStore(state => state.user);
 
   if (isAuthenticated) {
     const role = user?.role;
@@ -99,34 +111,35 @@ const GuestRoute = ({ children }) => {
 };
 
 function App() {
-  const [hydrated, setHydrated] = useState(false);
   const initializeAuth = useAuthStore(state => state.initializeAuth);
 
+  // Initialize auth on mount — don't block rendering
   useEffect(() => {
-    const unsub = useAuthStore.persist.onFinishHydration(() => {
-      setHydrated(true);
-    });
     initializeAuth();
-    if (useAuthStore.persist.hasHydrated()) {
-      setHydrated(true);
-    }
-    return unsub;
   }, [initializeAuth]);
-
-  if (!hydrated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <Router>
-      <Toaster position="top-right" />
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 3000,
+          style: {
+            background: '#fff',
+            color: '#1f2937',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '14px',
+          },
+          success: {
+            iconTheme: { primary: '#22c55e', secondary: '#fff' },
+          },
+          error: {
+            iconTheme: { primary: '#ef4444', secondary: '#fff' },
+          },
+        }}
+      />
       <Suspense fallback={<Loading />}>
         <Routes>
           {/* Public Routes */}

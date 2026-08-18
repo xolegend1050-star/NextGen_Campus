@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import api from '../../services/api';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { DashboardSkeleton } from '../../components/common/Skeleton';
 import Badge from '../../components/common/Badge';
 import {
   QuestionMarkCircleIcon,
@@ -46,7 +46,7 @@ const StudentDashboard = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Loading dashboard..." />;
+  if (loading) return <DashboardSkeleton />;
 
   const statCards = [
     {

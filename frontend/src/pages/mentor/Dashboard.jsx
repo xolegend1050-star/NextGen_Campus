@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../../services/api';
-import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { MentorDashboardSkeleton } from '../../components/common/Skeleton';
 import Badge from '../../components/common/Badge';
 import { CalendarIcon, UserGroupIcon, StarIcon, ClockIcon } from '@heroicons/react/24/outline';
 
@@ -38,7 +38,7 @@ const MentorDashboard = () => {
     }
   };
 
-  if (loading) return <LoadingSpinner text="Loading dashboard..." />;
+  if (loading) return <MentorDashboardSkeleton />;
 
   const statCards = [
     { title: 'Pending Requests', value: stats?.pendingRequests || 0, icon: ClockIcon, color: 'bg-yellow-100 text-yellow-600' },
