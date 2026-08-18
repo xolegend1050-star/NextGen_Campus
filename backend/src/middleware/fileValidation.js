@@ -13,6 +13,7 @@ const validateFile = async (filePath, originalName) => {
   // Check extension
   const ext = require('path').extname(originalName).toLowerCase();
   if (!ALLOWED_EXTENSIONS.has(ext)) {
+    fs.unlinkSync(filePath);
     return { valid: false, error: `Invalid extension: ${ext}` };
   }
 
@@ -31,6 +32,7 @@ const validateFile = async (filePath, originalName) => {
     if (header === '255044462d') {
       return { valid: true, detectedMime: 'application/pdf' };
     }
+    fs.unlinkSync(filePath);
     return { valid: false, error: 'Could not detect file type' };
   }
 

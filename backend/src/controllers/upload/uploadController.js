@@ -21,7 +21,6 @@ exports.uploadDocument = async (req, res, next) => {
     // Magic-byte validation
     const validation = await validateFile(filePath, originalName);
     if (!validation.valid) {
-      fs.unlinkSync(filePath);
       return res.status(400).json({ error: validation.error });
     }
 
