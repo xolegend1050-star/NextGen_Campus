@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import FileUpload from '../../components/common/FileUpload';
@@ -33,11 +34,11 @@ const CompanyVerification = () => {
         verification_type: 'company_domain',
         metadata: { company_email: companyEmail }
       });
-      alert('Verification email sent!');
+      toast.success('Verification email sent!');
       setCompanyEmail('');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
@@ -50,10 +51,10 @@ const CompanyVerification = () => {
         verification_type: 'company_gst',
         document_url: uploadData.url
       });
-      alert('GST/Registration document submitted for review!');
+      toast.success('GST/Registration document submitted for review!');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
@@ -130,6 +131,9 @@ const CompanyVerification = () => {
                 </button>
               </div>
             )}
+            {domainStatus?.status === 'rejected' && (
+              <p className="text-sm text-red-600">Rejected: {domainStatus.rejection_reason}</p>
+            )}
           </div>
         )}
 
@@ -144,7 +148,10 @@ const CompanyVerification = () => {
             ) : gstStatus?.status === 'pending' ? (
               <StatusAlert type="pending" message="Awaiting admin review..." />
             ) : (
-              <FileUpload onUpload={handleDocumentUpload} onError={(err) => alert(err)} />
+              <FileUpload onUpload={handleDocumentUpload} onError={(err) => toast.error(err)} />
+            )}
+            {gstStatus?.status === 'rejected' && (
+              <p className="text-sm text-red-600">Rejected: {gstStatus.rejection_reason}</p>
             )}
           </div>
         )}

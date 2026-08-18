@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import FileUpload from '../../components/common/FileUpload';
-import Badge from '../../components/common/Badge';
-import { CheckCircleIcon, XCircleIcon, ClockIcon, EnvelopeIcon, LinkIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
+import { CheckCircleIcon, ClockIcon, EnvelopeIcon, DocumentCheckIcon } from '@heroicons/react/24/outline';
 
 const StudentVerification = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [collegeEmail, setCollegeEmail] = useState('');
-  const [linkedinUrl, setLinkedinUrl] = useState('');
   const [activeTab, setActiveTab] = useState('email');
 
   useEffect(() => {
@@ -37,29 +36,11 @@ const StudentVerification = () => {
         verification_type: 'student_college_email',
         metadata: { college_email: collegeEmail }
       });
-      alert('Verification email sent! Check your inbox.');
+      toast.success('Verification email sent! Check your inbox.');
       setCollegeEmail('');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const submitLinkedin = async () => {
-    if (!linkedinUrl) return;
-    setSubmitting(true);
-    try {
-      await api.post('/verification/submit', {
-        verification_type: 'student_college_email',
-        metadata: { linkedin_url: linkedinUrl }
-      });
-      alert('LinkedIn verification submitted!');
-      setLinkedinUrl('');
-      fetchStatus();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
@@ -72,10 +53,10 @@ const StudentVerification = () => {
         verification_type: 'student_id_card',
         document_url: uploadData.url
       });
-      alert('ID card submitted for review!');
+      toast.success('ID card submitted for review!');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import toast from 'react-hot-toast';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import FileUpload from '../../components/common/FileUpload';
@@ -9,7 +10,6 @@ const AlumniVerification = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [linkedinUrl, setLinkedinUrl] = useState('');
-  const [companyEmail, setCompanyEmail] = useState('');
   const [activeTab, setActiveTab] = useState('linkedin');
 
   useEffect(() => { fetchStatus(); }, []);
@@ -34,29 +34,11 @@ const AlumniVerification = () => {
         verification_type: 'alumni_linkedin',
         metadata: { linkedin_url: linkedinUrl }
       });
-      alert('LinkedIn verification submitted!');
+      toast.success('LinkedIn verification submitted!');
       setLinkedinUrl('');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const submitCompanyEmail = async () => {
-    if (!companyEmail) return;
-    setSubmitting(true);
-    try {
-      await api.post('/verification/submit', {
-        verification_type: 'alumni_linkedin',
-        metadata: { company_email: companyEmail }
-      });
-      alert('Verification email sent!');
-      setCompanyEmail('');
-      fetchStatus();
-    } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
@@ -69,10 +51,10 @@ const AlumniVerification = () => {
         verification_type: 'alumni_college_id',
         document_url: uploadData.url
       });
-      alert('College ID submitted for review!');
+      toast.success('College ID submitted for review!');
       fetchStatus();
     } catch (error) {
-      alert(error.response?.data?.error || 'Failed to submit');
+      toast.error(error.response?.data?.error || 'Failed to submit');
     } finally {
       setSubmitting(false);
     }
@@ -150,6 +132,9 @@ const AlumniVerification = () => {
                 </button>
               </div>
             )}
+            {linkedinStatus?.status === 'rejected' && (
+              <p className="text-sm text-red-600">Rejected: {linkedinStatus.rejection_reason}</p>
+            )}
           </div>
         )}
 
@@ -164,7 +149,10 @@ const AlumniVerification = () => {
             ) : collegeIdStatus?.status === 'pending' ? (
               <StatusAlert type="pending" message="Awaiting admin review..." />
             ) : (
-              <FileUpload onUpload={handleDocumentUpload} onError={(err) => alert(err)} />
+              <FileUpload onUpload={handleDocumentUpload} onError={(err) => toast.error(err)} />
+            )}
+            {collegeIdStatus?.status === 'rejected' && (
+              <p className="text-sm text-red-600">Rejected: {collegeIdStatus.rejection_reason}</p>
             )}
           </div>
         )}
