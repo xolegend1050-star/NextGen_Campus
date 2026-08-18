@@ -292,6 +292,13 @@ exports.resetPassword = async (req, res, next) => {
     }
 
     const userId = result.rows[0].user_id;
+
+    // Check if user still exists
+    const userCheck = await db.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'User no longer exists' });
+    }
+
     const salt = await bcrypt.genSalt(12);
     const password_hash = await bcrypt.hash(password, salt);
 
@@ -327,6 +334,12 @@ exports.verifyEmail = async (req, res, next) => {
     }
 
     const userId = result.rows[0].user_id;
+
+    // Check if user still exists
+    const userCheck = await db.query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'User no longer exists' });
+    }
 
     await db.query('UPDATE users SET is_email_verified = true WHERE id = $1', [userId]);
     await db.query('UPDATE verification_tokens SET used = true WHERE token = $1', [hashToken(token)]);

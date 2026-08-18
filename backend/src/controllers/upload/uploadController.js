@@ -47,11 +47,17 @@ exports.uploadDocument = async (req, res, next) => {
           .jpeg({ quality: 70 })
           .toFile(thumbPath);
 
-        // Remove original
+        // Only remove original after ALL processing succeeds
         fs.unlinkSync(filePath);
         finalFilename = compressedFilename;
       } catch (err) {
         logger.error('Image processing failed:', err);
+        // Clean up compressed file if it was created but thumbnail failed
+        const compressedFilename = `${path.basename(filePath, path.extname(filePath))}.jpg`;
+        const compressedPath = path.join(UPLOAD_DIR, compressedFilename);
+        if (fs.existsSync(compressedPath)) {
+          fs.unlinkSync(compressedPath);
+        }
         // Keep original file if processing fails
       }
     }

@@ -83,7 +83,7 @@ function compareNames(extractedName, profileName) {
 
   const matchRatio = matchedParts / Math.max(extractedParts.length, profileParts.length);
 
-  if (matchRatio >= 0.5) {
+  if (matchRatio >= 0.75) {
     return { match: true, confidence: Math.round(matchRatio * 100), reason: 'Partial name match' };
   }
 

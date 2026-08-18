@@ -93,6 +93,19 @@ async function awardPoints(userId, actionType, referenceType = null, referenceId
 
   if (!points || points <= 0) return null;
 
+  // Prevent double-spend: check if points were already awarded for this reference
+  if (referenceId && referenceType) {
+    const existing = await db.query(
+      `SELECT id FROM trust_score_history
+       WHERE user_id = $1 AND reference_type = $2 AND reference_id = $3`,
+      [userId, referenceType, referenceId]
+    );
+    if (existing.rows.length > 0) {
+      logger.info(`Points already awarded for ${referenceType}:${referenceId}, skipping`);
+      return null;
+    }
+  }
+
   const profile = await db.query(
     'SELECT trust_score FROM profiles WHERE user_id = $1',
     [userId]
