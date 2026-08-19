@@ -112,15 +112,16 @@ const GuestRoute = ({ children }) => {
 
 function App() {
   const initializeAuth = useAuthStore(state => state.initializeAuth);
+  const [authReady, setAuthReady] = useState(false);
 
-  // Wait for Zustand hydration before initializing auth
-  // This prevents initializeAuth from clearing freshly-set tokens
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => {
       initializeAuth();
+      setAuthReady(true);
     });
     if (useAuthStore.persist.hasHydrated()) {
       initializeAuth();
+      setAuthReady(true);
     }
     return unsub;
   }, [initializeAuth]);
@@ -147,100 +148,104 @@ function App() {
           },
         }}
       />
-      <Suspense fallback={<Loading />}>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<PublicLayout />}>
-            <Route index element={<Landing />} />
-          </Route>
+      {authReady ? (
+        <Suspense fallback={<Loading />}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<PublicLayout />}>
+              <Route index element={<Landing />} />
+            </Route>
 
-          {/* Auth Routes */}
-          <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
-          <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
-          <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
+            {/* Auth Routes */}
+            <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+            <Route path="/register" element={<GuestRoute><Register /></GuestRoute>} />
+            <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
 
-          {/* Student Dashboard Routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Dashboard />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="doubts" element={<Doubts />} />
-            <Route path="doubts/:id" element={<DoubtDetail />} />
-            <Route path="doubts/create" element={<CreateDoubt />} />
-            <Route path="mentors" element={<Mentors />} />
-            <Route path="mentors/:id" element={<MentorDetail />} />
-            <Route path="gigs" element={<Gigs />} />
-            <Route path="gigs/:id" element={<GigDetail />} />
-            <Route path="my-applications" element={<MyApplications />} />
-            <Route path="wallet" element={<Wallet />} />
-            <Route path="notifications" element={<Notifications />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="resources" element={<Resources />} />
-            <Route path="verification" element={<StudentVerification />} />
-            <Route path="people" element={<People />} />
-            <Route path="feed" element={<Feed />} />
-          </Route>
+            {/* Student Dashboard Routes */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="doubts" element={<Doubts />} />
+              <Route path="doubts/:id" element={<DoubtDetail />} />
+              <Route path="doubts/create" element={<CreateDoubt />} />
+              <Route path="mentors" element={<Mentors />} />
+              <Route path="mentors/:id" element={<MentorDetail />} />
+              <Route path="gigs" element={<Gigs />} />
+              <Route path="gigs/:id" element={<GigDetail />} />
+              <Route path="my-applications" element={<MyApplications />} />
+              <Route path="wallet" element={<Wallet />} />
+              <Route path="notifications" element={<Notifications />} />
+              <Route path="chat" element={<Chat />} />
+              <Route path="resources" element={<Resources />} />
+              <Route path="verification" element={<StudentVerification />} />
+              <Route path="people" element={<People />} />
+              <Route path="feed" element={<Feed />} />
+            </Route>
 
-          {/* Company Routes */}
-          <Route
-            path="/company"
-            element={
-              <ProtectedRoute allowedRoles={['company']}>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<CompanyDashboard />} />
-            <Route path="post-gig" element={<PostGig />} />
-            <Route path="manage-gigs" element={<ManageGigs />} />
-            <Route path="gigs/:id/applications" element={<ViewApplications />} />
-            <Route path="verification" element={<CompanyVerification />} />
-          </Route>
+            {/* Company Routes */}
+            <Route
+              path="/company"
+              element={
+                <ProtectedRoute allowedRoles={['company']}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<CompanyDashboard />} />
+              <Route path="post-gig" element={<PostGig />} />
+              <Route path="manage-gigs" element={<ManageGigs />} />
+              <Route path="gigs/:id/applications" element={<ViewApplications />} />
+              <Route path="verification" element={<CompanyVerification />} />
+            </Route>
 
-          {/* Mentor Routes */}
-          <Route
-            path="/mentor"
-            element={
-              <ProtectedRoute allowedRoles={['alumni']}>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<MentorDashboard />} />
-            <Route path="requests" element={<MentorRequests />} />
-            <Route path="sessions" element={<MentorSessions />} />
-            <Route path="verification" element={<AlumniVerification />} />
-          </Route>
+            {/* Mentor Routes */}
+            <Route
+              path="/mentor"
+              element={
+                <ProtectedRoute allowedRoles={['alumni']}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<MentorDashboard />} />
+              <Route path="requests" element={<MentorRequests />} />
+              <Route path="sessions" element={<MentorSessions />} />
+              <Route path="verification" element={<AlumniVerification />} />
+            </Route>
 
-          {/* Admin Routes */}
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute allowedRoles={['admin']}>
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<AdminDashboard />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="verifications" element={<AdminVerifications />} />
-            <Route path="flagged-content" element={<AdminFlaggedContent />} />
-            <Route path="disputes" element={<AdminDisputes />} />
-            <Route path="audit-log" element={<AdminAuditLog />} />
-          </Route>
+            {/* Admin Routes */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<AdminDashboard />} />
+              <Route path="users" element={<AdminUsers />} />
+              <Route path="verifications" element={<AdminVerifications />} />
+              <Route path="flagged-content" element={<AdminFlaggedContent />} />
+              <Route path="disputes" element={<AdminDisputes />} />
+              <Route path="audit-log" element={<AdminAuditLog />} />
+            </Route>
 
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            {/* 404 */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      ) : (
+        <Loading />
+      )}
     </Router>
   );
 }
