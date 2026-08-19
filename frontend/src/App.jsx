@@ -113,9 +113,16 @@ const GuestRoute = ({ children }) => {
 function App() {
   const initializeAuth = useAuthStore(state => state.initializeAuth);
 
-  // Initialize auth on mount — don't block rendering
+  // Wait for Zustand hydration before initializing auth
+  // This prevents initializeAuth from clearing freshly-set tokens
   useEffect(() => {
-    initializeAuth();
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      initializeAuth();
+    });
+    if (useAuthStore.persist.hasHydrated()) {
+      initializeAuth();
+    }
+    return unsub;
   }, [initializeAuth]);
 
   return (
