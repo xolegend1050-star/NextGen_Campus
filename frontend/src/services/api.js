@@ -47,6 +47,11 @@ const processQueue = (error, token = null) => {
   failedQueue = [];
 };
 
+export const resetAuthState = () => {
+  isRefreshing = false;
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -102,8 +107,11 @@ api.interceptors.response.use(
         // Refresh failed — only clear if we're sure token is expired
         // Don't wipe storage on network errors
         if (refreshError.response?.status === 401) {
+          const raw = localStorage.getItem('nextgen-auth');
+          let eventToken = null;
+          try { eventToken = raw ? JSON.parse(raw).state?.token : null; } catch {}
           localStorage.removeItem('nextgen-auth');
-          window.dispatchEvent(new Event('auth:logout'));
+          window.dispatchEvent(new CustomEvent('auth:logout', { detail: { token: eventToken } }));
         }
       }
     }

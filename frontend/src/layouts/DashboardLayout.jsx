@@ -38,18 +38,21 @@ const DashboardLayout = () => {
 
   // Fetch unread notification count
   useEffect(() => {
+    const controller = new AbortController();
     let cancelled = false;
     const fetchNotifications = async () => {
       try {
-        const res = await api.get('/notifications?unreadOnly=true&limit=1');
+        const res = await api.get('/notifications?unreadOnly=true&limit=1', {
+          signal: controller.signal
+        });
         if (!cancelled) setUnreadCount(res.data?.unreadCount || 0);
-      } catch {
-        // Silent fail
+      } catch (err) {
+        if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       }
     };
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 30000);
-    return () => { cancelled = true; clearInterval(interval); };
+    return () => { cancelled = true; controller.abort(); clearInterval(interval); };
   }, []);
 
   // Check if a nav item is active

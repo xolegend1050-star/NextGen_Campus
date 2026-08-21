@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, useMemo, useCallback } from 'react
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/authStore';
+import { resetAuthState } from './services/api';
 
 // Layouts
 import PublicLayout from './layouts/PublicLayout';
@@ -127,7 +128,11 @@ function App() {
   }, [initializeAuth]);
 
   useEffect(() => {
-    const handleAuthLogout = () => {
+    const handleAuthLogout = (e) => {
+      const { token: currentToken } = useAuthStore.getState();
+      const eventToken = e.detail?.token;
+      if (eventToken && eventToken !== currentToken) return;
+      resetAuthState();
       useAuthStore.setState({
         user: null, token: null, refreshToken: null, isAuthenticated: false
       });
