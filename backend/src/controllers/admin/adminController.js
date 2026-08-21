@@ -431,29 +431,38 @@ exports.reviewFlaggedContent = async (req, res, next) => {
 
 exports.getDisputes = async (req, res, next) => {
   try {
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 20, status } = req.query;
     const offset = (page - 1) * limit;
+
+    let whereClause = '';
+    const params = [];
+    if (status && status !== 'all') {
+      whereClause = 'WHERE d.status = $3';
+      params.push(status);
+    }
 
     const result = await db.query(
       `SELECT d.*,
               g.title as gig_title, g.compensation,
-              raiser.full_name as raiser_name, raiser.email as raiser_email,
-              against.full_name as against_name, against.email as against_email
+              raiser.full_name as raiser_name, ru.email as raiser_email,
+              against.full_name as against_name, au.email as against_email
        FROM disputes d
-       JOIN gigs g ON d.gig_id = g.id
-       JOIN users ru ON d.raised_by = ru.id
-       JOIN profiles raiser ON ru.id = raiser.user_id
-       JOIN users au ON d.against_id = au.id
-       JOIN profiles against ON au.id = against.user_id
-       WHERE d.status = 'open'
-       ORDER BY d.created_at ASC
+       LEFT JOIN gigs g ON d.gig_id = g.id
+       LEFT JOIN users ru ON d.raised_by = ru.id
+       LEFT JOIN profiles raiser ON ru.id = raiser.user_id
+       LEFT JOIN users au ON d.against_id = au.id
+       LEFT JOIN profiles against ON au.id = against.user_id
+       ${whereClause}
+       ORDER BY d.created_at DESC
        LIMIT $1 OFFSET $2`,
-      [limit, offset]
+      [limit, offset, ...params]
     );
 
-    const count = await db.query(
-      "SELECT COUNT(*) FROM disputes WHERE status = 'open'"
-    );
+    const countQuery = status && status !== 'all'
+      ? 'SELECT COUNT(*) FROM disputes WHERE status = $1'
+      : 'SELECT COUNT(*) FROM disputes';
+    const countParams = status && status !== 'all' ? [status] : [];
+    const count = await db.query(countQuery, countParams);
 
     res.json({
       disputes: result.rows,

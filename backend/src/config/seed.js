@@ -30,8 +30,8 @@ const seed = async () => {
       const userId = uuidv4();
 
       await db.query(
-        `INSERT INTO users (id, email, password_hash, role, is_email_verified, is_active)
-         VALUES ($1, $2, $3, $4, $5, true)`,
+        `INSERT INTO users (id, email, password_hash, role, is_email_verified, is_active, skip_otp)
+         VALUES ($1, $2, $3, $4, $5, true, true)`,
         [userId, email, passwordHash, role, is_email_verified]
       );
 
