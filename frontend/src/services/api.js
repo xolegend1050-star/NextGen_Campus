@@ -103,7 +103,7 @@ api.interceptors.response.use(
         // Don't wipe storage on network errors
         if (refreshError.response?.status === 401) {
           localStorage.removeItem('nextgen-auth');
-          window.location.href = '/login';
+          window.dispatchEvent(new Event('auth:logout'));
         }
       }
     }

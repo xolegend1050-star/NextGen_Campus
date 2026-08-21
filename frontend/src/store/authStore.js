@@ -50,10 +50,6 @@ export const useAuthStore = create(
             isLoading: false
           });
 
-          if (!rememberMe) {
-            localStorage.removeItem('nextgen-auth');
-          }
-
           return { success: true };
         } catch (error) {
           set({ isLoading: false });

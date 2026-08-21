@@ -126,6 +126,16 @@ function App() {
     return unsub;
   }, [initializeAuth]);
 
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      useAuthStore.setState({
+        user: null, token: null, refreshToken: null, isAuthenticated: false
+      });
+    };
+    window.addEventListener('auth:logout', handleAuthLogout);
+    return () => window.removeEventListener('auth:logout', handleAuthLogout);
+  }, []);
+
   return (
     <Router>
       <Toaster
