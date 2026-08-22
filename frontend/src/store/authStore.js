@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import api from '../services/api';
 import { disconnectSocket } from '../utils/socket';
 
-const isTokenExpired = (token) => {
+export const isTokenExpired = (token) => {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.exp * 1000 < Date.now();
@@ -181,9 +181,10 @@ export const useAuthStore = create(
         try {
           const response = await api.post('/auth/refresh', { refreshToken });
           const { token, refreshToken: newRefreshToken } = response.data;
-          set({ token, refreshToken: newRefreshToken || refreshToken });
+          set({ token, refreshToken: newRefreshToken || refreshToken, isAuthenticated: true });
         } catch (error) {
-          // Don't logout here — let ProtectedRoute handle it on next auth check
+          // Refresh failed — clear all auth state
+          set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
         }
       },
 
@@ -200,12 +201,12 @@ export const useAuthStore = create(
         const { token, refreshToken, isAuthenticated } = get();
         // Skip if already authenticated with a valid token
         if (isAuthenticated && token && !isTokenExpired(token)) return;
-        // If token is expired but refresh token is valid, attempt refresh
+        // Access token invalid — clear auth state immediately to prevent
+        // stale isAuthenticated: true from localStorage causing redirect loops
+        set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
+        // If refresh token is still valid, attempt to silently refresh
         if (refreshToken && !isTokenExpired(refreshToken)) {
           get().refreshAccessToken();
-        } else {
-          // Both tokens invalid — clear state
-          set({ user: null, token: null, refreshToken: null, isAuthenticated: false });
         }
       }
     }),

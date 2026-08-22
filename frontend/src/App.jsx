@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState, useMemo, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import { useAuthStore } from './store/authStore';
+import { useAuthStore, isTokenExpired } from './store/authStore';
 import { resetAuthState } from './services/api';
 
 // Layouts
@@ -82,9 +82,22 @@ const PageLoading = () => (
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const user = useAuthStore(state => state.user);
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
+  const token = useAuthStore(state => state.token);
 
   if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
+  }
+
+  // Token expired — clear stale auth and redirect to login
+  if (token && isTokenExpired(token)) {
+    const rt = useAuthStore.getState().refreshToken;
+    if (!rt || isTokenExpired(rt)) {
+      resetAuthState();
+      useAuthStore.setState({
+        user: null, token: null, refreshToken: null, isAuthenticated: false
+      });
+      return <Navigate to="/login" replace />;
+    }
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
@@ -98,6 +111,20 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const GuestRoute = ({ children }) => {
   const isAuthenticated = useAuthStore(state => state.isAuthenticated);
   const user = useAuthStore(state => state.user);
+  const token = useAuthStore(state => state.token);
+
+  // Stale auth — tokens expired but isAuthenticated still true from localStorage
+  // Clear it and let the user through to login/register
+  if (isAuthenticated && token && isTokenExpired(token)) {
+    const rt = useAuthStore.getState().refreshToken;
+    if (!rt || isTokenExpired(rt)) {
+      resetAuthState();
+      useAuthStore.setState({
+        user: null, token: null, refreshToken: null, isAuthenticated: false
+      });
+      return children;
+    }
+  }
 
   if (isAuthenticated) {
     const role = user?.role;
