@@ -18,7 +18,7 @@ const Landing = () => {
               <Link to="/login" className="text-gray-600 hover:text-gray-900 font-medium">
                 Login
               </Link>
-              <Link to="/register" className="btn-primary">
+              <Link to="/Register" className="btn-primary">
                 Get Started
               </Link>
             </div>
@@ -42,7 +42,7 @@ const Landing = () => {
               - all in one platform designed for your success.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/register" className="btn-primary text-lg px-8 py-3">
+              <Link to="/Register" className="btn-primary text-lg px-8 py-3">
                 Start Your Journey
               </Link>
               <a href="#features" className="btn-outline text-lg px-8 py-3">
@@ -142,7 +142,7 @@ const Landing = () => {
             Join thousands of students who are already building their future with NextGen Campus.
           </p>
           <Link
-            to="/register"
+            to="/Register"
             className="inline-block bg-white text-primary-600 font-semibold px-8 py-3 rounded-lg hover:bg-primary-50 transition-colors"
           >
             Get Started for Free
