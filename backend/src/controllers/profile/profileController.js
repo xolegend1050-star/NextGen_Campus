@@ -464,12 +464,6 @@ exports.getCompletionStatus = async (req, res, next) => {
       .filter(([, v]) => !v)
       .map(([k]) => k);
 
-    // Update is_profile_complete
-    await db.query(
-      'UPDATE profiles SET is_profile_complete = $1 WHERE user_id = $2',
-      [completion >= 80, req.user.id]
-    );
-
     res.json({ completion, missing });
   } catch (error) {
     next(error);

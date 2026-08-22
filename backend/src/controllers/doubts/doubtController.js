@@ -16,15 +16,20 @@ exports.getAllDoubts = async (req, res, next) => {
     const offset = (page - 1) * limit;
 
     let query = `
-      SELECT d.*, 
+      SELECT d.*,
              u.email as author_email,
              p.full_name as author_name,
              p.avatar_url as author_avatar,
              p.trust_score as author_trust_score,
-             (SELECT COUNT(*) FROM doubt_answers WHERE doubt_id = d.id) as answer_count
+             COALESCE(ac.answer_count, 0) as answer_count
       FROM doubts d
       JOIN users u ON d.author_id = u.id
       LEFT JOIN profiles p ON u.id = p.user_id
+      LEFT JOIN (
+        SELECT doubt_id, COUNT(*) as answer_count
+        FROM doubt_answers
+        GROUP BY doubt_id
+      ) ac ON ac.doubt_id = d.id
     `;
     let countQuery = 'SELECT COUNT(*) FROM doubts d';
     const params = [];
@@ -65,7 +70,7 @@ exports.getAllDoubts = async (req, res, next) => {
         query += ' ORDER BY d.upvotes DESC, d.created_at DESC';
         break;
       case 'unanswered':
-        query += ' ORDER BY (SELECT COUNT(*) FROM doubt_answers WHERE doubt_id = d.id) ASC, d.created_at DESC';
+        query += ' ORDER BY COALESCE(ac.answer_count, 0) ASC, d.created_at DESC';
         break;
       default:
         query += ' ORDER BY d.created_at DESC';
