@@ -15,7 +15,7 @@ const Landing = () => {
               <span className="text-xl font-bold text-gray-900">NextGen Campus</span>
             </div>
             <div className="flex items-center gap-4">
-              <Link to="/login" className="text-gray-600 hover:text-gray-900 font-medium">
+              <Link to="/Login" className="text-gray-600 hover:text-gray-900 font-medium">
                 Login
               </Link>
               <Link to="/Register" className="btn-primary">
