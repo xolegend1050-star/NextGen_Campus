@@ -169,7 +169,7 @@ exports.submitVerification = async (req, res, next) => {
         );
 
         // Send verification email
-        const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:5173'}/verify-email?token=${token}`;
+        const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
         await sendVerificationEmail(
           metadata.college_email || req.user.email,
           token

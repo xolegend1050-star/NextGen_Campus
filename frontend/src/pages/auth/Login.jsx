@@ -41,9 +41,9 @@ const Login = () => {
 
   const navigateByRole = (user) => {
     const role = user?.role;
-    if (role === 'admin') navigate('/admin/dashboard', { replace: true });
-    else if (role === 'alumni') navigate('/mentor/dashboard', { replace: true });
-    else if (role === 'company') navigate('/company/dashboard', { replace: true });
+    if (role === 'admin') navigate('/admin', { replace: true });
+    else if (role === 'alumni') navigate('/mentor', { replace: true });
+    else if (role === 'company') navigate('/company', { replace: true });
     else navigate('/dashboard', { replace: true });
   };
 

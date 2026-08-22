@@ -122,7 +122,7 @@ async function sendVerificationApprovedEmail(email, verificationType, userName) 
           <p>Hi ${userName || 'there'},</p>
           <p>Your <strong>${typeLabel}</strong> verification has been approved.</p>
           <p>You've earned a verification badge and your trust score has been updated.</p>
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/profile" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">View Profile</a>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/profile" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">View Profile</a>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
         </div>
@@ -155,7 +155,7 @@ async function sendVerificationRejectedEmail(email, verificationType, userName, 
           <p>Your <strong>${typeLabel}</strong> verification has been rejected.</p>
           ${reason ? `<p><strong>Reason:</strong> ${reason}</p>` : ''}
           <p>You can submit a new verification request after addressing the issue.</p>
-          <a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}/dashboard/verification" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">Try Again</a>
+          <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/dashboard/verification" style="display: inline-block; background-color: #4f46e5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 16px 0;">Try Again</a>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #999; font-size: 12px;">NextGen Campus - Connecting Students with Mentors</p>
         </div>

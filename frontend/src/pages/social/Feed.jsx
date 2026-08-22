@@ -94,7 +94,8 @@ const Feed = () => {
           icon="📰"
           title="Your feed is empty"
           description="Follow people to see their activity here. Visit the People page to find users to follow."
-          action={{ label: 'Find People', href: '/dashboard/people' }}
+          actionLabel="Find People"
+          actionLink="/dashboard/people"
         />
       )}
     </div>

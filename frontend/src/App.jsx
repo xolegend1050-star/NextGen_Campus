@@ -128,9 +128,9 @@ const GuestRoute = ({ children }) => {
 
   if (isAuthenticated) {
     const role = user?.role;
-    const dashboard = role === 'admin' ? '/admin/dashboard'
-      : role === 'alumni' ? '/mentor/dashboard'
-      : role === 'company' ? '/company/dashboard'
+    const dashboard = role === 'admin' ? '/admin'
+      : role === 'alumni' ? '/mentor'
+      : role === 'company' ? '/company'
       : '/dashboard';
     return <Navigate to={dashboard} replace />;
   }

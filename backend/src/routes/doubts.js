@@ -186,37 +186,6 @@ router.get('/:id/answers', doubtController.getDoubtAnswers);
 
 /**
  * @swagger
- * /api/doubts/{id}/vote:
- *   post:
- *     tags: [Doubts Forum]
- *     summary: Vote on a doubt
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [vote_type]
- *             properties:
- *               vote_type:
- *                 type: integer
- *                 enum: [-1, 1]
- *     responses:
- *       200:
- *         description: Vote recorded
- */
-router.post('/:id/vote', authenticate, doubtController.voteDoubt);
-
-/**
- * @swagger
  /api/doubts/answers/{answerId}/vote:
  *   post:
  *     tags: [Doubts Forum]
@@ -245,6 +214,37 @@ router.post('/:id/vote', authenticate, doubtController.voteDoubt);
  *         description: Vote recorded
  */
 router.post('/answers/:answerId/vote', authenticate, doubtController.voteAnswer);
+
+/**
+ * @swagger
+ * /api/doubts/{id}/vote:
+ *   post:
+ *     tags: [Doubts Forum]
+ *     summary: Vote on a doubt
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [vote_type]
+ *             properties:
+ *               vote_type:
+ *                 type: integer
+ *                 enum: [-1, 1]
+ *     responses:
+ *       200:
+ *         description: Vote recorded
+ */
+router.post('/:id/vote', authenticate, doubtController.voteDoubt);
 
 /**
  * @swagger

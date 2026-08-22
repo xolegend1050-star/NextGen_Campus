@@ -106,10 +106,10 @@ Return a JSON response with:
             moderation_result = result['candidates'][0]['content']['parts'][0]['text']
             return jsonify({'result': moderation_result, 'is_safe': True})
         else:
-            return jsonify({'is_safe': True, 'confidence': 0.5})
+            return jsonify({'is_safe': False, 'confidence': 0.5, 'error': f'Gemini API returned status {response.status_code}'})
 
     except Exception as e:
-        return jsonify({'is_safe': True, 'error': str(e)})
+        return jsonify({'is_safe': False, 'error': str(e)})
 
 
 @app.route('/api/recommend-mentors', methods=['POST'])

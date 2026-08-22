@@ -42,10 +42,10 @@ const DashboardLayout = () => {
     let cancelled = false;
     const fetchNotifications = async () => {
       try {
-        const res = await api.get('/notifications?unreadOnly=true&limit=1', {
+        const res = await api.get('/notifications/unread-count', {
           signal: controller.signal
         });
-        if (!cancelled) setUnreadCount(res.data?.unreadCount || 0);
+        if (!cancelled) setUnreadCount(res.data?.count || 0);
       } catch (err) {
         if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       }

@@ -10,8 +10,9 @@ const { createServer } = require('http');
 const { Server } = require('socket.io');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const jwt = require('jsonwebtoken');
 
-const connectDB = require('./config/database');
+const db = require('./config/database');
 const logger = require('./utils/logger');
 const errorHandler = require('./middleware/errorHandler');
 
@@ -165,9 +166,6 @@ app.use((req, res) => {
 
 // Error handling middleware
 app.use(errorHandler);
-
-const jwt = require('jsonwebtoken');
-const db = require('./config/database');
 
 // Socket.IO connection handling with auth
 io.use(async (socket, next) => {
