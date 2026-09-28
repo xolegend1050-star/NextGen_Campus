@@ -12,10 +12,18 @@ const hashToken = (token) => crypto.createHash('sha256').update(token).digest('h
 
 const generateTokens = (userId) => {
   const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh';
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
+  // A JWT is only unique if something in its payload is. Two tokens signed for
+  // the same user within the same second used to be byte-identical, because
+  // iat has one-second resolution and the payload was just { userId }.
+  //
+  // That let two sessions share a token_hash: registering and then logging in
+  // inside the same second produced two rows with the same hash, so rotating or
+  // logging out of one left the other working, and a spent refresh token could
+  // be reused through the duplicate row. jti makes every token distinct.
+  const token = jwt.sign({ userId, jti: crypto.randomUUID() }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || '1h'
   });
-  const refreshToken = jwt.sign({ userId }, refreshSecret, {
+  const refreshToken = jwt.sign({ userId, jti: crypto.randomUUID() }, refreshSecret, {
     expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d'
   });
   return { token, refreshToken };

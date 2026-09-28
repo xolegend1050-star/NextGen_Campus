@@ -133,6 +133,19 @@ module.exports = async function run() {
   r = await users.anonC('POST', '/api/auth/refresh', {});
   expect('refresh missing token rejected', r, 400);
 
+  // Two tokens minted for the same user in the same second used to be
+  // byte-identical, so the register session and the login session shared a
+  // token_hash and rotating one left the other usable. Every token must be
+  // unique or a spent refresh token stays replayable.
+  const rapid = await users.anonC('POST', '/api/auth/login', { email: rtEmail, password: 'Sweep123!' });
+  check(
+    'back-to-back logins issue distinct tokens',
+    rapid.status === 200 && rapid.body.token !== rtLogin.body.token && rapid.body.refreshToken !== rt,
+    rapid.status === 200 ? 'identical token issued twice' : `status ${rapid.status}`
+  );
+  const stale = await H.client(rt)('GET', '/api/auth/me');
+  check('  and a rotated refresh token stays dead', stale.status === 401, `${stale.status}`);
+
   // reuse of a spent refresh token must fail
   r = await users.anonC('POST', '/api/auth/refresh', { refreshToken: rt });
   check('spent refresh token cannot be reused', r.status === 401, `${r.status}`);
