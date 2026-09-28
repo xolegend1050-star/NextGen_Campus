@@ -14,6 +14,9 @@ const { TIERS, POINTS, getTier, calculateDecay, awardPoints, recalculateTrustSco
 describe('Trust Score System', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks resets recorded calls but NOT the mockResolvedValueOnce
+    // queue, so unconsumed responses leak into the next test.
+    db.query.mockReset();
   });
 
   describe('getTier', () => {
@@ -216,7 +219,8 @@ describe('Trust Score System', () => {
     it('should apply decay for inactive user', async () => {
       const pastDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); // 60 days ago
       db.query
-        .mockResolvedValueOnce({ rows: [{ trust_score: 50, last_active_at: pastDate }] })
+        // The column is last_seen_at; last_active_at silently produced no decay
+        .mockResolvedValueOnce({ rows: [{ trust_score: 50, last_seen_at: pastDate }] })
         .mockResolvedValueOnce({ rows: [{ total_earned: '50' }] })
         .mockResolvedValueOnce({ rows: [{ total_earned: '50' }] })
         .mockResolvedValueOnce({ rows: [] }); // decay history insert
@@ -229,9 +233,10 @@ describe('Trust Score System', () => {
     it('should not go below 0 after decay', async () => {
       const pastDate = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000);
       db.query
-        .mockResolvedValueOnce({ rows: [{ trust_score: 10, last_active_at: pastDate }] })
+        .mockResolvedValueOnce({ rows: [{ trust_score: 10, last_seen_at: pastDate }] })
         .mockResolvedValueOnce({ rows: [{ total_earned: '10' }] })
-        .mockResolvedValueOnce({ rows: [] });
+        .mockResolvedValueOnce({ rows: [] })
+        .mockResolvedValueOnce({ rows: [] }); // decay history insert also fires here
 
       const result = await recalculateTrustScore('user1');
       expect(result.score).toBe(0);

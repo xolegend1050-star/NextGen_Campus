@@ -14,6 +14,15 @@ jest.mock('axios', () => ({
   post: jest.fn().mockRejectedValue(new Error('AI service unavailable'))
 }));
 
+// Awarding trust points is a side effect of answering, not part of what this
+// suite asserts. Left unmocked it issues its own queries and exhausts the
+// mock queue, which surfaced as an opaque 500.
+jest.mock('../src/utils/trustTiers', () => ({
+  awardPoints: jest.fn().mockResolvedValue({ trust_score: 0, tier: 'bronze' }),
+  calculateTrustScore: jest.fn().mockReturnValue({ trust_score: 0, tier: 'bronze' }),
+  getTier: jest.fn().mockReturnValue({ name: 'bronze', min: 0, max: 99 })
+}));
+
 const db = require('../src/config/database');
 const axios = require('axios');
 
@@ -24,10 +33,19 @@ function makeToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: '15m' });
 }
 
+// The authenticate middleware runs two queries: the user lookup and the
+// session-exists check. Both must be mocked or they consume the response the
+// controller under test expects.
 function mockAuth(userId) {
-  db.query.mockResolvedValueOnce({
-    rows: [{ id: userId, email: 'test@student.com', role: 'student', is_active: true, is_banned: false }]
-  });
+  db.query
+    .mockResolvedValueOnce({
+      rows: [{
+        id: userId, email: 'test@student.com', role: 'student',
+        is_active: true, is_banned: false,
+        is_email_verified: true, skip_otp: true
+      }]
+    })
+    .mockResolvedValueOnce({ rows: [{ id: 'session-1' }] });
 }
 
 async function makeRequest(method, path, body = {}, headers = {}) {
@@ -36,6 +54,9 @@ async function makeRequest(method, path, body = {}, headers = {}) {
   const app = express();
   app.use(express.json());
   app.use('/api/doubts', require('../src/routes/doubts'));
+  // Without this, any thrown error surfaces as an opaque 500 and the real
+  // message is lost.
+  app.use(require('../src/middleware/errorHandler'));
   const req = request(app)[method.toLowerCase()](path)
     .set('Content-Type', 'application/json')
     .set(headers);
@@ -50,6 +71,11 @@ describe('Doubts Controller', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    // clearAllMocks resets recorded calls but NOT the mockResolvedValueOnce
+    // queue. A test that queues more responses than it consumes leaves
+    // leftovers that the next test silently picks up, which showed up as a
+    // spurious 404 in a suite whose logic was correct.
+    db.query.mockReset();
   });
 
   describe('GET /api/doubts', () => {
