@@ -1,7 +1,19 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const aiController = require('../controllers/ai/aiController');
 const { authenticate } = require('../middleware/auth');
+
+// Every endpoint here proxies a metered upstream (Gemini / scikit-learn).
+// Without a cap a single client can burn the quota with a tight loop.
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: parseInt(process.env.AI_RATE_LIMIT_MAX) || 30,
+  message: { error: 'Too many AI requests. Please wait a few minutes.', code: 'AI_RATE_LIMITED' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
+});
 
 /**
  * @swagger
@@ -25,7 +37,7 @@ const { authenticate } = require('../middleware/auth');
  *       200:
  *         description: AI draft answer
  */
-router.post('/draft-answer', authenticate, aiController.generateDraftAnswer);
+router.post('/draft-answer', authenticate, aiLimiter, aiController.generateDraftAnswer);
 
 /**
  * @swagger
@@ -49,7 +61,7 @@ router.post('/draft-answer', authenticate, aiController.generateDraftAnswer);
  *       200:
  *         description: Moderation result
  */
-router.post('/moderate-content', authenticate, aiController.moderateContent);
+router.post('/moderate-content', authenticate, aiLimiter, aiController.moderateContent);
 
 /**
  * @swagger
@@ -63,7 +75,7 @@ router.post('/moderate-content', authenticate, aiController.moderateContent);
  *       200:
  *         description: Mentor recommendations
  */
-router.get('/recommend-mentors', authenticate, aiController.recommendMentors);
+router.get('/recommend-mentors', authenticate, aiLimiter, aiController.recommendMentors);
 
 /**
  * @swagger
@@ -77,7 +89,7 @@ router.get('/recommend-mentors', authenticate, aiController.recommendMentors);
  *       200:
  *         description: Gig recommendations
  */
-router.get('/recommend-gigs', authenticate, aiController.recommendGigs);
+router.get('/recommend-gigs', authenticate, aiLimiter, aiController.recommendGigs);
 
 /**
  * @swagger
@@ -101,7 +113,7 @@ router.get('/recommend-gigs', authenticate, aiController.recommendGigs);
  *       200:
  *         description: Success prediction
  */
-router.post('/predict-gig-success', authenticate, aiController.predictGigSuccess);
+router.post('/predict-gig-success', authenticate, aiLimiter, aiController.predictGigSuccess);
 
 /**
  * @swagger
@@ -125,7 +137,7 @@ router.post('/predict-gig-success', authenticate, aiController.predictGigSuccess
  *       200:
  *         description: Resume analysis
  */
-router.post('/analyze-resume', authenticate, aiController.analyzeResume);
+router.post('/analyze-resume', authenticate, aiLimiter, aiController.analyzeResume);
 
 /**
  * @swagger
@@ -151,6 +163,19 @@ router.post('/analyze-resume', authenticate, aiController.analyzeResume);
  *       200:
  *         description: Mock interview questions
  */
-router.post('/mock-interview', authenticate, aiController.mockInterview);
+router.post('/mock-interview', authenticate, aiLimiter, aiController.mockInterview);
+
+/**
+ * @swagger
+ * /api/ai/health:
+ *   get:
+ *     tags: [AI Features]
+ *     summary: Check whether the AI service is reachable
+ *     responses:
+ *       200: { description: AI service reachable }
+ *       503: { description: AI service unreachable }
+ */
+router.get('/health', aiController.aiHealth);
 
 module.exports = router;
+

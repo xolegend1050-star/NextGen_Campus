@@ -232,6 +232,25 @@ committed to the repo.
 > **Note:** Render's free tier spins services down after inactivity. The first
 > request can take 30–60 s while the AI service cold-starts.
 
+### Resilience
+
+Every call to the AI service goes through `utils/aiClient.js`, which enforces a
+hard timeout and bounded retries. Previously the seven `axios.post` calls had
+no timeout at all, so one slow upstream call held an Express request open
+indefinitely.
+
+| Concern | Behaviour |
+|---------|-----------|
+| Timeout | 30 s default, 12 s for the cheap prediction endpoints (`AI_TIMEOUT_MS`, `AI_FAST_TIMEOUT_MS`) |
+| Retries | 2 attempts with exponential backoff, only for timeouts, connection errors and 5xx (`AI_MAX_RETRIES`) |
+| Throttling | 30 AI requests / 15 min per IP — these endpoints meter a paid API |
+| Health | `GET /api/ai/health` reports whether the upstream is reachable |
+
+Degradation is deliberate per endpoint: mentor/gig recommendations and gig
+success prediction fall back to SQL, moderation **fails open** so an outage
+never blocks a user from posting (flagged `degraded: true` for manual review),
+and resume analysis returns a renderable placeholder shape.
+
 ---
 
 ## 7. Pending Work

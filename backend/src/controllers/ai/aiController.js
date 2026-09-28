@@ -1,8 +1,16 @@
-const axios = require('axios');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const aiClient = require('../../utils/aiClient');
+const { FAST_TIMEOUT, AiServiceError } = aiClient;
 
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || 'http://localhost:5001';
+/** Translate an AI failure into a response, with a body a UI can act on. */
+const fail = (res, err) => {
+  if (err instanceof AiServiceError) {
+    return res.status(err.status).json({ error: err.message, code: err.code });
+  }
+  logger.error('AI error:', err.message);
+  return res.status(503).json({ error: 'AI service unavailable', code: 'AI_UNAVAILABLE' });
+};
 
 exports.generateDraftAnswer = async (req, res, next) => {
   try {
@@ -24,14 +32,21 @@ exports.generateDraftAnswer = async (req, res, next) => {
 
     // Call AI service
     try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/generate-doubt-answer`, {
+      const data = await aiClient.post('/api/generate-doubt-answer', {
         title: doubt.rows[0].title,
         content: doubt.rows[0].content,
         tags: doubt.rows[0].tags,
         subject: doubt.rows[0].subject
       });
 
-      const draftAnswer = response.data.answer;
+      const draftAnswer = data.answer;
+
+      if (!draftAnswer) {
+        return res.status(503).json({
+          error: 'AI service returned no answer',
+          code: 'AI_EMPTY_RESPONSE'
+        });
+      }
 
       // Store draft answer
       await db.query(
@@ -42,8 +57,7 @@ exports.generateDraftAnswer = async (req, res, next) => {
       logger.info(`AI draft answer generated for doubt: ${doubt_id}`);
       res.json({ draftAnswer });
     } catch (aiError) {
-      logger.error('AI service error:', aiError.message);
-      res.status(503).json({ error: 'AI service unavailable' });
+      fail(res, aiError);
     }
   } catch (error) {
     next(error);
@@ -54,15 +68,28 @@ exports.moderateContent = async (req, res, next) => {
   try {
     const { content } = req.body;
 
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/moderate-content`, {
-        content
-      });
+    if (typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ error: 'Content is required' });
+    }
 
-      res.json(response.data);
+    try {
+      const data = await aiClient.post(
+        '/api/moderate-content',
+        { content },
+        { timeout: FAST_TIMEOUT }
+      );
+      res.json(data);
     } catch (aiError) {
-      logger.error('AI service error:', aiError.message);
-      res.status(503).json({ error: 'AI service unavailable' });
+      // Fail open rather than blocking every post when moderation is offline,
+      // but say so explicitly so the caller can queue a re-check.
+      logger.warn('Moderation unavailable, allowing content through:', aiError.message);
+      res.json({
+        is_safe: true,
+        confidence: 0,
+        degraded: true,
+        code: aiError.code || 'AI_UNAVAILABLE',
+        message: 'Automated moderation is temporarily unavailable. Flagged for manual review.'
+      });
     }
   } catch (error) {
     next(error);
@@ -83,14 +110,18 @@ exports.recommendMentors = async (req, res, next) => {
     }
 
     try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/recommend-mentors`, {
-        student_skills: profile.rows[0].skills,
-        student_interests: profile.rows[0].interests,
-        student_city: profile.rows[0].city
-      });
-
-      res.json(response.data);
+      const data = await aiClient.post(
+        '/api/recommend-mentors',
+        {
+          student_skills: profile.rows[0].skills,
+          student_interests: profile.rows[0].interests,
+          student_city: profile.rows[0].city
+        },
+        { timeout: FAST_TIMEOUT }
+      );
+      res.json(data);
     } catch (aiError) {
+      logger.warn('Mentor recommendation fell back to SQL:', aiError.message);
       // Fallback to simple database query
       const mentors = await db.query(
         `SELECT u.id, p.full_name, p.avatar_url, p.city, p.skills,
@@ -125,13 +156,17 @@ exports.recommendGigs = async (req, res, next) => {
     }
 
     try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/recommend-gigs`, {
-        student_skills: profile.rows[0].skills,
-        trust_score: profile.rows[0].trust_score
-      });
-
-      res.json(response.data);
+      const data = await aiClient.post(
+        '/api/recommend-gigs',
+        {
+          student_skills: profile.rows[0].skills,
+          trust_score: profile.rows[0].trust_score
+        },
+        { timeout: FAST_TIMEOUT }
+      );
+      res.json(data);
     } catch (aiError) {
+      logger.warn('Gig recommendation fell back to SQL:', aiError.message);
       // Fallback to simple database query
       const gigs = await db.query(
         `SELECT g.*, cp.company_name, cp.logo_url
@@ -167,14 +202,18 @@ exports.predictGigSuccess = async (req, res, next) => {
     }
 
     try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/predict-gig-success`, {
-        gig: gig.rows[0],
-        student_profile: profile.rows[0],
-        current_applications: parseInt(applications.rows[0].count)
-      });
-
-      res.json(response.data);
+      const data = await aiClient.post(
+        '/api/predict-gig-success',
+        {
+          gig: gig.rows[0],
+          student_profile: profile.rows[0],
+          current_applications: parseInt(applications.rows[0].count)
+        },
+        { timeout: FAST_TIMEOUT }
+      );
+      res.json(data);
     } catch (aiError) {
+      logger.warn('Gig success prediction fell back to heuristic:', aiError.message);
       // Simple fallback prediction
       const studentSkills = profile.rows[0].skills || [];
       const gigSkills = gig.rows[0].skills_required || [];
@@ -203,15 +242,32 @@ exports.analyzeResume = async (req, res, next) => {
   try {
     const { resume_url } = req.body;
 
+    if (!resume_url) {
+      return res.status(400).json({ error: 'resume_url is required' });
+    }
+
     try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/analyze-resume`, {
+      const data = await aiClient.post('/api/analyze-resume', {
         resume_url,
         student_id: req.user.id
       });
-
-      res.json(response.data);
+      res.json(data);
     } catch (aiError) {
-      res.status(503).json({ error: 'AI service unavailable' });
+      // Degrade to the structured skeleton the frontend already renders,
+      // rather than a hard error the user cannot act on.
+      logger.warn('Resume analysis unavailable, returning placeholder:', aiError.message);
+      res.json({
+        analysis: {
+          skills_identified: [],
+          skill_gaps: [],
+          recommendations: [
+            'Automated resume analysis is temporarily unavailable. Please try again in a few minutes.'
+          ],
+          overall_score: 0
+        },
+        degraded: true,
+        code: aiError.code || 'AI_UNAVAILABLE'
+      });
     }
   } catch (error) {
     next(error);
@@ -222,16 +278,30 @@ exports.mockInterview = async (req, res, next) => {
   try {
     const { role, skills } = req.body;
 
-    try {
-      const response = await axios.post(`${AI_SERVICE_URL}/api/mock-interview`, {
-        role,
-        skills
-      });
-
-      res.json(response.data);
-    } catch (aiError) {
-      res.status(503).json({ error: 'AI service unavailable' });
+    if (!role || !Array.isArray(skills)) {
+      return res.status(400).json({ error: 'role and skills are required' });
     }
+
+    try {
+      const data = await aiClient.post('/api/mock-interview', { role, skills });
+      res.json(data);
+    } catch (aiError) {
+      logger.warn('Mock interview unavailable:', aiError.message);
+      res.status(aiError.status || 503).json({
+        error: 'AI service unavailable',
+        code: aiError.code || 'AI_UNAVAILABLE',
+        message: 'Mock interview needs a working AI service. Please try again shortly.'
+      });
+    }
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.aiHealth = async (req, res, next) => {
+  try {
+    const status = await aiClient.health();
+    res.status(status.available ? 200 : 503).json(status);
   } catch (error) {
     next(error);
   }
