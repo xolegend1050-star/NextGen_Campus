@@ -229,12 +229,35 @@ committed to the repo.
 
 ---
 
-## 9. Known Technical Debt
+## 9. Token Security
+
+All opaque tokens stored in the database are **SHA-256 hashed**, never stored raw.
+`hashToken()` is defined once in `authController.js` and used at every storage
+and lookup site, so a database leak does not expose usable credentials.
+
+| Table | Column | Hashing |
+|-------|--------|---------|
+| `user_sessions` | `token_hash` | SHA-256 |
+| `user_sessions` | `refresh_token_hash` | SHA-256 |
+| `password_resets` | `token_hash` | SHA-256 |
+| `verification_tokens` | `token` | SHA-256 |
+
+The raw token is emailed to the user; only the hash is persisted. Logout and
+session-expiry checks compare `hashToken(token)` against the stored value, so a
+logged-out token is rejected even while its JWT is still cryptographically valid.
+
+### Indexes
+
+`migrations/add_token_indexes.sql` adds indexes on the hashed-token columns
+looked up on every authenticated request.
+
+---
+
+## 10. Known Technical Debt
 
 | Issue | Impact |
 |-------|--------|
-| `password_resets.token_hash` stores **raw UUIDs** | Database leak would allow instant account takeover — should be SHA-256 hashed |
-| No index on `password_resets.token_hash` | Reset lookups do a full table scan |
-| `user_sessions.token_hash` stores **raw JWTs** | Should be hashed, same reason |
-| No rate limiting on `/api/admin/*` | Admin endpoints inherit only the global 500/15 min limit |
+| No rate limiting on `/api/admin/*` | Admin endpoints inherit only the global 500 / 15 min limit |
 | Unversioned model endpoints | Harder to evolve later |
+| Email verification is not enforced | A verification token is issued and emailed, but an unverified user can still log in |
+| Chat is REST-only | Socket.IO is set up server- and client-side but `Chat.jsx` does not use it |
