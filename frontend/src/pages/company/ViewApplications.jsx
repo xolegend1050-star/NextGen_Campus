@@ -4,12 +4,14 @@ import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
 import Badge from '../../components/common/Badge';
+import { EscrowActions, EscrowBadge } from '../../components/common/Escrow';
 import { CheckIcon, XMarkIcon, UserIcon } from '@heroicons/react/24/outline';
 
 const ViewApplications = () => {
   const { id } = useParams();
   const [applications, setApplications] = useState([]);
   const [gig, setGig] = useState(null);
+  const [escrows, setEscrows] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,6 +33,34 @@ const ViewApplications = () => {
     }
   };
 
+  // Escrows are fetched separately: a failure here must not blank the page.
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.get('/wallet/escrow');
+        setEscrows(res.data.escrows || []);
+      } catch (error) {
+        console.error('Failed to fetch escrows:', error);
+      }
+    };
+    if (id) load();
+  }, [id]);
+
+  // Escrows are keyed by application, so several applicants on one gig each
+  // get their own entry.
+  const escrowFor = (applicationId) =>
+    escrows.find(e => e.application_id === applicationId) || null;
+
+  const upsertEscrow = (updated) => {
+    if (!updated?.id) return;
+    setEscrows(prev => {
+      const others = prev.filter(e => e.id !== updated.id);
+      return [...others, updated].sort((a, b) =>
+        new Date(b.created_at) - new Date(a.created_at)
+      );
+    });
+  };
+
   const updateStatus = async (applicationId, status) => {
     try {
       await api.patch(`/gigs/applications/${applicationId}`, { status });
@@ -38,7 +68,8 @@ const ViewApplications = () => {
         apps.map(a => a.id === applicationId ? { ...a, status } : a)
       );
     } catch (error) {
-      alert('Failed to update application');
+      console.error('Failed to update application:', error);
+      alert(error.response?.data?.error || 'Failed to update application');
     }
   };
 
@@ -127,6 +158,24 @@ const ViewApplications = () => {
                   )}
                 </div>
               </div>
+
+              {/* Escrow controls, only once the applicant is accepted */}
+              {app.status === 'accepted' && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <EscrowActions
+                    gigId={id}
+                    applicationId={app.id}
+                    escrow={escrowFor(app.id)}
+                    onChange={upsertEscrow}
+                    compensation={gig?.compensation}
+                  />
+                </div>
+              )}
+              {app.status !== 'accepted' && escrowFor(app.id) && (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <EscrowBadge status={escrowFor(app.id).status} />
+                </div>
+              )}
             </div>
           ))}
         </div>

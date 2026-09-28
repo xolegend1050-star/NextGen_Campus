@@ -4,6 +4,7 @@ import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Badge from '../../components/common/Badge';
 import Pagination from '../../components/common/Pagination';
+import { EscrowBadge } from '../../components/common/Escrow';
 import {
   WalletIcon,
   ArrowUpIcon,
@@ -20,10 +21,17 @@ const Wallet = () => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawing, setWithdrawing] = useState(false);
+  const [escrows, setEscrows] = useState([]);
+
+  // Money already earned but not yet paid out by the company.
+  const heldInEscrow = escrows
+    .filter(e => e.status === 'locked')
+    .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
 
   useEffect(() => {
     fetchWallet();
     fetchTransactions();
+    fetchEscrows();
   }, [pagination.page]);
 
   const fetchWallet = async () => {
@@ -32,6 +40,15 @@ const Wallet = () => {
       setWallet(response.data.wallet);
     } catch (error) {
       console.error('Failed to fetch wallet:', error);
+    }
+  };
+
+  const fetchEscrows = async () => {
+    try {
+      const response = await api.get('/wallet/escrow');
+      setEscrows(response.data.escrows || []);
+    } catch (error) {
+      console.error('Failed to fetch escrows:', error);
     }
   };
 
@@ -135,9 +152,51 @@ const Wallet = () => {
             <ArrowUpIcon className="h-8 w-8 text-orange-600" />
             <span className="text-gray-500">Locked in Escrow</span>
           </div>
-          <div className="text-2xl font-bold text-gray-900">₹{wallet?.locked_balance || 0}</div>
+          <div className="text-2xl font-bold text-gray-900">
+            ₹{heldInEscrow > 0 ? heldInEscrow : (wallet?.locked_balance || 0)}
+          </div>
+          {heldInEscrow > 0 && (
+            <p className="text-xs text-gray-500 mt-1">
+              Funds guaranteed but not yet released by the company
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Escrow activity */}
+      {escrows.length > 0 && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Gig Payments</h2>
+            <span className="text-sm text-gray-500">
+              {escrows.filter(e => e.status === 'locked').length} awaiting release
+            </span>
+          </div>
+          <div className="space-y-3">
+            {escrows.map(escrow => (
+              <div
+                key={escrow.id}
+                className="flex flex-wrap items-center justify-between gap-3 p-3 border border-gray-100 rounded-lg"
+              >
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 truncate">
+                    {escrow.gig_title || 'Gig'}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {escrow.company_name || 'Company'}
+                    {escrow.released_at &&
+                      ` · paid ${new Date(escrow.released_at).toLocaleDateString()}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-semibold text-gray-900">₹{escrow.amount}</span>
+                  <EscrowBadge status={escrow.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Transactions */}
       <div className="card">
