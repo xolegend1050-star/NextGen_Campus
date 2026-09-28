@@ -32,6 +32,27 @@ router.get('/', authenticate, authorize('admin'), userController.getAllUsers);
 
 /**
  * @swagger
+ * /api/users/search:
+ *   get:
+ *     tags: [Users]
+ *     summary: Search people to start a conversation with
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Matching people
+ *
+ * Registered before /:id so "search" is not parsed as a user id.
+ */
+router.get('/search', authenticate, userController.searchUsers);
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   get:
  *     tags: [Users]

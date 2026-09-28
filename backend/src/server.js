@@ -184,13 +184,15 @@ app.use('/uploads', express.static(UPLOAD_DIR, {
   redirect: false,
   setHeaders: (res, filePath) => {
     const ext = path.extname(filePath).toLowerCase();
-    const inlineable = ['.jpg', '.jpeg', '.png'];
-    if (inlineable.includes(ext)) {
-      res.setHeader('Content-Type', ext === '.png' ? 'image/png' : 'image/jpeg');
+    const inlineImages = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.gif': 'image/gif', '.webp': 'image/webp' };
+    if (inlineImages[ext]) {
+      res.setHeader('Content-Type', inlineImages[ext]);
       res.setHeader('Content-Disposition', 'inline');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else {
+      // PDFs and chat attachments are never rendered inline, so an uploaded
+      // HTML or SVG payload cannot execute in the browser
       res.setHeader('Content-Type', 'application/octet-stream');
       res.setHeader('Content-Disposition', 'attachment');
       res.setHeader('X-Content-Type-Options', 'nosniff');
