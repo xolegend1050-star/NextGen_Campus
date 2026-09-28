@@ -56,3 +56,6 @@ temp/
 
 # Sensitive docs (contain secrets)
 SESSION-LOG.md
+
+# User-uploaded files (runtime only, never committed)
+backend/uploads/
