@@ -7,7 +7,8 @@ import EmptyState from '../../components/common/EmptyState';
 import {
   PaperAirplaneIcon,
   PaperClipIcon,
-  UserIcon
+  UserIcon,
+  ChevronLeftIcon
 } from '@heroicons/react/24/outline';
 
 const Chat = () => {
@@ -223,8 +224,13 @@ const Chat = () => {
 
   return (
     <div className="flex h-[calc(100vh-12rem)] bg-white rounded-xl border overflow-hidden">
-      {/* Conversations List */}
-      <div className="w-80 border-r bg-gray-50">
+      {/* Conversations List. On small screens the list is hidden once a
+          conversation is open, so the message pane keeps the full width. */}
+      <div
+        className={`w-full sm:w-80 sm:flex-shrink-0 border-r bg-gray-50 ${
+          activeConversation ? 'hidden sm:block' : 'block'
+        }`}
+      >
         <div className="p-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">Messages</h2>
           <span
@@ -285,7 +291,7 @@ const Chat = () => {
       </div>
 
       {/* Messages Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className={`flex-1 flex flex-col min-w-0 ${activeConversation ? 'flex' : 'hidden sm:flex'}`}>
         {activeConversation ? (
           (() => {
             const other = getOtherParticipant(activeConversation);
@@ -294,6 +300,14 @@ const Chat = () => {
               <>
                 {/* Header */}
                 <div className="p-4 border-b flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setActiveConversation(null)}
+                    className="sm:hidden p-1 -ml-1 text-gray-500 hover:text-gray-700"
+                    aria-label="Back to conversations"
+                  >
+                    <ChevronLeftIcon className="h-5 w-5" />
+                  </button>
                   <div className="relative">
                     <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
                       {other.avatar_url ? (

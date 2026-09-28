@@ -1,3 +1,4 @@
+const multer = require('multer');
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
@@ -30,6 +31,23 @@ const errorHandler = (err, req, res, next) => {
 
   if (err.name === 'TokenExpiredError') {
     return res.status(401).json({ error: 'Token expired' });
+  }
+
+  // Multer / file-upload failures are caused by the client's request, so they
+  // must surface as 4xx rather than being reported as a server fault.
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE' || err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'Unexpected file field or too many files' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+
+  // Raised by our multer fileFilter for disallowed types
+  if (err.message && err.message.startsWith('Invalid file type')) {
+    return res.status(400).json({ error: err.message });
   }
 
   if (err.statusCode) {

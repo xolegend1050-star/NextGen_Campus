@@ -194,7 +194,7 @@ const AdminVerifications = () => {
                           {req.status}
                         </span>
                         {req.rejection_reason && (
-                          <p className="text-xs text-red-500 max-w-[200px] text-right">{req.rejection_reason}</p>
+                          <p className="text-xs text-red-500 max-w-full sm:max-w-[200px] text-right break-words">{req.rejection_reason}</p>
                         )}
                       </div>
                     )}

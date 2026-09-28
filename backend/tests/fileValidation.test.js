@@ -1,10 +1,11 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-// Mock file-type since it uses ESM imports
+// Mock file-type. v19+ renamed `FileType.fromBuffer` to the named export
+// `fileTypeFromBuffer`, so the mock has to expose the current entry point.
 jest.mock('file-type', () => ({
-  fromBuffer: jest.fn()
+  fileTypeFromBuffer: jest.fn()
 }));
 
 jest.mock('../src/utils/logger', () => ({
@@ -59,7 +60,7 @@ describe('File Validation', () => {
   describe('JPEG validation', () => {
     it('should accept valid JPEG files', async () => {
       const filePath = createTmpFile('test.jpg');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
       const result = await validateFile(filePath, 'photo.jpg');
       expect(result.valid).toBe(true);
       expect(result.detectedMime).toBe('image/jpeg');
@@ -67,7 +68,7 @@ describe('File Validation', () => {
 
     it('should accept .jpeg extension', async () => {
       const filePath = createTmpFile('test.jpg');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
       const result = await validateFile(filePath, 'photo.jpeg');
       expect(result.valid).toBe(true);
     });
@@ -76,7 +77,7 @@ describe('File Validation', () => {
   describe('PNG validation', () => {
     it('should accept valid PNG files', async () => {
       const filePath = createTmpFile('test.png');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'image/png', ext: 'png' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'image/png', ext: 'png' });
       const result = await validateFile(filePath, 'image.png');
       expect(result.valid).toBe(true);
       expect(result.detectedMime).toBe('image/png');
@@ -86,7 +87,7 @@ describe('File Validation', () => {
   describe('PDF validation', () => {
     it('should accept valid PDF files', async () => {
       const filePath = createTmpFile('test.pdf');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'application/pdf', ext: 'pdf' });
       const result = await validateFile(filePath, 'document.pdf');
       expect(result.valid).toBe(true);
       expect(result.detectedMime).toBe('application/pdf');
@@ -96,7 +97,7 @@ describe('File Validation', () => {
   describe('MIME/extension mismatch', () => {
     it('should reject PNG content with .jpg extension', async () => {
       const filePath = createTmpFile('fake.jpg');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'image/png', ext: 'png' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'image/png', ext: 'png' });
       const result = await validateFile(filePath, 'fake.jpg');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not match');
@@ -104,7 +105,7 @@ describe('File Validation', () => {
 
     it('should reject JPEG content with .png extension', async () => {
       const filePath = createTmpFile('fake.png');
-      FileType.fromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
+      FileType.fileTypeFromBuffer.mockResolvedValue({ mime: 'image/jpeg', ext: 'jpg' });
       const result = await validateFile(filePath, 'fake.png');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not match');
@@ -114,7 +115,7 @@ describe('File Validation', () => {
   describe('Unknown / unrecognized files', () => {
     it('should reject files with no recognized MIME type', async () => {
       const filePath = createTmpFile('fake.jpg');
-      FileType.fromBuffer.mockResolvedValue(undefined);
+      FileType.fileTypeFromBuffer.mockResolvedValue(undefined);
       const result = await validateFile(filePath, 'fake.jpg');
       expect(result.valid).toBe(false);
       expect(result.error).toContain('Could not detect file type');
@@ -127,3 +128,4 @@ describe('File Validation', () => {
     });
   });
 });
+

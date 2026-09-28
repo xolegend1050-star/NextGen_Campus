@@ -84,7 +84,8 @@ const AdminUsers = () => {
       {users.length > 0 ? (
         <>
           <div className="bg-white rounded-lg border overflow-hidden">
-            <table className="w-full">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
@@ -149,6 +150,7 @@ const AdminUsers = () => {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
           <Pagination
             currentPage={pagination.page}

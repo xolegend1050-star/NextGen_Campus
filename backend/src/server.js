@@ -173,8 +173,30 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/follows', followRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// Static file serving for uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// Static file serving for uploads.
+// Uploaded files are user-controlled, so they are served as inert content:
+// no directory listing, no sniffing, and anything that is not a known image
+// or PDF is forced to download rather than render.
+const UPLOAD_DIR = path.join(__dirname, '../uploads');
+app.use('/uploads', express.static(UPLOAD_DIR, {
+  index: false,
+  dotfiles: 'deny',
+  redirect: false,
+  setHeaders: (res, filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    const inlineable = ['.jpg', '.jpeg', '.png'];
+    if (inlineable.includes(ext)) {
+      res.setHeader('Content-Type', ext === '.png' ? 'image/png' : 'image/jpeg');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else {
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'attachment');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
+  }
+}));
 
 // 404 handler
 app.use((req, res) => {

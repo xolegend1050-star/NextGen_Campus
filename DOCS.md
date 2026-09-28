@@ -45,6 +45,7 @@ Repository: https://github.com/xolegend1050-star/NextGen_Campus
 | Database & Config | Complete |
 | AI Service | Healthy (cold start ~30-60s on free tier) |
 | Chat / Social | Partial — REST only, Socket.IO not wired |
+| File Upload | Complete |
 | Payments / Escrow | Not started |
 
 ---
@@ -174,7 +175,40 @@ stale/corrupt. It was reset directly against the database and verified with
 
 ---
 
-## 6. AI Service
+## 6. File Upload Module
+
+Four categories, each with its own directory, size limit, and MIME allow-list.
+Validation is two-stage: the multer `fileFilter` rejects an undeclared type up
+front, then `fileValidation.js` re-checks the extension and the real magic
+bytes, so renaming `payload.exe` to `resume.pdf` is still caught.
+
+| Category | Endpoint | Accepts | Max | Post-processing |
+|----------|----------|---------|-----|-----------------|
+| Avatar | `POST /api/upload/avatar` | JPG, PNG | 5 MB | Resize to 1920w, JPEG q80, 200px thumbnail |
+| Resume | `POST /api/upload/resume` | PDF | 10 MB | None (stored as uploaded) |
+| Document | `POST /api/upload/document` | JPG, PNG, PDF | 5 MB | Same as avatar |
+| Doubt image | `POST /api/upload/doubt-image` | JPG, PNG | 5 MB | Same as avatar |
+
+Follow-up endpoints: `POST /api/upload/avatar/apply` and
+`POST /api/upload/resume/apply` attach an uploaded file to the caller's profile
+(deleting the file they replaced), and `DELETE /api/upload/:category/:filename`
+removes a file.
+
+Uploads are served from `/uploads` as inert content: images render inline with
+long-lived cache headers, everything else is forced to `application/octet-stream`
+with `Content-Disposition: attachment` and `X-Content-Type-Options: nosniff`,
+so an uploaded file can never execute in a user's browser.
+
+Rate limited to 10 uploads per 15 minutes per IP.
+
+> **Bug fixed here:** `fileValidation.js` called `FileType.fromBuffer`, the
+> `file-type` v16 API. The installed v22 exports `fileTypeFromBuffer`, so every
+> upload failed with a 500. File upload was broken on the deployed backend until
+> this was corrected.
+
+---
+
+## 7. AI Service
 
 Python + Flask with four scikit-learn models and Gemini API integration.
 
