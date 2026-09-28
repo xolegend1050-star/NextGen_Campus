@@ -20,7 +20,8 @@ import {
   ShieldCheckIcon,
   FlagIcon,
   ExclamationTriangleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  ChartBarIcon
 } from '@heroicons/react/24/outline';
 
 const DashboardLayout = () => {
@@ -109,6 +110,7 @@ const DashboardLayout = () => {
           { name: 'Flagged Content', href: '/admin/flagged-content', icon: FlagIcon },
           { name: 'Disputes', href: '/admin/disputes', icon: ExclamationTriangleIcon },
           { name: 'Audit Log', href: '/admin/audit-log', icon: DocumentTextIcon },
+          { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
         ];
       default:
         return commonItems;

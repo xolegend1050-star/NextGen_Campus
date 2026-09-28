@@ -12,6 +12,7 @@
     "lint:fix": "eslint src/ --fix",
     "migrate": "node src/config/migrate.js",
     "migrate:up": "node src/config/migrate-up.js",
+    "metrics:rollup": "node src/config/rollup-metrics.js",
     "seed": "node src/config/seed.js"
   },
   "dependencies": {

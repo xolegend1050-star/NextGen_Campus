@@ -97,80 +97,108 @@ exports.getLeaderboard = async (req, res, next) => {
   try {
     const { category = 'overall', period = 'all_time', limit = 20 } = req.query;
 
-    let query;
-    const params = [limit];
+    // period was accepted but never applied, so every request returned
+    // all-time numbers regardless of what the client asked for
+    const since = period === 'weekly'
+      ? "NOW() - INTERVAL '7 days'"
+      : period === 'monthly'
+        ? "NOW() - INTERVAL '30 days'"
+        : null;
 
+    const params = [limit];
+    let query;
     switch (category) {
-      case 'doubts':
+      case 'doubts': {
+        params.push(since || null);
+        const s = params.length;
         query = `
-          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name,
-                 COUNT(d.id) as score
+          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email,
+                 COUNT(d.id)::int AS score
           FROM users u
           JOIN profiles p ON u.id = p.user_id
           LEFT JOIN doubts d ON u.id = d.author_id
           WHERE u.is_active = true AND u.role = 'student'
-          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name
-          ORDER BY score DESC
+            AND ($${s}::timestamptz IS NULL OR d.created_at >= $${s}::timestamptz)
+          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email
+          ORDER BY score DESC, p.full_name ASC
           LIMIT $1
         `;
         break;
-      case 'mentorship':
+      }
+      case 'mentorship': {
+        params.push(since || null);
+        const s = params.length;
         query = `
-          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name,
-                 COUNT(ms.id) as score
+          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email,
+                 COUNT(ms.id)::int AS score
           FROM users u
           JOIN profiles p ON u.id = p.user_id
-          LEFT JOIN mentorship_sessions ms ON u.id = ms.student_id AND ms.status = 'completed'
+          LEFT JOIN mentorship_sessions ms
+            ON u.id = ms.student_id AND ms.status = 'completed'
           WHERE u.is_active = true AND u.role = 'student'
-          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name
-          ORDER BY score DESC
+            AND ($${s}::timestamptz IS NULL OR ms.created_at >= $${s}::timestamptz)
+          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email
+          ORDER BY score DESC, p.full_name ASC
           LIMIT $1
         `;
         break;
-      case 'gigs':
+      }
+      case 'gigs': {
+        params.push(since || null);
+        const s = params.length;
         query = `
-          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name,
-                 COUNT(ga.id) as score
+          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email,
+                 COUNT(ga.id)::int AS score
           FROM users u
           JOIN profiles p ON u.id = p.user_id
-          LEFT JOIN gig_applications ga ON u.id = ga.student_id AND ga.status = 'accepted'
+          LEFT JOIN gig_applications ga
+            ON u.id = ga.student_id AND ga.status = 'accepted'
           WHERE u.is_active = true AND u.role = 'student'
-          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name
-          ORDER BY score DESC
+            AND ($${s}::timestamptz IS NULL OR ga.created_at >= $${s}::timestamptz)
+          GROUP BY u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email
+          ORDER BY score DESC, p.full_name ASC
           LIMIT $1
         `;
         break;
+      }
       default:
         query = `
-          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name,
-                 p.trust_score as score
+          SELECT u.id, p.full_name, p.avatar_url, p.city, p.college_name, u.email,
+                 COALESCE(p.trust_score, 0)::int AS score
           FROM users u
           JOIN profiles p ON u.id = p.user_id
           WHERE u.is_active = true AND u.role = 'student'
-          ORDER BY p.trust_score DESC
+          ORDER BY score DESC, p.full_name ASC
           LIMIT $1
         `;
     }
 
     const result = await db.query(query, params);
-    res.json({ leaderboard: result.rows });
+    res.json({ leaderboard: result.rows, category, period });
   } catch (error) {
     next(error);
   }
 };
 
+const PERIOD_INTERVALS = {
+  '24h': '1 day',
+  '7d': '7 days',
+  '30d': '30 days',
+  '90d': '90 days'
+};
+
+const PERIOD_BUCKETS = {
+  '24h': 24,
+  '7d': 7,
+  '30d': 30,
+  '90d': 13
+};
+
 exports.getPlatformAnalytics = async (req, res, next) => {
   try {
     const { period = '7d' } = req.query;
-
-    let interval;
-    switch (period) {
-      case '24h': interval = '1 day'; break;
-      case '7d': interval = '7 days'; break;
-      case '30d': interval = '30 days'; break;
-      case '90d': interval = '90 days'; break;
-      default: interval = '7 days';
-    }
+    const interval = PERIOD_INTERVALS[period] || '7 days';
+    const buckets = PERIOD_BUCKETS[period] || 7;
 
     const [
       newUsers,
@@ -179,46 +207,99 @@ exports.getPlatformAnalytics = async (req, res, next) => {
       newAnswers,
       newApplications,
       newSessions,
-      platformMetrics
+      totals,
+      trends,
+      escrow
     ] = await Promise.all([
       db.query(
-        `SELECT COUNT(*) FROM users WHERE created_at >= NOW() - $1::interval`, [interval]
+        `SELECT COUNT(*)::int AS count FROM users WHERE created_at >= NOW() - $1::interval`, [interval]
       ),
+      // last_seen_at is written on every socket connect, unlike analytics_events
+      // which no client populates, so "active" used to always be zero
       db.query(
-        `SELECT COUNT(DISTINCT user_id) FROM analytics_events WHERE created_at >= NOW() - $1::interval`, [interval]
+        `SELECT COUNT(DISTINCT id)::int AS count FROM users
+          WHERE last_seen_at IS NOT NULL AND last_seen_at >= NOW() - $1::interval`,
+        [interval]
       ),
-      db.query(
-        `SELECT COUNT(*) FROM doubts WHERE created_at >= NOW() - $1::interval`, [interval]
-      ),
-      db.query(
-        `SELECT COUNT(*) FROM doubt_answers WHERE created_at >= NOW() - $1::interval`, [interval]
-      ),
-      db.query(
-        `SELECT COUNT(*) FROM gig_applications WHERE created_at >= NOW() - $1::interval`, [interval]
-      ),
-      db.query(
-        `SELECT COUNT(*) FROM mentorship_sessions WHERE created_at >= NOW() - $1::interval`, [interval]
-      ),
-      db.query(
-        `SELECT * FROM platform_metrics WHERE metric_date >= CURRENT_DATE - $1::interval
-         ORDER BY metric_date DESC`, [interval]
-      )
+      db.query(`SELECT COUNT(*)::int AS count FROM doubts WHERE created_at >= NOW() - $1::interval`, [interval]),
+      db.query(`SELECT COUNT(*)::int AS count FROM doubt_answers WHERE created_at >= NOW() - $1::interval`, [interval]),
+      db.query(`SELECT COUNT(*)::int AS count FROM gig_applications WHERE created_at >= NOW() - $1::interval`, [interval]),
+      db.query(`SELECT COUNT(*)::int AS count FROM mentorship_sessions WHERE created_at >= NOW() - $1::interval`, [interval]),
+      db.query(`
+        SELECT
+          (SELECT COUNT(*) FROM users WHERE role = 'student' AND is_active)::int AS students,
+          (SELECT COUNT(*) FROM users WHERE role = 'alumni' AND is_active)::int AS alumni,
+          (SELECT COUNT(*) FROM users WHERE role = 'company' AND is_active)::int AS companies,
+          (SELECT COUNT(*) FROM doubts)::int AS doubts,
+          (SELECT COUNT(*) FROM gigs WHERE status = 'open')::int AS open_gigs,
+          (SELECT COUNT(*) FROM gig_applications)::int AS applications,
+          (SELECT COALESCE(SUM(amount), 0) FROM escrow_transactions WHERE status = 'released')::numeric(12,2) AS paid_out
+      `),
+      // Trends are derived from the live tables so they are populated from day
+      // one. The platform_metrics rollup table is still read when present.
+      // Only $1 is bound: passing the interval as an unused second parameter
+      // made Postgres reject the query with "could not determine data type of
+      // parameter $1".
+      db.query(`
+        SELECT bucket::date AS day,
+               COALESCE(d.doubts, 0)::int     AS doubts,
+               COALESCE(a.answers, 0)::int    AS answers,
+               COALESCE(us.users, 0)::int     AS new_users,
+               COALESCE(ap.apps, 0)::int      AS applications
+          FROM generate_series(
+                 date_trunc('day', NOW()) - ($1::int - 1) * INTERVAL '1 day',
+                 date_trunc('day', NOW()),
+                 INTERVAL '1 day'
+               ) AS bucket
+          LEFT JOIN (
+            SELECT created_at::date AS day, COUNT(*) AS doubts
+              FROM doubts GROUP BY 1
+          ) d ON d.day = bucket::date
+          LEFT JOIN (
+            SELECT created_at::date AS day, COUNT(*) AS answers
+              FROM doubt_answers GROUP BY 1
+          ) a ON a.day = bucket::date
+          LEFT JOIN (
+            SELECT created_at::date AS day, COUNT(*) AS users
+              FROM users WHERE role = 'student' GROUP BY 1
+          ) us ON us.day = bucket::date
+          LEFT JOIN (
+            SELECT created_at::date AS day, COUNT(*) AS apps
+              FROM gig_applications GROUP BY 1
+          ) ap ON ap.day = bucket::date
+         ORDER BY bucket
+      `, [buckets]),
+      // Always emit a row per known status so the dashboard can render a
+      // complete picture instead of an empty chart on a fresh database
+      db.query(`
+        SELECT s.status,
+               COUNT(e.id)::int AS count,
+               COALESCE(SUM(e.amount), 0)::numeric(12,2) AS amount
+          FROM (VALUES ('locked'),('released'),('refunded'),('disputed')) AS s(status)
+          LEFT JOIN escrow_transactions e ON e.status = s.status
+         GROUP BY s.status
+         ORDER BY s.status
+      `)
     ]);
 
     res.json({
       analytics: {
         period,
+        interval,
         users: {
-          new: parseInt(newUsers.rows[0].count),
-          active: parseInt(activeUsers.rows[0].count)
+          new: newUsers.rows[0].count,
+          active: activeUsers.rows[0].count,
+          ...totals.rows[0]
         },
         content: {
-          newDoubts: parseInt(newDoubts.rows[0].count),
-          newAnswers: parseInt(newAnswers.rows[0].count),
-          newApplications: parseInt(newApplications.rows[0].count),
-          newSessions: parseInt(newSessions.rows[0].count)
+          newDoubts: newDoubts.rows[0].count,
+          newAnswers: newAnswers.rows[0].count,
+          newApplications: newApplications.rows[0].count,
+          newSessions: newSessions.rows[0].count
         },
-        metrics: platformMetrics.rows
+        totals: totals.rows[0],
+        escrow: escrow.rows,
+        trends: trends.rows
       }
     });
   } catch (error) {

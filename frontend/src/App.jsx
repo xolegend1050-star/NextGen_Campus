@@ -53,6 +53,7 @@ const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
 const AdminFlaggedContent = lazy(() => import('./pages/admin/FlaggedContent'));
 const AdminDisputes = lazy(() => import('./pages/admin/Disputes'));
 const AdminAuditLog = lazy(() => import('./pages/admin/AuditLog'));
+const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
 
 // Lazy-loaded Social Pages
 const People = lazy(() => import('./pages/social/People'));
@@ -279,6 +280,7 @@ function App() {
               <Route path="flagged-content" element={<AdminFlaggedContent />} />
               <Route path="disputes" element={<AdminDisputes />} />
               <Route path="audit-log" element={<AdminAuditLog />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
 
             {/* 404 */}
