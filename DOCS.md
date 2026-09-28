@@ -75,6 +75,7 @@ forgot password → reset password → logout → refresh token.
 | POST | `/api/auth/forgot-password` | No | Email a reset link (non-enumerable response) |
 | POST | `/api/auth/reset-password` | No | Consume token, set new password |
 | POST | `/api/auth/verify-email` | No | Consume verification token |
+| POST | `/api/auth/resend-verification` | No | Resend the verification link (non-enumerable) |
 | POST | `/api/auth/logout` | Yes | Invalidate session |
 | POST | `/api/auth/refresh` | No | Issue a new access token |
 
@@ -261,3 +262,9 @@ looked up on every authenticated request.
 | Unversioned model endpoints | Harder to evolve later |
 | Email verification is not enforced | A verification token is issued and emailed, but an unverified user can still log in |
 | Chat is REST-only | Socket.IO is set up server- and client-side but `Chat.jsx` does not use it |
+
+> **Resolved:** email verification is now enforced at login (HTTP 403 with
+> `code: EMAIL_NOT_VERIFIED`), and `POST /api/auth/resend-verification` lets an
+> unverified user request a fresh link. Both the resend and forgot-password
+> responses are non-enumerable, so they cannot be used to discover which
+> addresses are registered.

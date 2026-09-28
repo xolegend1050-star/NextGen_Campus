@@ -8,7 +8,8 @@ const {
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
-  verifyEmailValidation
+  verifyEmailValidation,
+  resendVerificationValidation
 } = require('../validators/auth');
 const rateLimit = require('express-rate-limit');
 
@@ -171,6 +172,26 @@ router.post('/reset-password', resetPasswordValidation, authController.resetPass
  *         description: Email verified
  */
 router.post('/verify-email', strictAuthLimiter, verifyEmailValidation, authController.verifyEmail);
+
+/**
+ * @swagger
+ * /api/auth/resend-verification:
+ *   post:
+ *     summary: Resend the email verification link
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email: { type: string, example: user@example.com }
+ *     responses:
+ *       200: { description: Request accepted }
+ */
+router.post('/resend-verification', strictAuthLimiter, resendVerificationValidation, authController.resendVerification);
 
 /**
  * @swagger

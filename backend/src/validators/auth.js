@@ -40,11 +40,17 @@ const verifyEmailValidation = [
   handleValidationErrors
 ];
 
+const resendVerificationValidation = [
+  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  handleValidationErrors
+];
+
 module.exports = {
   registerValidation,
   loginValidation,
   forgotPasswordValidation,
   resetPasswordValidation,
   verifyEmailValidation,
+  resendVerificationValidation,
   handleValidationErrors
 };

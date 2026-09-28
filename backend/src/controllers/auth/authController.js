@@ -122,7 +122,7 @@ exports.login = async (req, res, next) => {
 
     // Get user
     const result = await db.query(
-      'SELECT id, email, password_hash, role, is_active, is_banned, skip_otp FROM users WHERE email = $1',
+      'SELECT id, email, password_hash, role, is_active, is_banned, skip_otp, is_email_verified FROM users WHERE email = $1',
       [email]
     );
 
@@ -144,6 +144,17 @@ exports.login = async (req, res, next) => {
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ error: 'Invalid email or password' });
+    }
+
+    // Require a confirmed email address before issuing any token.
+    // Without this, anyone can register with a throwaway address and use the
+    // platform, since the verification email is never actually checked.
+    if (!user.is_email_verified) {
+      return res.status(403).json({
+        error: 'Please verify your email address before logging in. Check your inbox for the verification link.',
+        code: 'EMAIL_NOT_VERIFIED',
+        email: user.email
+      });
     }
 
     // Users need OTP verification before receiving full tokens (unless skip_otp is true)
@@ -312,6 +323,65 @@ exports.resetPassword = async (req, res, next) => {
     logger.info(`Password reset completed for user: ${userId}`);
 
     res.json({ message: 'Password reset successful. Please login with your new password.' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    const result = await db.query(
+      'SELECT id, email, role, is_email_verified FROM users WHERE email = $1',
+      [email.toLowerCase().trim()]
+    );
+
+    // Non-enumerable: always the same response whether or not the email exists
+    const genericResponse = {
+      message: 'If the email exists and is unverified, a verification link has been sent.'
+    };
+
+    if (result.rows.length === 0) {
+      return res.json(genericResponse);
+    }
+
+    const user = result.rows[0];
+
+    if (user.is_email_verified) {
+      return res.json(genericResponse);
+    }
+
+    // Invalidate any outstanding verification tokens, then issue a fresh one
+    await db.query(
+      'UPDATE verification_tokens SET used = true WHERE user_id = $1 AND used = false',
+      [user.id]
+    );
+
+    const verificationToken = uuidv4();
+    const verificationTypeMap = {
+      student: 'student_college_email',
+      alumni: 'alumni_linkedin',
+      company: 'company_domain'
+    };
+
+    await db.query(
+      `INSERT INTO verification_tokens (user_id, token, verification_type, expires_at)
+       VALUES ($1, $2, $3, NOW() + INTERVAL '24 hours')`,
+      [user.id, hashToken(verificationToken), verificationTypeMap[user.role] || 'student_college_email']
+    );
+
+    sendVerificationEmail(user.email, verificationToken).catch(err =>
+      logger.error('Failed to resend verification email:', err.message)
+    );
+
+    logger.info(`Verification email resent to: ${user.email}`);
+
+    res.json(genericResponse);
   } catch (error) {
     next(error);
   }

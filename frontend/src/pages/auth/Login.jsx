@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../../store/authStore';
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 
 const otpSchema = z.object({
   otp: z.string().length(6, 'OTP must be 6 digits').regex(/^\d+$/, 'OTP must contain only numbers')
@@ -19,7 +20,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { login, verifyOtp, resendOtp, cancelOtp, isLoading, otpRequired, user } = useAuthStore();
+  const { login, verifyOtp, resendOtp, cancelOtp, resendVerification, isLoading, otpRequired, user } = useAuthStore();
+  const [unverifiedEmail, setUnverifiedEmail] = useState(null);
+  const [resending, setResending] = useState(false);
   const oauthHandled = useRef(false);
 
   const {
@@ -111,6 +114,21 @@ const Login = () => {
         toast.success('Login successful!');
         // GuestRoute will automatically redirect to the correct dashboard
       }
+    } else {
+      if (result.code === 'EMAIL_NOT_VERIFIED') {
+        setUnverifiedEmail(result.email || data.email);
+      }
+      toast.error(result.error);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+    setResending(true);
+    const result = await resendVerification(unverifiedEmail);
+    setResending(false);
+    if (result.success) {
+      toast.success('Verification email sent. Please check your inbox.');
     } else {
       toast.error(result.error);
     }
@@ -225,6 +243,32 @@ const Login = () => {
         {/* Login Form (shown when OTP is not required) */}
         {!otpRequired && (
           <div className="card">
+            {/* Email not verified banner */}
+            {unverifiedEmail && (
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <ExclamationTriangleIcon className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-amber-900">
+                      Email address not verified
+                    </p>
+                    <p className="text-sm text-amber-800 mt-1">
+                      We sent a verification link to <strong>{unverifiedEmail}</strong>.
+                      Click it to activate your account before logging in.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resending}
+                      className="mt-3 text-sm font-medium text-amber-900 underline hover:text-amber-700 disabled:opacity-50"
+                    >
+                      {resending ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* OAuth Buttons */}
             <div className="space-y-3 mb-6">
               <button

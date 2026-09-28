@@ -55,7 +55,21 @@ export const useAuthStore = create(
           set({ isLoading: false });
           return {
             success: false,
-            error: error.response?.data?.error || 'Login failed'
+            error: error.response?.data?.error || 'Login failed',
+            code: error.response?.data?.code,
+            email: error.response?.data?.email
+          };
+        }
+      },
+
+      resendVerification: async (email) => {
+        try {
+          const response = await api.post('/auth/resend-verification', { email });
+          return { success: true, message: response.data.message };
+        } catch (error) {
+          return {
+            success: false,
+            error: error.response?.data?.error || 'Failed to send verification email'
           };
         }
       },
