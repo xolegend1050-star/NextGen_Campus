@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const walletController = require('../controllers/wallet/walletController');
-const { authenticate } = require('../middleware/auth');
+const { authenticate, authorize } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -96,7 +96,21 @@ router.post('/withdraw', authenticate, walletController.requestWithdrawal);
  *       200:
  *         description: Escrow funded
  */
-router.post('/escrow/:gigId', authenticate, walletController.fundEscrow);
+router.post('/escrow/:gigId', authenticate, authorize('company'), walletController.fundEscrow);
+
+/**
+ * @swagger
+ * /api/wallet/escrow:
+ *   get:
+ *     tags: [Wallet]
+ *     summary: List escrow records for the caller
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Escrows
+ */
+router.get('/escrow', authenticate, walletController.listEscrows);
 
 /**
  * @swagger
@@ -116,6 +130,20 @@ router.post('/escrow/:gigId', authenticate, walletController.fundEscrow);
  *       200:
  *         description: Escrow released
  */
-router.post('/escrow/:gigId/release', authenticate, walletController.releaseEscrow);
+router.post('/escrow/:gigId/release', authenticate, authorize('company'), walletController.releaseEscrow);
+
+/**
+ * @swagger
+ * /api/wallet/escrow/{gigId}/refund:
+ *   post:
+ *     tags: [Wallet]
+ *     summary: Refund a locked escrow back to the company
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Refunded
+ */
+router.post('/escrow/:gigId/refund', authenticate, authorize('company'), walletController.refundEscrow);
 
 module.exports = router;

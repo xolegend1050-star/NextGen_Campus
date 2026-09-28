@@ -34,8 +34,33 @@ const testConnection = async () => {
 // Only test connection when explicitly required
 // testConnection();
 
+/**
+ * Run a function inside a transaction, committing on success and rolling back
+ * on any throw. Use `client.query` rather than the pool inside the callback so
+ * every statement joins the same transaction.
+ */
+const withTransaction = async (fn) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await fn(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (err) {
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackErr) {
+      console.error('❌ Rollback failed:', rollbackErr.message);
+    }
+    throw err;
+  } finally {
+    client.release();
+  }
+};
+
 module.exports = {
   query: (text, params) => pool.query(text, params),
   getClient: () => pool.connect(),
+  withTransaction,
   pool,
 };

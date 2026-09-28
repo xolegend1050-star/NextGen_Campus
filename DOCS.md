@@ -46,7 +46,7 @@ Repository: https://github.com/xolegend1050-star/NextGen_Campus
 | AI Service | Healthy (cold start ~30-60s on free tier) |
 | Chat / Social | Partial — REST only, Socket.IO not wired |
 | File Upload | Complete |
-| Payments / Escrow | Not started |
+| Payments / Escrow | Complete (simulated gateway) |
 
 ---
 
@@ -208,7 +208,56 @@ Rate limited to 10 uploads per 15 minutes per IP.
 
 ---
 
-## 7. AI Service
+## 7. Payments & Escrow
+
+Escrow guarantees a student is paid for work they have already done: the
+company's money leaves its wallet and is held until the work is approved, so
+neither side can walk away.
+
+```
+application accepted
+   -> company funds escrow      (company wallet -> escrow, student sees nothing yet)
+   -> student submits a deliverable
+   -> company releases           (escrow -> student wallet, total_earned increases)
+   or
+   -> company refunds            (escrow -> company wallet, student sees nothing)
+```
+
+| Endpoint | Role | Purpose |
+|----------|------|---------|
+| `POST /api/wallet/escrow/:gigId` | company | Fund escrow for an accepted applicant |
+| `POST /api/wallet/escrow/:gigId/release` | company | Release held funds to the student |
+| `POST /api/wallet/escrow/:gigId/refund` | company | Return funds to the company |
+| `GET /api/wallet/escrow` | any | Escrow history for the caller |
+
+Correctness properties this enforces:
+
+- **Escrow is per-application.** `application_id` links the held funds to one
+  accepted student, so a company accepting several applicants funds each
+  separately. A partial unique index allows only one `locked` escrow per
+  application.
+- **`student_id` comes from the accepted application**, never from client input.
+- **Money moves only inside a transaction.** The gig and wallet rows are locked
+  with `FOR UPDATE`, so two concurrent funding requests cannot both succeed.
+- **Amounts must be positive** and are capped, enforced by a `CHECK` constraint
+  as well as in code. Previously a negative amount credited the company.
+- **Release requires submitted work**, so funds cannot be paid out for nothing.
+  `force: true` overrides for an admin.
+- **Release is idempotent** — a repeat call reports the existing release rather
+  than paying twice.
+- **Refunded escrow cannot be released**, so money cannot bounce between wallets.
+
+Migrations live in `backend/migrations/` and are applied with
+`npm run migrate:up`, which records applied files in `schema_migrations`.
+
+> **Bugs fixed here:** `fundEscrow` never wrote `student_id`, so `releaseEscrow`
+> looked up a wallet for `user_id = NULL` and the payout could never happen —
+> the flow was dead end to end. The `notification_type` enum also had no
+> `escrow_funded` value, which aborted the whole funding transaction.
+
+---
+
+## 8. AI Service
 
 Python + Flask with four scikit-learn models and Gemini API integration.
 
