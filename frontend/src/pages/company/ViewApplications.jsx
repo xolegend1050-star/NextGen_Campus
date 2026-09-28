@@ -64,9 +64,11 @@ const ViewApplications = () => {
   const updateStatus = async (applicationId, status) => {
     try {
       await api.patch(`/gigs/applications/${applicationId}`, { status });
-      setApplications(apps =>
-        apps.map(a => a.id === applicationId ? { ...a, status } : a)
-      );
+      // Refetch rather than patching local state. The optimistic update was not
+      // reliably reflected in the badge: the request succeeded and the row was
+      // saved, but the card kept rendering the old status, so a company could
+      // shortlist someone and still see "pending".
+      await fetchApplications();
     } catch (error) {
       console.error('Failed to update application:', error);
       alert(error.response?.data?.error || 'Failed to update application');
