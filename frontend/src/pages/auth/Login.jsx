@@ -61,15 +61,25 @@ const Login = () => {
     // Verify CSRF state parameter
     const savedState = sessionStorage.getItem('oauth_state');
     sessionStorage.removeItem('oauth_state');
-    if (!savedState || savedState !== state) {
-      toast.error('Invalid OAuth state. Please try again.');
+    if (!savedState) {
+      // The state is single-use. Landing here means the callback URL was
+      // reloaded or reloaded after the first pass already consumed it.
+      toast.error('This sign-in link was already used. Please start again from the login page.', {
+        duration: 6000
+      });
+      return;
+    }
+    if (savedState !== state) {
+      toast.error('Sign-in could not be verified (state mismatch). Please try again.');
       return;
     }
 
     const handleOAuth = async () => {
+      // The provider is recorded in the state we generated, not inferred.
+      const provider = savedState.startsWith('github:') ? 'github' : 'google';
+      const label = provider === 'github' ? 'GitHub' : 'Google';
       let result;
-      // Determine provider from the state we saved (not from the URL state)
-      const provider = savedState.includes('github') ? 'github' : 'google';
+
       if (provider === 'github') {
         result = await useAuthStore.getState().githubLogin(code);
       } else {
@@ -77,7 +87,8 @@ const Login = () => {
       }
 
       if (result.success) {
-        toast.success(`${provider === 'github' ? 'GitHub' : 'Google'} login successful!`);
+        toast.success(`${label} login successful!`);
+        navigateByRole(result.user);
       } else {
         toast.error(result.error);
       }
@@ -88,20 +99,31 @@ const Login = () => {
 
   const handleGoogleLogin = () => {
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      toast.error('Google sign-in is not configured on this deployment.');
+      return;
+    }
     const redirectUri = `${window.location.origin}/login`;
     const scope = 'openid email profile';
-    const state = crypto.randomUUID();
+    // Tag the state with the provider. A bare crypto.randomUUID() can never
+    // contain the word "github", so provider detection always failed and every
+    // GitHub sign-in was sent to the Google token endpoint.
+    const state = `google:${crypto.randomUUID()}`;
     sessionStorage.setItem('oauth_state', state);
     window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scope)}&state=${state}`;
   };
 
   const handleGitHubLogin = () => {
     const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+    if (!clientId) {
+      toast.error('GitHub sign-in is not configured on this deployment.');
+      return;
+    }
     const redirectUri = `${window.location.origin}/login`;
     const scope = 'user:email';
-    const state = crypto.randomUUID();
+    const state = `github:${crypto.randomUUID()}`;
     sessionStorage.setItem('oauth_state', state);
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}`;
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${state}`;
   };
 
   const onSubmit = async (data) => {

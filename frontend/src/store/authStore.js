@@ -152,7 +152,9 @@ export const useAuthStore = create(
           const response = await api.post('/auth/google', { code, role });
           const { user, token, refreshToken } = response.data;
           set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
-          return { success: true };
+          // The user is returned so the caller can route by role after an
+          // OAuth redirect; without it the redirect landed on a dead route.
+          return { success: true, user };
         } catch (error) {
           set({ isLoading: false });
           return { success: false, error: error.response?.data?.error || 'Google login failed' };
@@ -165,7 +167,7 @@ export const useAuthStore = create(
           const response = await api.post('/auth/github', { code, role });
           const { user, token, refreshToken } = response.data;
           set({ user, token, refreshToken, isAuthenticated: true, isLoading: false });
-          return { success: true };
+          return { success: true, user };
         } catch (error) {
           set({ isLoading: false });
           return { success: false, error: error.response?.data?.error || 'GitHub login failed' };
