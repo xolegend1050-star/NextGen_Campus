@@ -1,4 +1,4 @@
-﻿// Sweep: doubts, gigs, mentorship, social, notifications, profiles, resources
+// Sweep: doubts, gigs, mentorship, social, notifications, profiles, resources
 const H = require('./harness');
 const { suite, check, expect, uuid, anotherUuid, users, db } = H;
 

@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const mentorshipController = require('../controllers/mentorship/mentorshipController');
 const { authenticate } = require('../middleware/auth');

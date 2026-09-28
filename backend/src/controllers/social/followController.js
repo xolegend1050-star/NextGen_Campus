@@ -1,4 +1,4 @@
-﻿const db = require('../../config/database');
+const db = require('../../config/database');
 const logger = require('../../utils/logger');
 
 exports.followUser = async (req, res, next) => {

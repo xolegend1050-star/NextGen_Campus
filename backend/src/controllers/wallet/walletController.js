@@ -1,4 +1,4 @@
-﻿const db = require('../../config/database');
+const db = require('../../config/database');
 const logger = require('../../utils/logger');
 
 exports.getWallet = async (req, res, next) => {
@@ -68,13 +68,18 @@ exports.requestWithdrawal = async (req, res, next) => {
     // unvalidated amount slipped past both the balance and minimum checks and
     // then failed inside the INSERT with a numeric type error - a 500 for what
     // is plainly a client-side validation error.
-    const VALID_PAYMENT_METHODS = ['bank_transfer', 'upi', 'paypal'];
+    //
+    // The column is numeric, so a fractional amount is legitimate money; only
+    // NaN, zero, negatives and non-numbers are rejected.
     const amountNum = Number(amount);
-    if (!Number.isFinite(amountNum) || !Number.isInteger(amountNum) || amountNum <= 0) {
-      return res.status(400).json({ error: 'amount must be a positive whole number' });
+    if (!Number.isFinite(amountNum) || amountNum <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive number' });
     }
-    if (!payment_method || !VALID_PAYMENT_METHODS.includes(payment_method)) {
-      return res.status(400).json({ error: `payment_method must be one of: ${VALID_PAYMENT_METHODS.join(', ')}` });
+    // payment_method is an unconstrained varchar. Only reject a missing or
+    // non-string value rather than pinning it to a list, so adding a method
+    // later does not silently start failing.
+    if (typeof payment_method !== 'string' || !payment_method.trim()) {
+      return res.status(400).json({ error: 'payment_method is required' });
     }
 
     // Get wallet
@@ -96,7 +101,7 @@ exports.requestWithdrawal = async (req, res, next) => {
     }
 
     if (amountNum < 100) {
-      return res.status(400).json({ error: 'Minimum withdrawal amount is 100' });
+      return res.status(400).json({ error: 'Minimum withdrawal amount is ₹100' });
     }
 
     // Create withdrawal request

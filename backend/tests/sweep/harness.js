@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Shared harness for the full-project sweep.
  *
  * Every suite exercises each endpoint twice: once with a valid request that

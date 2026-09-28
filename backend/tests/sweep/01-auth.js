@@ -1,4 +1,4 @@
-﻿// Sweep: authentication, users, verification, badges, trust
+// Sweep: authentication, users, verification, badges, trust
 const H = require('./harness');
 const { suite, check, expect, uuid, anotherUuid, users, db } = H;
 

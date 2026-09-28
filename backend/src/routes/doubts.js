@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const doubtController = require('../controllers/doubts/doubtController');
 const { authenticate, optionalAuth } = require('../middleware/auth');

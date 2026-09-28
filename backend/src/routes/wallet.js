@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const walletController = require('../controllers/wallet/walletController');
 const { authenticate, authorize } = require('../middleware/auth');

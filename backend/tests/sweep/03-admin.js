@@ -1,4 +1,4 @@
-﻿// Sweep: admin, wallet, analytics, AI, chat edge cases
+// Sweep: admin, wallet, analytics, AI, chat edge cases
 const H = require('./harness');
 const { suite, check, expect, uuid, anotherUuid, users, db } = H;
 
