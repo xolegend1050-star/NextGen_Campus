@@ -111,9 +111,12 @@ const ViewApplications = () => {
                     )}
                     {app.skills && (
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {app.skills.split(',').map(skill => (
+                        {(Array.isArray(app.skills) ? app.skills : String(app.skills).split(','))
+                          .map(skill => String(skill).trim())
+                          .filter(Boolean)
+                          .map(skill => (
                           <span key={skill} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">
-                            {skill.trim()}
+                            {skill}
                           </span>
                         ))}
                       </div>
