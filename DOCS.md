@@ -47,6 +47,7 @@ Repository: https://github.com/xolegend1050-star/NextGen_Campus
 | Chat / Social | Partial — REST only, Socket.IO not wired |
 | File Upload | Complete |
 | Payments / Escrow | Complete (simulated gateway) |
+| Chat: real-time, DM, read receipts | Complete |
 
 ---
 
@@ -362,8 +363,7 @@ looked up on every authenticated request.
 |-------|--------|
 | No rate limiting on `/api/admin/*` | Admin endpoints inherit only the global 500 / 15 min limit |
 | Unversioned model endpoints | Harder to evolve later |
-| Email verification is not enforced | A verification token is issued and emailed, but an unverified user can still log in |
-| Chat is REST-only | Socket.IO is set up server- and client-side but `Chat.jsx` does not use it |
+| `messages.read_by` grows unbounded | Every read appends a UUID, so a long-lived thread accumulates entries per message |
 
 > **Resolved:** email verification is now enforced at login (HTTP 403 with
 > `code: EMAIL_NOT_VERIFIED`), and `POST /api/auth/resend-verification` lets an

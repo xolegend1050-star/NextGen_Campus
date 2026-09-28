@@ -3,23 +3,42 @@ const logger = require('../../utils/logger');
 
 exports.getConversations = async (req, res, next) => {
   try {
+    // Membership is tested with EXISTS rather than by joining and filtering
+    // conversation_participants. The old join combined with
+    // `WHERE cp.user_id = $1` left a single participant row per conversation,
+    // so the json_agg produced an array containing only the caller, and the
+    // chat list could never show who you were talking to.
     const result = await db.query(
-      `SELECT c.*,
-              (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message,
-              (SELECT created_at FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message_at,
-              (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id AND NOT $1 = ANY(read_by) AND sender_id != $1) as unread_count,
-              json_agg(json_build_object(
-                'id', cp.user_id,
-                'full_name', p.full_name,
-                'avatar_url', p.avatar_url
-              )) as participants
-       FROM conversations c
-       JOIN conversation_participants cp ON c.id = cp.conversation_id
-       JOIN users u ON cp.user_id = u.id
-       JOIN profiles p ON u.id = p.user_id
-       WHERE cp.user_id = $1 AND c.is_active = true
-       GROUP BY c.id
-       ORDER BY last_message_at DESC NULLS LAST`,
+      `SELECT c.id, c.type, c.title, c.related_gig_id, c.created_at, c.updated_at,
+              (SELECT content FROM messages
+                WHERE conversation_id = c.id AND is_deleted = false
+                ORDER BY created_at DESC LIMIT 1) AS last_message,
+              (SELECT created_at FROM messages
+                WHERE conversation_id = c.id AND is_deleted = false
+                ORDER BY created_at DESC LIMIT 1) AS last_message_at,
+              (SELECT COUNT(*)::int FROM messages m
+                WHERE m.conversation_id = c.id
+                  AND m.is_deleted = false
+                  AND m.sender_id <> $1
+                  AND NOT ($1 = ANY(m.read_by))) AS unread_count,
+              COALESCE((
+                SELECT json_agg(json_build_object(
+                         'id', p2.user_id,
+                         'full_name', pr.full_name,
+                         'avatar_url', pr.avatar_url,
+                         'email', u2.email
+                       ) ORDER BY pr.full_name)
+                  FROM conversation_participants p2
+                  JOIN users u2 ON u2.id = p2.user_id
+                  LEFT JOIN profiles pr ON pr.user_id = p2.user_id
+                 WHERE p2.conversation_id = c.id
+              ), '[]'::json) AS participants
+         FROM conversations c
+        WHERE c.is_active = true
+          AND EXISTS (SELECT 1 FROM conversation_participants mine
+                       WHERE mine.conversation_id = c.id AND mine.user_id = $1)
+        ORDER BY last_message_at DESC NULLS LAST, c.updated_at DESC
+        LIMIT 100`,
       [req.user.id]
     );
 
@@ -29,9 +48,48 @@ exports.getConversations = async (req, res, next) => {
   }
 };
 
+/** Total unread messages across every conversation, for a global badge. */
+exports.getUnreadCount = async (req, res, next) => {
+  try {
+    const result = await db.query(
+      `SELECT COUNT(*)::int AS count
+         FROM messages m
+         JOIN conversation_participants cp
+           ON cp.conversation_id = m.conversation_id AND cp.user_id = $1
+        WHERE m.is_deleted = false
+          AND m.sender_id <> $1
+          AND NOT ($1 = ANY(m.read_by))`,
+      [req.user.id]
+    );
+
+    res.json({ count: result.rows[0].count });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.createConversation = async (req, res, next) => {
   try {
     const { participant_id, type, title, related_request_id, related_gig_id } = req.body;
+
+    if (!participant_id) {
+      return res.status(400).json({ error: 'participant_id is required' });
+    }
+
+    if (participant_id === req.user.id) {
+      return res.status(400).json({ error: 'You cannot start a conversation with yourself' });
+    }
+
+    // The participant must be a real, active user, otherwise the conversation
+    // is created with a dangling participant row and shows up as empty.
+    const target = await db.query(
+      'SELECT id FROM users WHERE id = $1 AND is_active = true AND is_banned = false',
+      [participant_id]
+    );
+
+    if (target.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     // Check if conversation already exists between these users
     const existing = await db.query(
@@ -101,15 +159,44 @@ exports.getMessages = async (req, res, next) => {
       [conversationId, limit, offset]
     );
 
-    // Mark messages as read
-    await db.query(
-      `UPDATE conversation_participants 
-       SET last_read_at = NOW()
-       WHERE conversation_id = $1 AND user_id = $2`,
+    // Opening a conversation marks it read. This previously only bumped
+    // conversation_participants.last_read_at, which nothing read: the unread
+    // count is computed from messages.read_by, so the badge never cleared and
+    // grew without bound.
+    const markedRead = await db.query(
+      `UPDATE messages m
+          SET read_by = CASE
+                WHEN $2 = ANY(m.read_by) THEN m.read_by
+                ELSE array_append(m.read_by, $2)
+              END
+         WHERE m.conversation_id = $1
+           AND m.is_deleted = false
+           AND m.sender_id <> $2
+           AND NOT ($2 = ANY(m.read_by))
+        RETURNING m.id`,
       [conversationId, req.user.id]
     );
 
-    res.json({ messages: result.rows.reverse() });
+    if (markedRead.rows.length > 0) {
+      await db.query(
+        `UPDATE conversation_participants
+            SET last_read_at = NOW()
+          WHERE conversation_id = $1 AND user_id = $2`,
+        [conversationId, req.user.id]
+      );
+    }
+
+    // Reflect the receipts on the rows we are about to return, so the client
+    // can render them without a second round trip.
+    const messages = result.rows.reverse().map((m) => {
+      const readBy = Array.isArray(m.read_by) ? [...m.read_by] : [];
+      if (!readBy.includes(req.user.id) && m.sender_id !== req.user.id) {
+        readBy.push(req.user.id);
+      }
+      return { ...m, read_by: readBy };
+    });
+
+    res.json({ messages });
   } catch (error) {
     next(error);
   }
@@ -176,23 +263,83 @@ exports.sendMessage = async (req, res, next) => {
   }
 };
 
+/**
+ * Mark one message or a whole conversation as read.
+ *
+ * Previously this took a single messageId and never checked that the caller
+ * belonged to the conversation, so any authenticated user could mark any
+ * message read. It also only ever handled one row, which would have meant a
+ * request per message to clear a page.
+ */
 exports.markAsRead = async (req, res, next) => {
   try {
-    const { messageId } = req.params;
+    const { messageId, conversationId } = req.params;
 
-    const result = await db.query(
-      `UPDATE messages 
-       SET read_by = array_append(read_by, $1)
-       WHERE id = $2 AND NOT $1 = ANY(read_by)
-       RETURNING *`,
-      [req.user.id, messageId]
-    );
+    let conversation;
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Message not found or already read' });
+    if (conversationId) {
+      const check = await db.query(
+        'SELECT id FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+        [conversationId, req.user.id]
+      );
+      if (check.rows.length === 0) {
+        return res.status(403).json({ error: 'Not authorized to access this conversation' });
+      }
+      conversation = conversationId;
+    } else {
+      const msg = await db.query(
+        `SELECT m.conversation_id,
+                EXISTS (SELECT 1 FROM conversation_participants cp
+                         WHERE cp.conversation_id = m.conversation_id
+                           AND cp.user_id = $2) AS is_participant
+           FROM messages m
+          WHERE m.id = $1`,
+        [messageId, req.user.id]
+      );
+
+      if (msg.rows.length === 0) {
+        return res.status(404).json({ error: 'Message not found' });
+      }
+      if (!msg.rows[0].is_participant) {
+        return res.status(403).json({ error: 'Not authorized to access this conversation' });
+      }
+      conversation = msg.rows[0].conversation_id;
     }
 
-    res.json({ message: 'Marked as read' });
+    const result = await db.query(
+      `UPDATE messages
+          SET read_by = array_append(read_by, $2)
+        WHERE conversation_id = $1
+          AND is_deleted = false
+          AND NOT ($2 = ANY(read_by))
+          AND ($3::uuid IS NULL OR id = $3)
+        RETURNING id`,
+      [conversation, req.user.id, messageId || null]
+    );
+
+    if (result.rows.length > 0) {
+      await db.query(
+        `UPDATE conversation_participants
+            SET last_read_at = NOW()
+          WHERE conversation_id = $1 AND user_id = $2`,
+        [conversation, req.user.id]
+      );
+    }
+
+    // Let the other side see the receipts without refreshing
+    try {
+      const { io } = require('../../server');
+      io.to(`conversation_${conversation}`).emit('messages_read', {
+        conversation_id: conversation,
+        user_id: req.user.id,
+        message_ids: result.rows.map((r) => r.id),
+        read_at: new Date().toISOString()
+      });
+    } catch (_) {
+      // Socket is optional; a failure here must not fail the request
+    }
+
+    res.json({ success: true, marked: result.rows.length, conversation_id: conversation });
   } catch (error) {
     next(error);
   }

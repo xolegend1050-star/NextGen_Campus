@@ -8,7 +8,8 @@ import {
   PaperAirplaneIcon,
   PaperClipIcon,
   UserIcon,
-  ChevronLeftIcon
+  ChevronLeftIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline';
 
 const Chat = () => {
@@ -32,7 +33,10 @@ const Chat = () => {
 
   useEffect(() => {
     fetchConversations();
+    fetchGlobalUnread();
   }, []);
+
+  const [globalUnread, setGlobalUnread] = useState(0);
 
   // ---- Socket lifecycle ----
   useEffect(() => {
@@ -57,12 +61,29 @@ const Chat = () => {
       if (!room || room !== activeRoomRef.current) {
         // Message arrived for another conversation: refresh the sidebar instead
         fetchConversations();
+        fetchGlobalUnread();
         return;
       }
+      // Arriving while the thread is open means it is read immediately
+      const readBy = payload.sender_id === user?.id ? [user?.id] : payload.read_by || [];
       setMessages((prev) => {
         if (prev.some((m) => m.id && payload.id && m.id === payload.id)) return prev;
-        return [...prev, payload];
+        return [...prev, { ...payload, read_by: readBy }];
       });
+    };
+
+    // Someone read our message: upgrade the ticks
+    const handleMessagesRead = (payload) => {
+      if (payload.conversation_id !== activeRoomRef.current?.replace('conversation_', '')) return;
+      if (payload.user_id === user?.id) return;
+      const ids = new Set(payload.message_ids || []);
+      setMessages((prev) =>
+        prev.map((m) =>
+          ids.has(m.id)
+            ? { ...m, read_by: [...new Set([...(m.read_by || []), payload.user_id])] }
+            : m
+        )
+      );
     };
 
     const handleTyping = (payload) => {
@@ -77,6 +98,7 @@ const Chat = () => {
     socket.on('disconnect', handleDisconnect);
     socket.on('online_users', handleOnlineUsers);
     socket.on('receive_message', handleReceive);
+    socket.on('messages_read', handleMessagesRead);
     socket.on('user_typing', handleTyping);
     socket.on('user_stop_typing', handleStopTyping);
 
@@ -90,10 +112,11 @@ const Chat = () => {
       socket.off('disconnect', handleDisconnect);
       socket.off('online_users', handleOnlineUsers);
       socket.off('receive_message', handleReceive);
+      socket.off('messages_read', handleMessagesRead);
       socket.off('user_typing', handleTyping);
       socket.off('user_stop_typing', handleStopTyping);
     };
-  }, []);
+  }, [user?.id]);
 
   // ---- Join / leave room when the open conversation changes ----
   useEffect(() => {
@@ -120,6 +143,7 @@ const Chat = () => {
   useEffect(() => {
     if (activeConversation) {
       fetchMessages(activeConversation.id);
+      markConversationRead(activeConversation.id);
     }
   }, [activeConversation]);
 
@@ -145,12 +169,36 @@ const Chat = () => {
     }
   };
 
+  const fetchGlobalUnread = async () => {
+    try {
+      const res = await api.get('/chat/unread-count');
+      setGlobalUnread(res.data.count ?? 0);
+    } catch (error) {
+      console.error('Failed to fetch unread count:', error);
+    }
+  };
+
   const fetchMessages = async (conversationId) => {
     try {
       const response = await api.get(`/chat/conversations/${conversationId}/messages`);
       setMessages(response.data.messages);
+      // Opening the thread marks it read server-side, so refresh the badges
+      setConversations(prev =>
+        prev.map(c => (c.id === conversationId ? { ...c, unread_count: 0 } : c))
+      );
+      setGlobalUnread(0);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
+    }
+  };
+
+  // Explicitly acknowledge, so the sender's ticks update even when the thread
+  // was opened from a cached list.
+  const markConversationRead = async (conversationId) => {
+    try {
+      await api.put(`/chat/conversations/${conversationId}/read`);
+    } catch (error) {
+      // Non-fatal: the count still clears when messages are fetched
     }
   };
 
@@ -184,6 +232,7 @@ const Chat = () => {
       setNewMessage('');
       socket?.emit('stop_typing', { room });
       fetchConversations();
+      fetchGlobalUnread();
     } catch (error) {
       console.error('Failed to send message:', error);
     } finally {
@@ -232,7 +281,14 @@ const Chat = () => {
         }`}
       >
         <div className="p-4 border-b flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Messages</h2>
+          <h2 className="font-semibold text-gray-900 flex items-center gap-2">
+            Messages
+            {globalUnread > 0 && (
+              <span className="bg-primary-600 text-white text-xs px-2 py-0.5 rounded-full">
+                {globalUnread}
+              </span>
+            )}
+          </h2>
           <span
             className={`text-xs px-2 py-0.5 rounded-full ${
               socketConnected
@@ -337,6 +393,8 @@ const Chat = () => {
                   )}
                   {messages.map((msg, i) => {
                     const isOwn = msg.sender_id === user?.id;
+                    const readByOthers = (msg.read_by || []).filter((id) => id !== user?.id);
+                    const isRead = readByOthers.length > 0;
                     return (
                       <div
                         key={msg.id || `tmp-${i}`}
@@ -350,11 +408,29 @@ const Chat = () => {
                           }`}
                         >
                           <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                          <p className={`text-xs mt-1 ${isOwn ? 'text-primary-200' : 'text-gray-500'}`}>
+                          <p
+                            className={`text-xs mt-1 flex items-center justify-end gap-1 ${
+                              isOwn ? 'text-primary-100' : 'text-gray-500'
+                            }`}
+                          >
                             {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], {
                               hour: '2-digit',
                               minute: '2-digit'
                             })}
+                            {isOwn && (
+                              <span
+                                title={isRead ? 'Read' : 'Sent'}
+                                className={`inline-flex items-center ${
+                                  isRead ? 'text-primary-50' : 'text-primary-200/70'
+                                }`}
+                              >
+                                {isRead ? (
+                                  <CheckIcon className="h-3.5 w-3.5" />
+                                ) : (
+                                  <CheckIcon className="h-3 w-3" />
+                                )}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>

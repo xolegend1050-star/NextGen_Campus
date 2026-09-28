@@ -19,6 +19,20 @@ router.get('/conversations', authenticate, chatController.getConversations);
 
 /**
  * @swagger
+ * /api/chat/unread-count:
+ *   get:
+ *     tags: [Chat]
+ *     summary: Total unread messages across all conversations
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread message count
+ */
+router.get('/unread-count', authenticate, chatController.getUnreadCount);
+
+/**
+ * @swagger
  * /api/chat/conversations:
  *   post:
  *     tags: [Chat]
@@ -117,5 +131,24 @@ router.post('/conversations/:conversationId/messages', authenticate, chatControl
  *         description: Message marked as read
  */
 router.put('/messages/:messageId/read', authenticate, chatController.markAsRead);
+
+/**
+ * @swagger
+ * /api/chat/conversations/{conversationId}/read:
+ *   put:
+ *     tags: [Chat]
+ *     summary: Mark a whole conversation as read
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Marked as read
+ */
+router.put('/conversations/:conversationId/read', authenticate, chatController.markAsRead);
 
 module.exports = router;
