@@ -1,4 +1,4 @@
-const db = require('../../config/database');
+﻿const db = require('../../config/database');
 const logger = require('../../utils/logger');
 
 exports.followUser = async (req, res, next) => {
@@ -20,7 +20,7 @@ exports.followUser = async (req, res, next) => {
     );
 
     if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'Already following' });
+      return res.status(409).json({ error: 'Already following' });
     }
 
     await db.query(
@@ -83,7 +83,12 @@ exports.getFollowStatus = async (req, res, next) => {
 exports.getFollowers = async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const { page = 1, limit = 20 } = req.query;
+
+    // $2 was bound to `limit` but never referenced in the query, so Postgres
+    // rejected the request with "could not determine data type of parameter
+    // $2" and the endpoint always 500'd. The placeholders are now contiguous.
+    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
     const offset = (page - 1) * limit;
 
     const result = await db.query(
@@ -91,14 +96,14 @@ exports.getFollowers = async (req, res, next) => {
               p.full_name, p.avatar_url, p.bio, p.city, p.college_name,
               p.skills, p.trust_score, p.talent_tier,
               f.created_at as followed_at,
-              EXISTS(SELECT 1 FROM follows WHERE follower_id = $3 AND following_id = u.id) as i_follow_them
+              EXISTS(SELECT 1 FROM follows WHERE follower_id = $2 AND following_id = u.id) as i_follow_them
        FROM follows f
        JOIN users u ON f.follower_id = u.id
        LEFT JOIN profiles p ON u.id = p.user_id
        WHERE f.following_id = $1 AND u.is_active = true
        ORDER BY f.created_at DESC
-       LIMIT $4 OFFSET $5`,
-      [userId, limit, req.user.id, limit, offset]
+       LIMIT $3 OFFSET $4`,
+      [userId, req.user.id, limit, offset]
     );
 
     const countResult = await db.query(

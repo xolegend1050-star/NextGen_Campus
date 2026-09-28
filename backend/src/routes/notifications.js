@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const notificationController = require('../controllers/notifications/notificationController');
 const { authenticate } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -24,7 +25,7 @@ const { authenticate } = require('../middleware/auth');
  *       200:
  *         description: List of notifications
  */
-router.get('/', authenticate, notificationController.getNotifications);
+router.get('/', authenticate, intQueries('page', 'limit'), notificationController.getNotifications);
 
 /**
  * @swagger
@@ -58,7 +59,7 @@ router.get('/unread-count', authenticate, notificationController.getUnreadCount)
  *       200:
  *         description: Notification marked as read
  */
-router.put('/:id/read', authenticate, notificationController.markAsRead);
+router.put('/:id/read', authenticate, uuidParams('id'), notificationController.markAsRead);
 
 /**
  * @swagger

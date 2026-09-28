@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const resourceController = require('../controllers/resources/resourceController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -22,7 +23,7 @@ const { authenticate, authorize } = require('../middleware/auth');
  *       200:
  *         description: List of resources
  */
-router.get('/', resourceController.getResources);
+router.get('/', intQueries('page', 'limit'), resourceController.getResources);
 
 /**
  * @swagger
@@ -79,7 +80,7 @@ router.post('/', authenticate, resourceController.uploadResource);
  *       200:
  *         description: Download recorded
  */
-router.post('/:id/download', resourceController.recordDownload);
+router.post('/:id/download', uuidParams('id'), resourceController.recordDownload);
 
 /**
  * @swagger

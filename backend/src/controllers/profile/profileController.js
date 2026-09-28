@@ -392,14 +392,35 @@ exports.addSkills = async (req, res, next) => {
       return res.status(400).json({ error: 'Skills must be an array' });
     }
 
-    const result = await db.query(
-      "UPDATE profiles SET skills = array_cat(COALESCE(skills, '{}'), $1), updated_at = NOW() WHERE user_id = $2 RETURNING skills",
-      [skills, req.user.id]
+    // array_cat appends unconditionally, so re-adding a skill the profile
+    // already had produced duplicates. The merge is done here rather than in
+    // SQL because DISTINCT/unnest does not preserve order, and the order of
+    // profiles.skills is the order the skills are displayed in.
+    const current = await db.query(
+      'SELECT skills FROM profiles WHERE user_id = $1',
+      [req.user.id]
     );
 
-    if (result.rows.length === 0) {
+    if (current.rows.length === 0) {
       return res.status(404).json({ error: 'Profile not found' });
     }
+
+    const existing = current.rows[0].skills || [];
+    const merged = existing.slice();
+    for (const skill of skills) {
+      if (!merged.some((s) => s.toLowerCase() === String(skill).toLowerCase())) {
+        merged.push(skill);
+      }
+    }
+
+    if (merged.length === existing.length) {
+      return res.json({ skills: existing });
+    }
+
+    const result = await db.query(
+      'UPDATE profiles SET skills = $1, updated_at = NOW() WHERE user_id = $2 RETURNING skills',
+      [merged, req.user.id]
+    );
 
     res.json({ skills: result.rows[0].skills });
   } catch (error) {

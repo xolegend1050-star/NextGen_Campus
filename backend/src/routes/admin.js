@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/admin/adminController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 // All admin routes require admin role
 router.use(authenticate, authorize('admin'));
@@ -36,23 +37,23 @@ router.get('/verifications', adminController.getPendingVerifications);
 
 // User management routes
 router.get('/users', adminController.getUsers);
-router.patch('/users/:id/ban', adminController.banUser);
-router.patch('/users/:id/unban', adminController.unbanUser);
-router.patch('/users/:id/role', adminController.updateUserRole);
+router.patch('/users/:id/ban', uuidParams('id'), adminController.banUser);
+router.patch('/users/:id/unban', uuidParams('id'), adminController.unbanUser);
+router.patch('/users/:id/role', uuidParams('id'), adminController.updateUserRole);
 
 // Verification routes
-router.patch('/verifications/:id', adminController.reviewVerification);
-router.put('/verifications/:id', adminController.reviewVerification);
+router.patch('/verifications/:id', uuidParams('id'), adminController.reviewVerification);
+router.put('/verifications/:id', uuidParams('id'), adminController.reviewVerification);
 
 // Flagged content routes
 router.get('/flagged-content', adminController.getFlaggedContent);
-router.patch('/flagged-content/:id', adminController.reviewFlaggedContent);
-router.put('/flagged-content/:id', adminController.reviewFlaggedContent);
+router.patch('/flagged-content/:id', uuidParams('id'), adminController.reviewFlaggedContent);
+router.put('/flagged-content/:id', uuidParams('id'), adminController.reviewFlaggedContent);
 
 // Disputes routes
 router.get('/disputes', adminController.getDisputes);
-router.patch('/disputes/:id/resolve', adminController.resolveDispute);
-router.put('/disputes/:id', adminController.resolveDispute);
+router.patch('/disputes/:id/resolve', uuidParams('id'), adminController.resolveDispute);
+router.put('/disputes/:id', uuidParams('id'), adminController.resolveDispute);
 
 // Audit log
 router.get('/audit-log', adminController.getAuditLog);

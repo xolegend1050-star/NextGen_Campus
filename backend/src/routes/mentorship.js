@@ -1,7 +1,8 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const mentorshipController = require('../controllers/mentorship/mentorshipController');
 const { authenticate } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 const {
   requestMentorshipValidation,
   scheduleSessionValidation,
@@ -46,7 +47,7 @@ router.get('/mentors', getMentorsValidation, mentorshipController.getMentors);
  *       200:
  *         description: List of requests
  */
-router.get('/requests', authenticate, mentorshipController.getMentorshipRequests);
+router.get('/requests', authenticate, intQueries('page', 'limit'), mentorshipController.getMentorshipRequests);
 
 /**
  * @swagger
@@ -108,8 +109,8 @@ router.post('/requests', authenticate, requestMentorshipValidation, mentorshipCo
  *       200:
  *         description: Request updated
  */
-router.put('/requests/:requestId', authenticate, mentorshipController.updateRequestStatus);
-router.patch('/requests/:id/:action', authenticate, mentorshipController.updateRequestStatus);
+router.put('/requests/:requestId', authenticate, uuidParams('requestId'), mentorshipController.updateRequestStatus);
+router.patch('/requests/:id/:action', authenticate, uuidParams('action'), mentorshipController.updateRequestStatus);
 
 /**
  * @swagger
@@ -125,7 +126,7 @@ router.patch('/requests/:id/:action', authenticate, mentorshipController.updateR
  */
 router.get('/sessions', authenticate, mentorshipController.getSessions);
 
-router.post('/requests/:requestId/schedule', authenticate, mentorshipController.scheduleSession);
+router.post('/requests/:requestId/schedule', authenticate, uuidParams('requestId'), mentorshipController.scheduleSession);
 
 /**
  * @swagger
@@ -167,6 +168,6 @@ router.post('/requests/:requestId/schedule', authenticate, mentorshipController.
  *       200:
  *         description: Session rated
  */
-router.post('/sessions/:sessionId/rate', authenticate, rateSessionValidation, mentorshipController.rateSession);
+router.post('/sessions/:sessionId/rate', authenticate, uuidParams('sessionId'), rateSessionValidation, mentorshipController.rateSession);
 
 module.exports = router;

@@ -40,10 +40,23 @@ const getDoubtsValidation = [
   handleValidationErrors
 ];
 
+// doubt_votes.vote_type is an integer column with CHECK (vote_type IN (-1, 1)).
+// Without this the raw body value went straight to Postgres, so a string vote
+// came back as "invalid input syntax for type integer" and an out-of-range
+// number as a constraint violation - both 500s instead of 400s.
+const voteValidation = [
+  body('vote_type')
+    .isInt({ min: -1, max: 1 })
+    .withMessage('vote_type must be 1 (upvote) or -1 (downvote)')
+    .toInt(),
+  handleValidationErrors
+];
+
 module.exports = {
   createDoubtValidation,
   updateDoubtValidation,
   answerDoubtValidation,
   getDoubtsValidation,
+  voteValidation,
   handleValidationErrors
 };

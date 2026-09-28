@@ -1,5 +1,6 @@
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+const path = require('path');
 
 exports.getConversations = async (req, res, next) => {
   try {
@@ -70,60 +71,138 @@ exports.getUnreadCount = async (req, res, next) => {
 
 exports.createConversation = async (req, res, next) => {
   try {
-    const { participant_id, type, title, related_request_id, related_gig_id } = req.body;
+    const { participant_id, participant_ids, type, title, related_request_id, related_gig_id } = req.body;
 
-    if (!participant_id) {
+    // Accept either a single participant_id or a list for group chats
+    const requested = Array.isArray(participant_ids) && participant_ids.length
+      ? participant_ids
+      : participant_id
+        ? [participant_id]
+        : [];
+
+    if (requested.length === 0) {
       return res.status(400).json({ error: 'participant_id is required' });
     }
 
-    if (participant_id === req.user.id) {
+    const others = [...new Set(requested.filter((id) => id && id !== req.user.id))];
+
+    if (others.length === 0) {
       return res.status(400).json({ error: 'You cannot start a conversation with yourself' });
     }
 
-    // The participant must be a real, active user, otherwise the conversation
-    // is created with a dangling participant row and shows up as empty.
-    const target = await db.query(
-      'SELECT id FROM users WHERE id = $1 AND is_active = true AND is_banned = false',
-      [participant_id]
-    );
-
-    if (target.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+    if (others.length > 20) {
+      return res.status(400).json({ error: 'A conversation can have at most 20 other participants' });
     }
 
-    // Check if conversation already exists between these users
+    // Every participant must be a real, active user, otherwise the conversation
+    // is created with dangling participant rows and renders as empty.
+    const targets = await db.query(
+      'SELECT id FROM users WHERE id = ANY($1) AND is_active = true AND is_banned = false',
+      [others]
+    );
+
+    if (targets.rows.length !== others.length) {
+      return res.status(404).json({ error: 'One or more users not found' });
+    }
+
+    const isGroup = others.length > 1;
+    const convType = type || (isGroup ? 'group' : 'general');
+
+    // Reuse a conversation only when the exact same set of people already has
+    // one. For a DM that is the previous single-participant check; for a group
+    // it must match every member, otherwise two different groups would collide
+    // on the first shared pair. The counts are filtered in an outer query
+    // because Postgres will not resolve a SELECT alias inside HAVING.
     const existing = await db.query(
-      `SELECT c.id FROM conversations c
-       JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
-       JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
-       WHERE cp1.user_id = $1 AND cp2.user_id = $2 AND c.type = $3 AND c.is_active = true`,
-      [req.user.id, participant_id, type || 'general']
+      `SELECT id FROM (
+         SELECT c.id,
+                (SELECT COUNT(*) FROM conversation_participants x
+                  WHERE x.conversation_id = c.id) AS member_count,
+                (SELECT COUNT(*) FROM conversation_participants x
+                  WHERE x.conversation_id = c.id AND x.user_id = ANY($1)) AS matched
+           FROM conversations c
+          WHERE c.type = $2 AND c.is_active = true
+            AND EXISTS (SELECT 1 FROM conversation_participants cp
+                         WHERE cp.conversation_id = c.id AND cp.user_id = $3)
+       ) AS candidates
+        WHERE matched = $4 AND member_count = $5
+        LIMIT 1`,
+      // matched counts only the requested others, member_count includes the
+      // creator, so they are compared against different totals
+      [others, convType, req.user.id, others.length, others.length + 1]
     );
 
     if (existing.rows.length > 0) {
       return res.json({ conversation: { id: existing.rows[0].id }, existing: true });
     }
 
-    // Create new conversation
     const conversation = await db.query(
       `INSERT INTO conversations (type, title, related_request_id, related_gig_id)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [type || 'general', title || null, related_request_id || null, related_gig_id || null]
+      [convType, title || (isGroup ? 'Group conversation' : null), related_request_id || null, related_gig_id || null]
     );
 
-    // Add participants
+    // Add everyone, including the creator
+    const allMembers = [req.user.id, ...others];
     await db.query(
-      'INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2)',
-      [conversation.rows[0].id, req.user.id]
-    );
-    await db.query(
-      'INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1, $2)',
-      [conversation.rows[0].id, participant_id]
+      `INSERT INTO conversation_participants (conversation_id, user_id)
+       SELECT $1, unnest($2::uuid[])
+       ON CONFLICT (conversation_id, user_id) DO NOTHING`,
+      [conversation.rows[0].id, allMembers]
     );
 
-    logger.info(`Conversation created: ${conversation.rows[0].id}`);
-    res.status(201).json({ conversation: conversation.rows[0], existing: false });
+    logger.info(`Conversation created: ${conversation.rows[0].id} with ${allMembers.length} members`);
+    res.status(201).json({
+      conversation: { ...conversation.rows[0], participants: allMembers.length },
+      existing: false
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/** Add a member to an existing group conversation. */
+exports.addParticipant = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+    const { user_id } = req.body;
+
+    if (!user_id) return res.status(400).json({ error: 'user_id is required' });
+
+    const isMember = await db.query(
+      'SELECT 1 FROM conversation_participants WHERE conversation_id = $1 AND user_id = $2',
+      [conversationId, req.user.id]
+    );
+    if (isMember.rows.length === 0) {
+      return res.status(403).json({ error: 'Not a member of this conversation' });
+    }
+
+    const target = await db.query(
+      'SELECT id FROM users WHERE id = $1 AND is_active = true AND is_banned = false',
+      [user_id]
+    );
+    if (target.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    await db.query(
+      'INSERT INTO conversation_participants (conversation_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [conversationId, user_id]
+    );
+
+    const count = await db.query(
+      'SELECT COUNT(*)::int AS n FROM conversation_participants WHERE conversation_id = $1',
+      [conversationId]
+    );
+
+    emitToConversation(req, conversationId, 'participant_added', {
+      conversation_id: conversationId,
+      user_id,
+      members: count.rows[0].n
+    });
+
+    res.json({ success: true, members: count.rows[0].n });
   } catch (error) {
     next(error);
   }
@@ -202,10 +281,35 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
+const roomName = (conversationId) => `conversation_${conversationId}`;
+
+/** Broadcast to a conversation, whichever io instance is reachable. */
+const emitToConversation = (req, conversationId, event, payload) => {
+  const io = req.app.get('io');
+  if (!io) return;
+  // Rooms are named conversation_<id> (see join_room). The REST send path used
+  // the bare id, so a message sent while the socket was down never reached
+  // anyone who was connected.
+  io.to(roomName(conversationId)).emit(event, payload);
+};
+
 exports.sendMessage = async (req, res, next) => {
   try {
     const { conversationId } = req.params;
     const { content, message_type = 'text', file_url, file_name, file_size } = req.body;
+
+    // A message needs text, an attachment, or both
+    const hasContent = typeof content === 'string' && content.trim().length > 0;
+    const hasFile = typeof file_url === 'string' && file_url.startsWith('/uploads/');
+    if (!hasContent && !hasFile) {
+      return res.status(400).json({ error: 'Message cannot be empty' });
+    }
+
+    // Only allow attachments that were actually uploaded to our own store,
+    // otherwise a client could point at any URL
+    if (file_url && !hasFile) {
+      return res.status(400).json({ error: 'Invalid attachment url' });
+    }
 
     // Check if user is participant
     const participant = await db.query(
@@ -223,22 +327,26 @@ exports.sendMessage = async (req, res, next) => {
       [conversationId]
     );
 
+    if (conversation.rows.length === 0) {
+      return res.status(404).json({ error: 'Conversation not found' });
+    }
+
     if (!conversation.rows[0].is_active) {
       return res.status(400).json({ error: 'Conversation is no longer active' });
     }
 
-    // Create message
+    const type = hasFile ? (message_type === 'text' ? 'file' : message_type) : 'text';
+
     const result = await db.query(
       `INSERT INTO messages (conversation_id, sender_id, content, message_type, file_url, file_name, file_size)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [conversationId, req.user.id, content || null, message_type, file_url || null, file_name || null, file_size || null]
+      [conversationId, req.user.id, hasContent ? content.trim() : null, type,
+       hasFile ? file_url : null, hasFile ? (file_name || null) : null, hasFile ? (file_size || null) : null]
     );
 
-    // Update conversation timestamp
     await db.query('UPDATE conversations SET updated_at = NOW() WHERE id = $1', [conversationId]);
 
-    // Get sender profile for real-time
     const sender = await db.query(
       'SELECT full_name, avatar_url FROM profiles WHERE user_id = $1',
       [req.user.id]
@@ -246,19 +354,132 @@ exports.sendMessage = async (req, res, next) => {
 
     const messageWithSender = {
       ...result.rows[0],
-      sender_name: sender.rows[0].full_name,
-      sender_avatar: sender.rows[0].avatar_url
+      sender_name: sender.rows[0]?.full_name,
+      sender_avatar: sender.rows[0]?.avatar_url,
+      room: roomName(conversationId)
     };
 
-    // Emit to Socket.IO (if available)
-    const io = req.app.get('io');
-    if (io) {
-      io.to(conversationId).emit('receive_message', messageWithSender);
-    }
+    emitToConversation(req, conversationId, 'receive_message', messageWithSender);
 
     logger.info(`Message sent in conversation ${conversationId}`);
     res.status(201).json({ message: messageWithSender });
   } catch (error) {
+    next(error);
+  }
+};
+
+/** Load a message and confirm the caller may act on it. */
+const loadOwnMessage = async (req, messageId) => {
+  const result = await db.query(
+    'SELECT id, conversation_id, sender_id, content, is_edited, is_deleted FROM messages WHERE id = $1',
+    [messageId]
+  );
+
+  if (result.rows.length === 0) return { error: { status: 404, message: 'Message not found' } };
+  if (result.rows[0].sender_id !== req.user.id) {
+    return { error: { status: 403, message: 'You can only change your own messages' } };
+  }
+  if (result.rows[0].is_deleted) {
+    return { error: { status: 400, message: 'Message has been deleted' } };
+  }
+  return { message: result.rows[0] };
+};
+
+/**
+ * Edit a message. Soft-edits keep the original row so read receipts and the
+ * conversation history stay intact; is_edited flags it for the UI.
+ */
+exports.editMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+    const { content } = req.body;
+
+    if (typeof content !== 'string' || !content.trim()) {
+      return res.status(400).json({ error: 'Content cannot be empty' });
+    }
+    if (content.length > 5000) {
+      return res.status(400).json({ error: 'Message is too long' });
+    }
+
+    const { message, error } = await loadOwnMessage(req, messageId);
+    if (error) return res.status(error.status).json({ error: error.message });
+
+    const result = await db.query(
+      `UPDATE messages
+          SET content = $1, is_edited = true, updated_at = NOW()
+        WHERE id = $2
+        RETURNING *`,
+      [content.trim(), messageId]
+    );
+
+    const payload = {
+      ...result.rows[0],
+      room: roomName(message.conversation_id)
+    };
+    emitToConversation(req, message.conversation_id, 'message_updated', payload);
+
+    res.json({ message: payload });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Delete a message. Soft delete (is_deleted) so the row, its read receipts and
+ * any moderation history survive; the content is cleared so the text is not
+ * recoverable through the API.
+ */
+exports.deleteMessage = async (req, res, next) => {
+  try {
+    const { messageId } = req.params;
+
+    const { message, error } = await loadOwnMessage(req, messageId);
+    if (error) return res.status(error.status).json({ error: error.message });
+
+    await db.query(
+      'UPDATE messages SET is_deleted = true, content = NULL, file_url = NULL, updated_at = NOW() WHERE id = $1',
+      [messageId]
+    );
+
+    emitToConversation(req, message.conversation_id, 'message_deleted', {
+      id: messageId,
+      conversation_id: message.conversation_id,
+      room: roomName(message.conversation_id)
+    });
+
+    res.json({ success: true, id: messageId });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Upload a file to attach to a message. The returned url is what the client
+ * passes back to sendMessage, which only accepts paths under /uploads/chat/.
+ */
+exports.uploadAttachment = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // Keep the name the user recognises, but strip anything path-like
+    const safeName = path.basename(req.file.originalname || 'attachment').slice(0, 200);
+
+    res.status(201).json({
+      success: true,
+      url: `/uploads/chat/${req.file.filename}`,
+      file_name: safeName,
+      size: req.file.size,
+      mime_type: req.file.mimetype
+    });
+  } catch (error) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File is too large (max 10MB)' });
+    }
+    if (error.message && /only images|invalid file type/i.test(error.message)) {
+      return res.status(400).json({ error: error.message });
+    }
     next(error);
   }
 };

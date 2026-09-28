@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const gigController = require('../controllers/gigs/gigController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 const {
   createGigValidation,
   updateGigValidation,
@@ -44,7 +45,7 @@ const {
  *       200:
  *         description: List of gigs
  */
-router.get('/', getGigsValidation, gigController.getAllGigs);
+router.get('/', getGigsValidation, intQueries('page', 'limit'), gigController.getAllGigs);
 
 /**
  * @swagger
@@ -78,7 +79,7 @@ router.get('/my-applications', authenticate, gigController.getMyApplications);
  *       404:
  *         description: Gig not found
  */
-router.get('/:id', gigController.getGigById);
+router.get('/:id', uuidParams('id'), gigController.getGigById);
 
 /**
  * @swagger
@@ -143,7 +144,7 @@ router.post('/', authenticate, authorize('company'), createGigValidation, gigCon
  *       200:
  *         description: Gig updated
  */
-router.put('/:id', authenticate, authorize('company'), updateGigValidation, gigController.updateGig);
+router.put('/:id', authenticate, uuidParams('id'), authorize('company'), updateGigValidation, gigController.updateGig);
 
 /**
  * @swagger
@@ -163,7 +164,7 @@ router.put('/:id', authenticate, authorize('company'), updateGigValidation, gigC
  *       200:
  *         description: Gig deleted
  */
-router.delete('/:id', authenticate, authorize('company'), gigController.deleteGig);
+router.delete('/:id', authenticate, uuidParams('id'), authorize('company'), gigController.deleteGig);
 
 /**
  * @swagger
@@ -193,7 +194,7 @@ router.delete('/:id', authenticate, authorize('company'), gigController.deleteGi
  *       201:
  *         description: Application submitted
  */
-router.post('/:id/apply', authenticate, authorize('student'), applyGigValidation, gigController.applyForGig);
+router.post('/:id/apply', authenticate, uuidParams('id'), authorize('student'), applyGigValidation, gigController.applyForGig);
 
 /**
  * @swagger
@@ -213,7 +214,7 @@ router.post('/:id/apply', authenticate, authorize('student'), applyGigValidation
  *       200:
  *         description: List of applications
  */
-router.get('/:id/applications', authenticate, authorize('company'), gigController.getGigApplications);
+router.get('/:id/applications', authenticate, uuidParams('id'), authorize('company'), gigController.getGigApplications);
 
 /**
  * @swagger
@@ -244,7 +245,7 @@ router.get('/:id/applications', authenticate, authorize('company'), gigControlle
  *       200:
  *         description: Application status updated
  */
-router.put('/applications/:applicationId/status', authenticate, authorize('company'), gigController.updateApplicationStatus);
-router.patch('/applications/:applicationId', authenticate, authorize('company'), gigController.updateApplicationStatus);
+router.put('/applications/:applicationId/status', authenticate, uuidParams('applicationId'), authorize('company'), gigController.updateApplicationStatus);
+router.patch('/applications/:applicationId', authenticate, uuidParams('applicationId'), authorize('company'), gigController.updateApplicationStatus);
 
 module.exports = router;

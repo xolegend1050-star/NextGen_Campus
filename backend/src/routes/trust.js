@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const trustController = require('../controllers/trust/trustController');
 const { authenticate } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -21,7 +22,7 @@ const { authenticate } = require('../middleware/auth');
  *       200:
  *         description: Trust score details
  */
-router.get('/score/:userId', authenticate, trustController.getTrustScore);
+router.get('/score/:userId', authenticate, uuidParams('userId'), trustController.getTrustScore);
 
 router.get('/my-score', authenticate, async (req, res, next) => {
   req.params.userId = req.user.id;
@@ -46,7 +47,7 @@ router.get('/my-score', authenticate, async (req, res, next) => {
  *       200:
  *         description: Trust score history
  */
-router.get('/history/:userId', authenticate, trustController.getTrustScoreHistory);
+router.get('/history/:userId', authenticate, uuidParams('userId'), trustController.getTrustScoreHistory);
 
 /**
  * @swagger
@@ -78,6 +79,6 @@ router.get('/history/:userId', authenticate, trustController.getTrustScoreHistor
  *       201:
  *         description: Company reported
  */
-router.post('/report-company/:companyId', authenticate, trustController.reportCompany);
+router.post('/report-company/:companyId', authenticate, uuidParams('companyId'), trustController.reportCompany);
 
 module.exports = router;

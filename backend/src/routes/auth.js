@@ -13,20 +13,25 @@ const {
 } = require('../validators/auth');
 const rateLimit = require('express-rate-limit');
 
+// These were hardcoded, so the limit could not be tuned per environment and
+// the end-to-end test suite could not run without tripping them. Both now read
+// from env with the previous values as defaults.
 const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX_ATTEMPTS) || 10,
   message: { error: 'Too many attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
 });
 
 const strictAuthLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
+  windowMs: parseInt(process.env.AUTH_STRICT_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.AUTH_STRICT_LIMIT_MAX_ATTEMPTS) || 5,
   message: { error: 'Too many attempts. Please try again after 15 minutes.' },
   standardHeaders: true,
-  legacyHeaders: false
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false }
 });
 
 /**

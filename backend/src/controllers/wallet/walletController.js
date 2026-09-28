@@ -1,4 +1,4 @@
-const db = require('../../config/database');
+﻿const db = require('../../config/database');
 const logger = require('../../utils/logger');
 
 exports.getWallet = async (req, res, next) => {
@@ -64,6 +64,19 @@ exports.requestWithdrawal = async (req, res, next) => {
   try {
     const { amount, payment_method, payment_details } = req.body;
 
+    // parseFloat('abc') is NaN, and every NaN comparison is false, so an
+    // unvalidated amount slipped past both the balance and minimum checks and
+    // then failed inside the INSERT with a numeric type error - a 500 for what
+    // is plainly a client-side validation error.
+    const VALID_PAYMENT_METHODS = ['bank_transfer', 'upi', 'paypal'];
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || !Number.isInteger(amountNum) || amountNum <= 0) {
+      return res.status(400).json({ error: 'amount must be a positive whole number' });
+    }
+    if (!payment_method || !VALID_PAYMENT_METHODS.includes(payment_method)) {
+      return res.status(400).json({ error: `payment_method must be one of: ${VALID_PAYMENT_METHODS.join(', ')}` });
+    }
+
     // Get wallet
     const wallet = await db.query(
       'SELECT * FROM wallets WHERE user_id = $1',
@@ -78,12 +91,12 @@ exports.requestWithdrawal = async (req, res, next) => {
       return res.status(400).json({ error: 'Wallet is frozen' });
     }
 
-    if (parseFloat(amount) > parseFloat(wallet.rows[0].balance)) {
+    if (amountNum > parseFloat(wallet.rows[0].balance)) {
       return res.status(400).json({ error: 'Insufficient balance' });
     }
 
-    if (parseFloat(amount) < 100) {
-      return res.status(400).json({ error: 'Minimum withdrawal amount is ₹100' });
+    if (amountNum < 100) {
+      return res.status(400).json({ error: 'Minimum withdrawal amount is 100' });
     }
 
     // Create withdrawal request
@@ -91,7 +104,7 @@ exports.requestWithdrawal = async (req, res, next) => {
       `INSERT INTO withdrawal_requests (user_id, wallet_id, amount, payment_method, payment_details)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [req.user.id, wallet.rows[0].id, amount, payment_method, JSON.stringify(payment_details || {})]
+      [req.user.id, wallet.rows[0].id, amountNum, payment_method, JSON.stringify(payment_details || {})]
     );
 
     // Lock the amount
@@ -99,7 +112,7 @@ exports.requestWithdrawal = async (req, res, next) => {
       `UPDATE wallets 
        SET balance = balance - $1, locked_balance = locked_balance + $1
        WHERE id = $2`,
-      [amount, wallet.rows[0].id]
+      [amountNum, wallet.rows[0].id]
     );
 
     // Record transaction
@@ -109,7 +122,7 @@ exports.requestWithdrawal = async (req, res, next) => {
       [wallet.rows[0].id, amount, wallet.rows[0].balance, parseFloat(wallet.rows[0].balance) - amount]
     );
 
-    logger.info(`Withdrawal requested: ₹${amount} by user ${req.user.id}`);
+    logger.info(`Withdrawal requested: â‚¹${amount} by user ${req.user.id}`);
     res.json({ withdrawal: result.rows[0] });
   } catch (error) {
     next(error);
@@ -216,7 +229,7 @@ exports.fundEscrow = async (req, res, next) => {
         const advertised = parseFloat(gig.rows[0].compensation);
         if (Math.abs(value - advertised) / advertised > 0.5) {
           logger.warn(
-            `Escrow ₹${value} differs from advertised compensation ₹${advertised} for gig ${gigId}`
+            `Escrow â‚¹${value} differs from advertised compensation â‚¹${advertised} for gig ${gigId}`
           );
         }
       }
@@ -250,7 +263,7 @@ exports.fundEscrow = async (req, res, next) => {
          VALUES ($1, 'escrow_funded', 'Escrow funded', $2, $3)`,
         [
           app.rows[0].student_id,
-          `A company has funded ₹${value} into escrow for your gig`,
+          `A company has funded â‚¹${value} into escrow for your gig`,
           JSON.stringify({ gig_id: gigId, amount: value, escrow_id: created.rows[0].id })
         ]
       );
@@ -258,7 +271,7 @@ exports.fundEscrow = async (req, res, next) => {
       return created.rows[0];
     });
 
-    logger.info(`Escrow funded: ₹${value} for gig ${gigId} application ${application_id}`);
+    logger.info(`Escrow funded: â‚¹${value} for gig ${gigId} application ${application_id}`);
     res.status(201).json({ escrow });
   } catch (error) {
     if (error.status) {
@@ -399,7 +412,7 @@ exports.releaseEscrow = async (req, res, next) => {
          VALUES ($1, 'payment_received', 'Payment received', $2, $3)`,
         [
           row.student_id,
-          `You received ₹${amount} for completing a gig`,
+          `You received â‚¹${amount} for completing a gig`,
           JSON.stringify({ gig_id: gigId, amount, escrow_id: row.id })
         ]
       );

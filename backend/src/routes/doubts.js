@@ -1,12 +1,14 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const doubtController = require('../controllers/doubts/doubtController');
 const { authenticate, optionalAuth } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 const {
   createDoubtValidation,
   updateDoubtValidation,
   answerDoubtValidation,
-  getDoubtsValidation
+  getDoubtsValidation,
+  voteValidation
 } = require('../validators/doubt');
 
 /**
@@ -42,7 +44,7 @@ const {
  *       200:
  *         description: List of doubts
  */
-router.get('/', optionalAuth, getDoubtsValidation, doubtController.getAllDoubts);
+router.get('/', optionalAuth, getDoubtsValidation, intQueries('page', 'limit'), doubtController.getAllDoubts);
 
 /**
  * @swagger
@@ -62,7 +64,7 @@ router.get('/', optionalAuth, getDoubtsValidation, doubtController.getAllDoubts)
  *       404:
  *         description: Doubt not found
  */
-router.get('/:id', optionalAuth, doubtController.getDoubtById);
+router.get('/:id', optionalAuth, uuidParams('id'), doubtController.getDoubtById);
 
 /**
  * @swagger
@@ -114,7 +116,7 @@ router.post('/', authenticate, createDoubtValidation, doubtController.createDoub
  *       200:
  *         description: Doubt updated
  */
-router.put('/:id', authenticate, updateDoubtValidation, doubtController.updateDoubt);
+router.put('/:id', authenticate, updateDoubtValidation, uuidParams('id'), doubtController.updateDoubt);
 
 /**
  * @swagger
@@ -134,7 +136,7 @@ router.put('/:id', authenticate, updateDoubtValidation, doubtController.updateDo
  *       200:
  *         description: Doubt deleted
  */
-router.delete('/:id', authenticate, doubtController.deleteDoubt);
+router.delete('/:id', authenticate, uuidParams('id'), doubtController.deleteDoubt);
 
 /**
  * @swagger
@@ -164,7 +166,7 @@ router.delete('/:id', authenticate, doubtController.deleteDoubt);
  *       201:
  *         description: Answer created
  */
-router.post('/:id/answers', authenticate, answerDoubtValidation, doubtController.answerDoubt);
+router.post('/:id/answers', authenticate, uuidParams('id'), answerDoubtValidation, doubtController.answerDoubt);
 
 /**
  * @swagger
@@ -182,7 +184,7 @@ router.post('/:id/answers', authenticate, answerDoubtValidation, doubtController
  *       200:
  *         description: List of answers
  */
-router.get('/:id/answers', doubtController.getDoubtAnswers);
+router.get('/:id/answers', uuidParams('id'), doubtController.getDoubtAnswers);
 
 /**
  * @swagger
@@ -213,7 +215,7 @@ router.get('/:id/answers', doubtController.getDoubtAnswers);
  *       200:
  *         description: Vote recorded
  */
-router.post('/answers/:answerId/vote', authenticate, doubtController.voteAnswer);
+router.post('/answers/:answerId/vote', authenticate, uuidParams('answerId'), voteValidation, doubtController.voteAnswer);
 
 /**
  * @swagger
@@ -244,7 +246,7 @@ router.post('/answers/:answerId/vote', authenticate, doubtController.voteAnswer)
  *       200:
  *         description: Vote recorded
  */
-router.post('/:id/vote', authenticate, doubtController.voteDoubt);
+router.post('/:id/vote', authenticate, uuidParams('id'), voteValidation, doubtController.voteDoubt);
 
 /**
  * @swagger
@@ -269,6 +271,6 @@ router.post('/:id/vote', authenticate, doubtController.voteDoubt);
  *       200:
  *         description: Answer accepted
  */
-router.post('/:id/accept/:answerId', authenticate, doubtController.acceptAnswer);
+router.post('/:id/accept/:answerId', authenticate, uuidParams('answerId'), doubtController.acceptAnswer);
 
 module.exports = router;

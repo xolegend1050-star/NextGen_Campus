@@ -9,8 +9,131 @@ import {
   PaperClipIcon,
   UserIcon,
   ChevronLeftIcon,
-  CheckIcon
+  CheckIcon,
+  ArrowPathIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
+
+/**
+ * Search people and open a 1:1 or group conversation. Selecting one person
+ * creates a DM; selecting several creates a group.
+ */
+const NewChatPanel = ({ onClose, onOpened }) => {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    const t = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await api.get(`/users/search?q=${encodeURIComponent(query.trim())}`);
+        setResults(res.data.users || res.data.profiles || []);
+      } catch (_) {
+        setResults([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  const toggle = (u) =>
+    setSelected((prev) =>
+      prev.some((x) => x.id === u.id)
+        ? prev.filter((x) => x.id !== u.id)
+        : [...prev, u]
+    );
+
+  const create = async () => {
+    if (selected.length === 0) return;
+    setCreating(true);
+    try {
+      const body = selected.length === 1
+        ? { participant_id: selected[0].id }
+        : { participant_ids: selected.map((u) => u.id) };
+      const res = await api.post('/chat/conversations', body);
+      onOpened({ id: res.data.conversation.id });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not start the conversation');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="border-b bg-gray-50 p-3 space-y-2">
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Search people by name..."
+        className="input-field text-sm"
+        autoFocus
+      />
+
+      {selected.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {selected.map((u) => (
+            <span
+              key={u.id}
+              className="inline-flex items-center gap-1 bg-primary-100 text-primary-800 text-xs px-2 py-0.5 rounded-full"
+            >
+              {u.full_name}
+              <button onClick={() => toggle(u)} className="hover:text-primary-950">
+                &times;
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      <div className="max-h-40 overflow-y-auto">
+        {searching && <p className="text-xs text-gray-500 py-1">Searching...</p>}
+        {!searching && results.length === 0 && query.trim().length >= 2 && (
+          <p className="text-xs text-gray-500 py-1">No one found</p>
+        )}
+        {results.map((u) => {
+          const on = selected.some((x) => x.id === u.id);
+          return (
+            <button
+              key={u.id}
+              onClick={() => toggle(u)}
+              className={`w-full flex items-center gap-2 p-2 rounded text-left text-sm ${
+                on ? 'bg-primary-50' : 'hover:bg-gray-100'
+              }`}
+            >
+              <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                <UserIcon className="h-3 w-3 text-gray-500" />
+              </div>
+              <span className="flex-1 truncate">{u.full_name}</span>
+              {on && <CheckIcon className="h-4 w-4 text-primary-600" />}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={create} disabled={creating || selected.length === 0} className="btn-primary text-xs flex-1">
+          {creating
+            ? 'Opening...'
+            : selected.length > 1
+              ? `Start group (${selected.length})`
+              : 'Start chat'}
+        </button>
+        <button onClick={onClose} className="btn-outline text-xs">
+          Cancel
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const Chat = () => {
   const { user } = useAuthStore();
@@ -37,6 +160,11 @@ const Chat = () => {
   }, []);
 
   const [globalUnread, setGlobalUnread] = useState(0);
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [showNewChat, setShowNewChat] = useState(false);
+  const fileInputRef = useRef(null);
 
   // ---- Socket lifecycle ----
   useEffect(() => {
@@ -86,6 +214,13 @@ const Chat = () => {
       );
     };
 
+    const handleUpdated = (payload) => {
+      setMessages((prev) => prev.map((m) => (m.id === payload.id ? { ...m, ...payload } : m)));
+    };
+    const handleDeleted = (payload) => {
+      setMessages((prev) => prev.filter((m) => m.id !== payload.id));
+    };
+
     const handleTyping = (payload) => {
       if (payload.room !== activeRoomRef.current) return;
       setTypingUsers((prev) => [...new Set([...prev, payload.user_id])]);
@@ -99,6 +234,8 @@ const Chat = () => {
     socket.on('online_users', handleOnlineUsers);
     socket.on('receive_message', handleReceive);
     socket.on('messages_read', handleMessagesRead);
+    socket.on('message_updated', handleUpdated);
+    socket.on('message_deleted', handleDeleted);
     socket.on('user_typing', handleTyping);
     socket.on('user_stop_typing', handleStopTyping);
 
@@ -113,6 +250,8 @@ const Chat = () => {
       socket.off('online_users', handleOnlineUsers);
       socket.off('receive_message', handleReceive);
       socket.off('messages_read', handleMessagesRead);
+      socket.off('message_updated', handleUpdated);
+      socket.off('message_deleted', handleDeleted);
       socket.off('user_typing', handleTyping);
       socket.off('user_stop_typing', handleStopTyping);
     };
@@ -202,6 +341,24 @@ const Chat = () => {
     }
   };
 
+  // Shared by the text box and the attachment button
+  const sendPayload = async (payload) => {
+    const room = roomFor(activeConversation.id);
+    const socket = socketRef.current;
+
+    if (socket && socket.connected) {
+      socket.emit('send_message', { room, ...payload });
+      // The server echoes back to the room (including us), so nothing is
+      // appended optimistically.
+    } else {
+      const response = await api.post(
+        `/chat/conversations/${activeConversation.id}/messages`,
+        payload
+      );
+      setMessages((prev) => [...prev, response.data.message]);
+    }
+  };
+
   const sendMessage = async (e) => {
     e.preventDefault();
     const content = newMessage.trim();
@@ -212,31 +369,74 @@ const Chat = () => {
     const socket = socketRef.current;
 
     try {
-      if (socket && socket.connected) {
-        // Real-time path: the server persists and broadcasts to the room
-        socket.emit('send_message', {
-          room,
-          content,
-          message_type: 'text'
-        });
-        // The server echoes back to the room (including us), so we do not
-        // optimistically append here.
-      } else {
-        // REST fallback so sending still works without a socket
-        const response = await api.post(`/chat/conversations/${activeConversation.id}/messages`, {
-          content,
-          message_type: 'text'
-        });
-        setMessages((prev) => [...prev, response.data.message]);
-      }
+      await sendPayload({ content, message_type: 'text' });
       setNewMessage('');
       socket?.emit('stop_typing', { room });
       fetchConversations();
       fetchGlobalUnread();
     } catch (error) {
       console.error('Failed to send message:', error);
+      toast.error('Could not send message');
     } finally {
       setSending(false);
+    }
+  };
+
+  const startEdit = (msg) => {
+    setEditingId(msg.id);
+    setEditText(msg.content || '');
+  };
+  const cancelEdit = () => {
+    setEditingId(null);
+    setEditText('');
+  };
+  const submitEdit = async (e) => {
+    e.preventDefault();
+    const text = editText.trim();
+    if (!text || !editingId) return;
+    try {
+      const res = await api.patch(`/chat/messages/${editingId}`, { content: text });
+      setMessages((prev) =>
+        prev.map((m) => (m.id === editingId ? { ...m, ...res.data.message } : m))
+      );
+      cancelEdit();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not edit the message');
+    }
+  };
+
+  const removeMessage = async (msg) => {
+    if (!window.confirm('Delete this message?')) return;
+    try {
+      await api.delete(`/chat/messages/${msg.id}`);
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Could not delete the message');
+    }
+  };
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File is too large (max 10MB)');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await api.post('/chat/attachment', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      await sendPayload({ file_url: res.data.url, file_name: res.data.file_name, file_size: res.data.size });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -280,7 +480,7 @@ const Chat = () => {
           activeConversation ? 'hidden sm:block' : 'block'
         }`}
       >
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="p-4 border-b flex items-center justify-between gap-2">
           <h2 className="font-semibold text-gray-900 flex items-center gap-2">
             Messages
             {globalUnread > 0 && (
@@ -289,17 +489,40 @@ const Chat = () => {
               </span>
             )}
           </h2>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              socketConnected
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-200 text-gray-600'
-            }`}
-            title={socketConnected ? 'Real-time connected' : 'Reconnecting — messages may need a refresh'}
-          >
-            {socketConnected ? 'Live' : 'Offline'}
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowNewChat((v) => !v)}
+              className="p-1 text-gray-500 hover:text-primary-600 rounded"
+              title="Start a new chat"
+            >
+              <PlusIcon className="h-5 w-5" />
+            </button>
+            <span
+              className={`text-xs px-2 py-0.5 rounded-full ${
+                socketConnected
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-gray-200 text-gray-600'
+              }`}
+              title={socketConnected ? 'Real-time connected' : 'Reconnecting — messages may need a refresh'}
+            >
+              {socketConnected ? 'Live' : 'Offline'}
+            </span>
+          </div>
         </div>
+
+        {/* Start a new 1:1 or group conversation */}
+        {showNewChat && (
+          <NewChatPanel
+            onClose={() => setShowNewChat(false)}
+            onOpened={(conv) => {
+              setShowNewChat(false);
+              setActiveConversation(conv);
+              fetchConversations();
+            }}
+          />
+        )}
+
         <div className="overflow-y-auto">
           {conversations.length > 0 ? (
             conversations.map((conv) => {
@@ -395,43 +618,127 @@ const Chat = () => {
                     const isOwn = msg.sender_id === user?.id;
                     const readByOthers = (msg.read_by || []).filter((id) => id !== user?.id);
                     const isRead = readByOthers.length > 0;
+                    const isImage = msg.file_url && /\.(jpg|jpeg|png|gif|webp)$/i.test(msg.file_url);
+                    const isEditing = editingId === msg.id;
+                    const canModify = isOwn && !msg.file_url;
+
                     return (
                       <div
                         key={msg.id || `tmp-${i}`}
-                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isOwn ? 'justify-end' : 'justify-start'} group/msg`}
                       >
-                        <div
-                          className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                            isOwn
-                              ? 'bg-primary-600 text-white'
-                              : 'bg-gray-100 text-gray-900'
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                          <p
-                            className={`text-xs mt-1 flex items-center justify-end gap-1 ${
-                              isOwn ? 'text-primary-100' : 'text-gray-500'
-                            }`}
-                          >
-                            {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                            {isOwn && (
-                              <span
-                                title={isRead ? 'Read' : 'Sent'}
-                                className={`inline-flex items-center ${
-                                  isRead ? 'text-primary-50' : 'text-primary-200/70'
-                                }`}
+                        <div className={`max-w-[70%] min-w-0 ${isOwn ? 'items-end' : 'items-start'} flex flex-col`}>
+                          {!isOwn && (
+                            <span className="text-xs text-gray-500 mb-1 ml-1">
+                              {msg.sender_name || 'Unknown'}
+                            </span>
+                          )}
+
+                          {isEditing ? (
+                            <form
+                              onSubmit={submitEdit}
+                              className="bg-white border border-primary-300 rounded-lg p-2 shadow-sm"
+                            >
+                              <textarea
+                                value={editText}
+                                onChange={(e) => setEditText(e.target.value)}
+                                rows={2}
+                                autoFocus
+                                className="w-full text-sm text-gray-900 border-0 focus:ring-0 p-1 resize-none"
+                              />
+                              <div className="flex gap-2 justify-end mt-1">
+                                <button
+                                  type="button"
+                                  onClick={cancelEdit}
+                                  className="text-xs text-gray-500 hover:text-gray-700"
+                                >
+                                  Cancel
+                                </button>
+                                <button type="submit" className="btn-primary text-xs py-1 px-2">
+                                  Save
+                                </button>
+                              </div>
+                            </form>
+                          ) : (
+                            <div
+                              className={`rounded-lg px-4 py-2 ${
+                                isOwn
+                                  ? 'bg-primary-600 text-white'
+                                  : 'bg-gray-100 text-gray-900'
+                              }`}
+                            >
+                              {msg.file_url && (
+                                <a
+                                  href={msg.file_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="block mb-2"
+                                >
+                                  {isImage ? (
+                                    <img
+                                      src={msg.file_url}
+                                      alt={msg.file_name || 'attachment'}
+                                      className="rounded-lg max-h-56 w-auto max-w-full object-cover"
+                                    />
+                                  ) : (
+                                    <span
+                                      className={`flex items-center gap-2 text-sm underline ${
+                                        isOwn ? 'text-primary-50' : 'text-primary-700'
+                                      }`}
+                                    >
+                                      <PaperClipIcon className="h-4 w-4 flex-shrink-0" />
+                                      <span className="truncate">{msg.file_name || 'Attachment'}</span>
+                                    </span>
+                                  )}
+                                </a>
+                              )}
+
+                              {msg.content && (
+                                <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                              )}
+
+                              <p
+                                className={`text-xs mt-1 flex items-center gap-1 ${
+                                  isOwn ? 'text-primary-100' : 'text-gray-500'
+                                } ${isOwn ? 'justify-end' : ''}`}
                               >
-                                {isRead ? (
-                                  <CheckIcon className="h-3.5 w-3.5" />
-                                ) : (
-                                  <CheckIcon className="h-3 w-3" />
+                                {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                                {msg.is_edited && <span className="italic">edited</span>}
+                                {isOwn && !msg.file_url && (
+                                  <span
+                                    title={isRead ? 'Read' : 'Sent'}
+                                    className={`inline-flex items-center ${
+                                      isRead ? 'text-primary-50' : 'text-primary-200/70'
+                                    }`}
+                                  >
+                                    <CheckIcon className={isRead ? 'h-3.5 w-3.5' : 'h-3 w-3'} />
+                                  </span>
                                 )}
-                              </span>
-                            )}
-                          </p>
+                              </p>
+                            </div>
+                          )}
+
+                          {canModify && !isEditing && (
+                            <div className="hidden group-hover/msg:flex gap-2 mt-0.5">
+                              <button
+                                onClick={() => startEdit(msg)}
+                                className="text-[11px] text-gray-500 hover:text-gray-800"
+                                title="Edit"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => removeMessage(msg)}
+                                className="text-[11px] text-gray-500 hover:text-red-600"
+                                title="Delete"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -451,8 +758,25 @@ const Chat = () => {
                 {/* Input */}
                 <form onSubmit={sendMessage} className="p-4 border-t">
                   <div className="flex items-center gap-2">
-                    <button type="button" className="p-2 text-gray-500 hover:text-gray-700">
-                      <PaperClipIcon className="h-5 w-5" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      onChange={handleFile}
+                      className="hidden"
+                      accept="image/png,image/jpeg,image/gif,image/webp,application/pdf,.txt,.doc,.docx"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                      className="p-2 text-gray-500 hover:text-gray-700 disabled:opacity-50"
+                      title="Attach a file"
+                    >
+                      {uploading ? (
+                        <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <PaperClipIcon className="h-5 w-5" />
+                      )}
                     </button>
                     <input
                       type="text"

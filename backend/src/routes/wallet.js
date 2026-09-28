@@ -1,7 +1,8 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const walletController = require('../controllers/wallet/walletController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -38,7 +39,7 @@ router.get('/', authenticate, walletController.getWallet);
  *       200:
  *         description: List of transactions
  */
-router.get('/transactions', authenticate, walletController.getTransactions);
+router.get('/transactions', authenticate, intQueries('page', 'limit'), walletController.getTransactions);
 
 /**
  * @swagger
@@ -96,7 +97,7 @@ router.post('/withdraw', authenticate, walletController.requestWithdrawal);
  *       200:
  *         description: Escrow funded
  */
-router.post('/escrow/:gigId', authenticate, authorize('company'), walletController.fundEscrow);
+router.post('/escrow/:gigId', authenticate, uuidParams('gigId'), authorize('company'), walletController.fundEscrow);
 
 /**
  * @swagger
@@ -130,7 +131,7 @@ router.get('/escrow', authenticate, walletController.listEscrows);
  *       200:
  *         description: Escrow released
  */
-router.post('/escrow/:gigId/release', authenticate, authorize('company'), walletController.releaseEscrow);
+router.post('/escrow/:gigId/release', authenticate, uuidParams('gigId'), authorize('company'), walletController.releaseEscrow);
 
 /**
  * @swagger
@@ -144,6 +145,6 @@ router.post('/escrow/:gigId/release', authenticate, authorize('company'), wallet
  *       200:
  *         description: Refunded
  */
-router.post('/escrow/:gigId/refund', authenticate, authorize('company'), walletController.refundEscrow);
+router.post('/escrow/:gigId/refund', authenticate, uuidParams('gigId'), authorize('company'), walletController.refundEscrow);
 
 module.exports = router;

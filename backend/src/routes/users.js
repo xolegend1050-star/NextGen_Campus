@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -32,6 +33,27 @@ router.get('/', authenticate, authorize('admin'), userController.getAllUsers);
 
 /**
  * @swagger
+ * /api/users/search:
+ *   get:
+ *     tags: [Users]
+ *     summary: Search people to start a conversation with
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       200:
+ *         description: Matching people
+ *
+ * Registered before /:id so "search" is not parsed as a user id.
+ */
+router.get('/search', authenticate, userController.searchUsers);
+
+/**
+ * @swagger
  * /api/users/{id}:
  *   get:
  *     tags: [Users]
@@ -50,7 +72,7 @@ router.get('/', authenticate, authorize('admin'), userController.getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get('/:id', authenticate, userController.getUserById);
+router.get('/:id', authenticate, uuidParams('id'), userController.getUserById);
 
 /**
  * @swagger
@@ -80,7 +102,7 @@ router.get('/:id', authenticate, userController.getUserById);
  *       200:
  *         description: User updated
  */
-router.put('/:id', authenticate, userController.updateUser);
+router.put('/:id', authenticate, uuidParams('id'), userController.updateUser);
 
 /**
  * @swagger
@@ -100,7 +122,7 @@ router.put('/:id', authenticate, userController.updateUser);
  *       200:
  *         description: User deleted
  */
-router.delete('/:id', authenticate, authorize('admin'), userController.deleteUser);
+router.delete('/:id', authenticate, uuidParams('id'), authorize('admin'), userController.deleteUser);
 
 /**
  * @swagger
@@ -130,6 +152,6 @@ router.delete('/:id', authenticate, authorize('admin'), userController.deleteUse
  *       200:
  *         description: User banned
  */
-router.post('/:id/ban', authenticate, authorize('admin'), userController.banUser);
+router.post('/:id/ban', authenticate, uuidParams('id'), authorize('admin'), userController.banUser);
 
 module.exports = router;

@@ -72,8 +72,21 @@ exports.uploadResource = async (req, res, next) => {
     const { title, description, resource_type, file_url, external_url, tags, subject, difficulty_level } = req.body;
 
     const VALID_TYPES = ['pdf', 'video', 'link', 'document', 'code'];
-    if (resource_type && !VALID_TYPES.includes(resource_type)) {
+
+    if (!title || !String(title).trim()) {
+      return res.status(400).json({ error: 'title is required' });
+    }
+    // resource_type is NOT NULL in the schema. Passing it through as undefined
+    // produced "null value in column resource_type" and a 500 instead of a
+    // validation error.
+    if (!resource_type) {
+      return res.status(400).json({ error: `resource_type is required. Allowed: ${VALID_TYPES.join(', ')}` });
+    }
+    if (!VALID_TYPES.includes(resource_type)) {
       return res.status(400).json({ error: `Invalid resource type. Allowed: ${VALID_TYPES.join(', ')}` });
+    }
+    if (!file_url && !external_url) {
+      return res.status(400).json({ error: 'Provide either file_url or external_url' });
     }
 
     const result = await db.query(

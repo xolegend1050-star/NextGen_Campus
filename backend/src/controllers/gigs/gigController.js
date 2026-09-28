@@ -229,8 +229,13 @@ exports.applyForGig = async (req, res, next) => {
     const { cover_letter, resume_url } = req.body;
 
     // Check if gig exists and is open
+    // company_id must be selected: the notification to the company below is
+    // keyed off it, and without it the row came back with no company_id and
+    // the INSERT failed on the notifications user_id NOT NULL constraint. The
+    // application itself had already been written, so a client that retried
+    // then hit "You have already applied".
     const gig = await db.query(
-      'SELECT id, status, application_deadline FROM gigs WHERE id = $1',
+      'SELECT id, company_id, status, application_deadline FROM gigs WHERE id = $1',
       [id]
     );
 
@@ -322,6 +327,14 @@ exports.updateApplicationStatus = async (req, res, next) => {
     const { applicationId } = req.params;
     const { status, company_notes } = req.body;
 
+    // gig_applications.status is an application_status enum. An unrecognised
+    // value reached the UPDATE and Postgres raised "invalid input value for
+    // enum application_status", which came back as a 500.
+    const VALID_STATUSES = ['pending', 'shortlisted', 'accepted', 'rejected', 'withdrawn'];
+    if (!status || !VALID_STATUSES.includes(status)) {
+      return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+    }
+
     // Get application with gig info
     const application = await db.query(
       `SELECT ga.*, g.company_id
@@ -339,11 +352,18 @@ exports.updateApplicationStatus = async (req, res, next) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
+    // $1 is bound once and used both as the application_status column value and
+    // compared against literals. Postgres infers an enum from the SET and text
+    // from the comparison and rejects the statement with "inconsistent types
+    // deduced for parameter $1", so every shortlist, accept and reject returned
+    // 500. Casting the literals to the enum (rather than the parameter to text,
+    // which leaves the SET still inferring the enum) gives every use the same
+    // type.
     const result = await db.query(
-      `UPDATE gig_applications 
-       SET status = $1, company_notes = $2, 
-           shortlisted_at = CASE WHEN $1 = 'shortlisted' THEN NOW() ELSE shortlisted_at END,
-           accepted_at = CASE WHEN $1 = 'accepted' THEN NOW() ELSE accepted_at END
+      `UPDATE gig_applications
+       SET status = $1, company_notes = $2,
+           shortlisted_at = CASE WHEN $1 = 'shortlisted'::application_status THEN NOW() ELSE shortlisted_at END,
+           accepted_at = CASE WHEN $1 = 'accepted'::application_status THEN NOW() ELSE accepted_at END
        WHERE id = $3
        RETURNING *`,
       [status, company_notes || null, applicationId]

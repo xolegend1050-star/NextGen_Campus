@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const analyticsController = require('../controllers/analytics/analyticsController');
 const { authenticate, authorize } = require('../middleware/auth');
+const { uuidParams, intQueries } = require('../utils/validate');
 
 /**
  * @swagger
@@ -47,7 +48,7 @@ router.post('/track', authenticate, analyticsController.trackEvent);
  *       200:
  *         description: Student analytics
  */
-router.get('/student/:studentId', authenticate, analyticsController.getStudentAnalytics);
+router.get('/student/:studentId', authenticate, uuidParams('studentId'), analyticsController.getStudentAnalytics);
 
 /**
  * @swagger

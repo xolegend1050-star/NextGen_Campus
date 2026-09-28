@@ -45,8 +45,8 @@ const errorHandler = (err, req, res, next) => {
     return res.status(400).json({ error: err.message });
   }
 
-  // Raised by our multer fileFilter for disallowed types
-  if (err.message && err.message.startsWith('Invalid file type')) {
+  // Raised by our multer fileFilters for disallowed types
+  if (err.message && /^(invalid file type|only images)/i.test(err.message.trim())) {
     return res.status(400).json({ error: err.message });
   }
 

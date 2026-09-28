@@ -303,6 +303,13 @@ exports.voteDoubt = async (req, res, next) => {
     const { id } = req.params;
     const { vote_type } = req.body;
 
+    // Without this the INSERT hit the doubt_id foreign key and Postgres raised
+    // a violation, which surfaced as a 500 for a plain bad id.
+    const exists = await db.query('SELECT 1 FROM doubts WHERE id = $1', [id]);
+    if (exists.rows.length === 0) {
+      return res.status(404).json({ error: 'Doubt not found' });
+    }
+
     const existingVote = await db.query(
       'SELECT id, vote_type FROM doubt_votes WHERE user_id = $1 AND doubt_id = $2',
       [req.user.id, id]
@@ -337,6 +344,12 @@ exports.voteAnswer = async (req, res, next) => {
   try {
     const { answerId } = req.params;
     const { vote_type } = req.body;
+
+    // Same reason as voteDoubt: a missing answer used to be an FK violation.
+    const exists = await db.query('SELECT 1 FROM doubt_answers WHERE id = $1', [answerId]);
+    if (exists.rows.length === 0) {
+      return res.status(404).json({ error: 'Answer not found' });
+    }
 
     const existingVote = await db.query(
       'SELECT id, vote_type FROM doubt_votes WHERE user_id = $1 AND answer_id = $2',

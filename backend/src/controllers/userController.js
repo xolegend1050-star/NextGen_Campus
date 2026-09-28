@@ -49,6 +49,45 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
+/**
+ * Search people by name, college or email, for starting a conversation.
+ * Excludes the caller and anyone inactive or banned, and never exposes
+ * password hashes or ban state.
+ */
+exports.searchUsers = async (req, res, next) => {
+  try {
+    const q = (req.query.q || '').trim();
+    if (q.length < 2) {
+      return res.status(400).json({ error: 'Query must be at least 2 characters' });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+    const pattern = `%${q}%`;
+
+    const result = await db.query(
+      `SELECT u.id, u.email, u.role,
+              p.full_name, p.avatar_url, p.city, p.college_name
+         FROM users u
+         LEFT JOIN profiles p ON p.user_id = u.id
+        WHERE u.id <> $1
+          AND u.is_active = true
+          AND u.is_banned = false
+          AND (p.full_name ILIKE $2
+               OR p.college_name ILIKE $2
+               OR u.email ILIKE $2)
+        ORDER BY
+          CASE WHEN p.full_name ILIKE $3 THEN 0 ELSE 1 END,
+          p.full_name ASC
+        LIMIT $4`,
+      [req.user.id, pattern, `${q}%`, limit]
+    );
+
+    res.json({ users: result.rows });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getUserById = async (req, res, next) => {
   try {
     const { id } = req.params;

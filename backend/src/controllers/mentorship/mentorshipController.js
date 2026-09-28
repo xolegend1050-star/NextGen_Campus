@@ -145,7 +145,9 @@ exports.requestMentorship = async (req, res, next) => {
     );
 
     if (existingRequest.rows.length > 0) {
-      return res.status(400).json({ error: 'You already have an active request with this mentor' });
+      // 409 not 400: the request is well formed, it just conflicts with an
+    // existing one.
+    return res.status(409).json({ error: 'You already have an active request with this mentor' });
     }
 
     // Create request
