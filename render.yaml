@@ -4,7 +4,11 @@ services:
     name: nextgen-campus-api
     runtime: node
     plan: free
-    buildCommand: cd backend && npm install
+    # `npm run check` parses every source file and fails the build on a
+    # duplicate top-level declaration. A merge once duplicated four consts in
+    # routes/chat.js; that is a fatal SyntaxError which npm install and eslint
+    # both pass, so the server only died at start and every deploy failed.
+    buildCommand: cd backend && npm install && npm run check
     startCommand: cd backend && node src/server.js
     envVars:
       - key: NODE_ENV

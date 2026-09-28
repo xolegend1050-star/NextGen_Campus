@@ -53,50 +53,6 @@ const chatUploadLimiter = rateLimit({
   validate: { xForwardedForHeader: false }
 });
 
-const CHAT_UPLOAD_DIR = path.join(__dirname, '../../uploads/chat');
-fs.mkdirSync(CHAT_UPLOAD_DIR, { recursive: true });
-
-const CHAT_ALLOWED = {
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-  'image/gif': ['.gif'],
-  'image/webp': ['.webp'],
-  'application/pdf': ['.pdf'],
-  'text/plain': ['.txt'],
-  'application/msword': ['.doc'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
-};
-
-const chatUploader = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      fs.mkdirSync(CHAT_UPLOAD_DIR, { recursive: true });
-      cb(null, CHAT_UPLOAD_DIR);
-    },
-    filename: (req, file, cb) => {
-      const ext = path.extname(file.originalname).toLowerCase();
-      const allowed = CHAT_ALLOWED[file.mimetype] || [];
-      // Never trust the client extension: derive it from the declared type
-      const safeExt = allowed.includes(ext) ? ext : '.bin';
-      cb(null, `${uuidv4()}${safeExt}`);
-    }
-  }),
-  fileFilter: (req, file, cb) => {
-    if (CHAT_ALLOWED[file.mimetype]) return cb(null, true);
-    cb(new Error('Only images, PDF and documents can be attached'), false);
-  },
-  limits: { fileSize: 10 * 1024 * 1024, files: 1 }
-});
-
-const chatUploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: { error: 'Too many uploads. Please wait a few minutes.' },
-  standardHeaders: true,
-  legacyHeaders: false,
-  validate: { xForwardedForHeader: false }
-});
-
 /**
  * @swagger
  * /api/chat/conversations:
@@ -278,59 +234,6 @@ router.delete('/messages/:messageId', authenticate, uuidParams('messageId'), cha
  *       200: { description: Added }
  */
 router.post('/conversations/:conversationId/participants', authenticate, uuidParams('conversationId'), chatController.addParticipant);
-
-/**
- * @swagger
- * /api/chat/attachment:
- *   post:
- *     tags: [Chat]
- *     summary: Upload a file to attach to a message
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200: { description: Uploaded }
- */
-router.post(
-  '/attachment',
-  authenticate,
-  chatUploadLimiter,
-  chatUploader.single('file'),
-  chatController.uploadAttachment
-);
-
-/**
- * @swagger
- * /api/chat/messages/{messageId}:
- *   patch:
- *     tags: [Chat]
- *     summary: Edit your own message
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200: { description: Edited }
- *   delete:
- *     tags: [Chat]
- *     summary: Delete your own message
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200: { description: Deleted }
- */
-router.patch('/messages/:messageId', authenticate, chatController.editMessage);
-router.delete('/messages/:messageId', authenticate, chatController.deleteMessage);
-
-/**
- * @swagger
- * /api/chat/conversations/{conversationId}/participants:
- *   post:
- *     tags: [Chat]
- *     summary: Add a member to a group conversation
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200: { description: Added }
- */
-router.post('/conversations/:conversationId/participants', authenticate, chatController.addParticipant);
 
 /**
  * @swagger
