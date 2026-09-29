@@ -131,7 +131,23 @@ router.get('/escrow', authenticate, walletController.listEscrows);
  *       200:
  *         description: Escrow released
  */
-router.post('/escrow/:gigId/release', authenticate, uuidParams('gigId'), authorize('company'), walletController.releaseEscrow);
+/**
+ * Submit work for a gig.
+ *
+ * Without this there is no way for a student to submit a deliverable, and
+ * releaseEscrow refuses to pay out until one exists. The check exists to stop a
+ * company paying for work that was never handed over, so the student has to be
+ * able to satisfy it honestly.
+ */
+router.post('/escrow/:gigId/deliverable', authenticate, uuidParams('gigId'), walletController.submitDeliverable);
+
+/**
+ * Release and refund are company actions, but an administrator must also be able
+ * to call them: force-releasing without a deliverable is restricted to an admin,
+ * and a company is refused that flag. Without admin on these two routes that
+ * flag would be impossible to use.
+ */
+router.post('/escrow/:gigId/release', authenticate, uuidParams('gigId'), authorize('company', 'admin'), walletController.releaseEscrow);
 
 /**
  * @swagger
@@ -145,6 +161,34 @@ router.post('/escrow/:gigId/release', authenticate, uuidParams('gigId'), authori
  *       200:
  *         description: Refunded
  */
-router.post('/escrow/:gigId/refund', authenticate, uuidParams('gigId'), authorize('company'), walletController.refundEscrow);
+router.post('/escrow/:gigId/refund', authenticate, uuidParams('gigId'), authorize('company', 'admin'), walletController.refundEscrow);
+
+/**
+ * @swagger
+ * /api/wallet/admin/withdrawals:
+ *   get:
+ *     tags: [Wallet]
+ *     summary: List withdrawal requests (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Withdrawal requests
+ */
+router.get('/admin/withdrawals', authenticate, intQueries('page', 'limit'), authorize('admin'), walletController.listWithdrawals);
+
+/**
+ * @swagger
+ * /api/wallet/admin/withdrawals/{id}:
+ *   patch:
+ *     tags: [Wallet]
+ *     summary: Approve or reject a withdrawal (Admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Withdrawal processed
+ */
+router.patch('/admin/withdrawals/:id', authenticate, uuidParams('id'), authorize('admin'), walletController.processWithdrawal);
 
 module.exports = router;

@@ -247,9 +247,17 @@ exports.fundEscrow = async (req, res, next) => {
         [gigId, application_id, req.user.id, app.rows[0].student_id, value]
       );
 
+      // The money leaves "available" and becomes "locked" at the same moment.
+      //
+      // Only the available side was being decremented, so a company that funded
+      // escrow saw the amount simply disappear: its wallet reported the same
+      // locked_balance afterwards, and balance + locked_balance no longer
+      // equalled the funds it actually held. requestWithdrawal has always moved
+      // both sides together, and escrow must do the same or the wallet is not a
+      // truthful statement of what the company owns.
       await client.query(
-        'UPDATE wallets SET balance = $1 WHERE id = $2',
-        [balanceAfter, wallet.rows[0].id]
+        'UPDATE wallets SET balance = $1, locked_balance = locked_balance + $2 WHERE id = $3',
+        [balanceAfter, value, wallet.rows[0].id]
       );
 
       await client.query(
@@ -328,15 +336,23 @@ exports.listEscrows = async (req, res, next) => {
 exports.releaseEscrow = async (req, res, next) => {
   try {
     const { gigId } = req.params;
-    const { force } = req.body || {};
+    const { force, application_id: applicationId } = req.body || {};
 
     const released = await db.withTransaction(async (client) => {
+      // A gig can have several accepted applicants, each with its own escrow.
+      // Selecting the newest one unconditionally meant a company could only ever
+      // pay the most recent applicant, with no way to name anyone else, so
+      // application_id is honoured when supplied.
       const escrow = await client.query(
-        `SELECT * FROM escrow_transactions
-          WHERE gig_id = $1 AND company_id = $2
-          ORDER BY created_at DESC LIMIT 1
-          FOR UPDATE`,
-        [gigId, req.user.id]
+        applicationId
+          ? `SELECT * FROM escrow_transactions
+              WHERE gig_id = $1 AND company_id = $2 AND application_id = $3
+              FOR UPDATE`
+          : `SELECT * FROM escrow_transactions
+              WHERE gig_id = $1 AND company_id = $2
+              ORDER BY created_at DESC LIMIT 1
+              FOR UPDATE`,
+        applicationId ? [gigId, req.user.id, applicationId] : [gigId, req.user.id]
       );
 
       if (escrow.rows.length === 0) {
@@ -362,8 +378,20 @@ exports.releaseEscrow = async (req, res, next) => {
         throw err;
       }
 
-      // Require a submitted deliverable so funds cannot be paid out for nothing
-      if (!force) {
+      // Require a submitted deliverable so funds cannot be paid out for nothing.
+      //
+      // The check protects the student, so the company paying out must not be
+      // able to switch it off: force is honoured only for an admin, who is not a
+      // party to the gig. A company that passes force is refused rather than
+      // silently overridden.
+      if (force) {
+        if (req.user.role !== 'admin') {
+          const err = new Error('Only an administrator can release escrow without submitted work');
+          err.status = 403;
+          throw err;
+        }
+        logger.warn(`Admin ${req.user.id} force released escrow ${row.id} for gig ${gigId} with no deliverable`);
+      } else {
         const deliverable = await client.query(
           `SELECT id FROM gig_deliverables
             WHERE gig_id = $1 AND student_id = $2 LIMIT 1`,
@@ -394,6 +422,17 @@ exports.releaseEscrow = async (req, res, next) => {
       await client.query(
         'UPDATE wallets SET balance = $1, total_earned = total_earned + $2 WHERE id = $3',
         [balanceAfter, amount, studentWallet.rows[0].id]
+      );
+
+      // The escrow is no longer held, so it leaves the company's locked side and
+      // becomes the student's spendable balance. Without this the company's
+      // locked_balance would stay raised forever and its wallet would keep
+      // claiming money it had already paid out.
+      await client.query(
+        `UPDATE wallets
+            SET locked_balance = GREATEST(locked_balance - $1, 0)
+          WHERE user_id = $2`,
+        [amount, row.company_id]
       );
 
       const updated = await client.query(
@@ -448,14 +487,21 @@ exports.releaseEscrow = async (req, res, next) => {
 exports.refundEscrow = async (req, res, next) => {
   try {
     const { gigId } = req.params;
-    const { reason } = req.body || {};
+    const { reason, application_id: applicationId } = req.body || {};
 
     const refund = await db.withTransaction(async (client) => {
+      // As with release, a gig may hold several escrows, so the applicant can be
+      // named. Falling back to the newest keeps the old behaviour for callers
+      // that do not send an application_id.
       const escrow = await client.query(
-        `SELECT * FROM escrow_transactions
-          WHERE gig_id = $1 AND company_id = $2 AND status = 'locked'
-          ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
-        [gigId, req.user.id]
+        applicationId
+          ? `SELECT * FROM escrow_transactions
+              WHERE gig_id = $1 AND company_id = $2 AND status = 'locked' AND application_id = $3
+              FOR UPDATE`
+          : `SELECT * FROM escrow_transactions
+              WHERE gig_id = $1 AND company_id = $2 AND status = 'locked'
+              ORDER BY created_at DESC LIMIT 1 FOR UPDATE`,
+        applicationId ? [gigId, req.user.id, applicationId] : [gigId, req.user.id]
       );
 
       if (escrow.rows.length === 0) {
@@ -480,7 +526,13 @@ exports.refundEscrow = async (req, res, next) => {
       const balanceBefore = parseFloat(wallet.rows[0].balance);
       const balanceAfter = balanceBefore + amount;
 
-      await client.query('UPDATE wallets SET balance = $1 WHERE id = $2', [balanceAfter, wallet.rows[0].id]);
+      // The money comes back to available and is no longer held, so the locked
+      // side drops at the same time. GREATEST guards against a negative balance
+      // if this is ever retried against an already-unlocked row.
+      await client.query(
+        'UPDATE wallets SET balance = $1, locked_balance = GREATEST(locked_balance - $2, 0) WHERE id = $3',
+        [balanceAfter, amount, wallet.rows[0].id]
+      );
 
       const updated = await client.query(
         `UPDATE escrow_transactions
@@ -512,6 +564,250 @@ exports.refundEscrow = async (req, res, next) => {
 
     logger.info(`Escrow refunded: ${refund.amount} for gig ${gigId}`);
     res.json({ message: 'Escrow refunded', escrow: refund });
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Submit the work for a gig.
+ *
+ * releaseEscrow will not pay out until a deliverable exists, and until this
+ * action there was no way to create one, so the only route to a payment was to
+ * pass force, which is now admin-only. The student is taken from the accepted
+ * application rather than from the request body, so nobody can submit work as
+ * somebody else.
+ */
+exports.submitDeliverable = async (req, res, next) => {
+  try {
+    const { gigId } = req.params;
+    const { title, description, file_url: fileUrl, file_name: fileName } = req.body || {};
+
+    if (typeof title !== 'string' || title.trim().length < 3) {
+      return res.status(400).json({ error: 'A title of at least 3 characters is required' });
+    }
+    if (fileUrl !== undefined && fileUrl !== null && String(fileUrl).trim()) {
+      try {
+        // eslint-disable-next-line no-new
+        new URL(String(fileUrl));
+      } catch {
+        return res.status(400).json({ error: 'file_url must be a valid URL' });
+      }
+    }
+
+    const created = await db.withTransaction(async (client) => {
+      // The applicant must be accepted for this gig, which is the same condition
+      // escrow funding requires.
+      const app = await client.query(
+        `SELECT id, student_id FROM gig_applications
+          WHERE gig_id = $1 AND student_id = $2 AND status = 'accepted'
+          ORDER BY updated_at DESC LIMIT 1`,
+        [gigId, req.user.id]
+      );
+      if (app.rows.length === 0) {
+        const err = new Error('You can only submit work for a gig you have been accepted for');
+        err.status = 403;
+        throw err;
+      }
+
+      const row = await client.query(
+        `INSERT INTO gig_deliverables (gig_id, student_id, title, description, file_url, file_name, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'submitted')
+         RETURNING *`,
+        [
+          gigId, req.user.id, title.trim(),
+          description ? String(description).slice(0, 5000) : null,
+          fileUrl ? String(fileUrl).slice(0, 500) : null,
+          fileName ? String(fileName).slice(0, 255) : null
+        ]
+      );
+
+      const company = await client.query(
+        'SELECT company_id FROM gigs WHERE id = $1',
+        [gigId]
+      );
+      if (company.rows.length) {
+        await client.query(
+          `INSERT INTO notifications (user_id, type, title, message, data)
+           VALUES ($1, 'deliverable_submitted', 'Work submitted', $2, $3)`,
+          [
+            company.rows[0].company_id,
+            `${req.user.name || 'A student'} submitted work for your gig`,
+            JSON.stringify({ gig_id: gigId, deliverable_id: row.rows[0].id })
+          ]
+        );
+      }
+
+      return row.rows[0];
+    });
+
+    logger.info(`Deliverable submitted for gig ${gigId} by user ${req.user.id}`);
+    res.status(201).json({ deliverable: created });
+  } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ error: error.message });
+    }
+    next(error);
+  }
+};
+
+/** List withdrawal requests, for an administrator to act on. */
+exports.listWithdrawals = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+    const offset = (Number(page) - 1) * Number(limit);
+    const params = [];
+    let text = 'WHERE 1=1';
+    if (status) {
+      params.push(status);
+      text += ` AND wr.status = $${params.length}`;
+    }
+    params.push(Number(limit), offset);
+
+    const rows = await db.query(
+      `SELECT wr.*, u.email, w.balance, w.locked_balance
+         FROM withdrawal_requests wr
+         JOIN public.users u ON u.id = wr.user_id
+         JOIN wallets w ON w.id = wr.wallet_id
+         ${text}
+        ORDER BY wr.created_at DESC
+        LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params
+    );
+    const total = await db.query(`SELECT count(*)::int AS n FROM withdrawal_requests wr ${text}`, params.slice(0, -2));
+
+    res.json({ withdrawals: rows.rows, total: total.rows[0].n, page: Number(page), limit: Number(limit) });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Approve or reject a withdrawal.
+ *
+ * The amount was moved into locked_balance when the request was made, so
+ * approving only has to release that hold: the money has already left the
+ * available balance, and re-debiting it here would take the user down twice.
+ * Rejecting returns it, because the hold is not a real payment.
+ */
+exports.processWithdrawal = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { action, reason } = req.body || {};
+
+    if (action !== 'approve' && action !== 'reject') {
+      return res.status(400).json({ error: "action must be 'approve' or 'reject'" });
+    }
+
+    const result = await db.withTransaction(async (client) => {
+      const row = await client.query(
+        'SELECT * FROM withdrawal_requests WHERE id = $1 FOR UPDATE',
+        [id]
+      );
+      if (row.rows.length === 0) {
+        const err = new Error('Withdrawal request not found');
+        err.status = 404;
+        throw err;
+      }
+      const wr = row.rows[0];
+      if (wr.status !== 'pending') {
+        const err = new Error(`This withdrawal was already ${wr.status}`);
+        err.status = 409;
+        throw err;
+      }
+
+      const amount = parseFloat(wr.amount);
+      const wallet = await client.query(
+        'SELECT id, balance, locked_balance FROM wallets WHERE id = $1 FOR UPDATE',
+        [wr.wallet_id]
+      );
+      if (wallet.rows.length === 0) {
+        const err = new Error('Wallet not found');
+        err.status = 404;
+        throw err;
+      }
+
+      if (action === 'approve') {
+        // The money leaves the hold; the available balance was reduced at request
+        // time and stays reduced, because it is now genuinely paid out.
+        await client.query(
+          'UPDATE wallets SET locked_balance = GREATEST(locked_balance - $1, 0), total_withdrawn = total_withdrawn + $1 WHERE id = $2',
+          [amount, wallet.rows[0].id]
+        );
+        await client.query(
+          // PostgreSQL does not accept ORDER BY / LIMIT on an UPDATE directly;
+          // the row has to be picked in a CTE first. Matching on the amount as
+          // well as the wallet is what ties the ledger entry to this request,
+          // since the withdrawal transaction is not linked by reference_id.
+          `WITH target AS (
+             SELECT id FROM wallet_transactions
+              WHERE wallet_id = $1
+                AND transaction_type = 'withdrawal'
+                AND status = 'pending'
+                AND amount = $2
+              ORDER BY created_at DESC
+              LIMIT 1
+           )
+           UPDATE wallet_transactions t
+              SET status = 'completed', description = 'Withdrawal paid out'
+             FROM target
+            WHERE t.id = target.id`,
+          [wallet.rows[0].id, amount]
+        );
+      } else {
+        // Nothing was paid, so the hold goes back to the user as available funds.
+        await client.query(
+          'UPDATE wallets SET balance = balance + $1, locked_balance = GREATEST(locked_balance - $1, 0) WHERE id = $2',
+          [amount, wallet.rows[0].id]
+        );
+        await client.query(
+          `WITH target AS (
+             SELECT id FROM wallet_transactions
+              WHERE wallet_id = $1
+                AND transaction_type = 'withdrawal'
+                AND status = 'pending'
+                AND amount = $2
+              ORDER BY created_at DESC
+              LIMIT 1
+           )
+           UPDATE wallet_transactions t
+              SET status = 'failed', description = 'Withdrawal rejected'
+             FROM target
+            WHERE t.id = target.id`,
+          [wallet.rows[0].id, amount]
+        );
+      }
+
+      const updated = await client.query(
+        `UPDATE withdrawal_requests
+            SET status = $1, processed_by = $2, processed_at = NOW(), rejection_reason = $3
+          WHERE id = $4 RETURNING *`,
+        [action === 'approve' ? 'approved' : 'rejected', req.user.id,
+         action === 'reject' ? String(reason || 'Rejected by administrator').slice(0, 500) : null, id]
+      );
+
+      await client.query(
+        `INSERT INTO notifications (user_id, type, title, message, data)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [
+          wr.user_id,
+          action === 'approve' ? 'withdrawal_approved' : 'withdrawal_rejected',
+          action === 'approve' ? 'Withdrawal approved' : 'Withdrawal rejected',
+          action === 'approve'
+            ? `Your withdrawal of ${amount} has been paid out`
+            : `Your withdrawal of ${amount} was rejected and the amount is back in your balance`,
+          JSON.stringify({ withdrawal_id: id, amount })
+        ]
+      );
+
+      return updated.rows[0];
+    });
+
+    logger.info(`Withdrawal ${id} ${action}d by admin ${req.user.id}`);
+    res.json({ message: `Withdrawal ${action}d`, withdrawal: result });
   } catch (error) {
     if (error.status) {
       return res.status(error.status).json({ error: error.message });
