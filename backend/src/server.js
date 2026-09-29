@@ -101,6 +101,22 @@ app.use('/api/auth/reset-password', authLimiter);
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Drop blank query params before anything else reads req.query.
+//
+// Frontends build query strings by joining whatever is in a filter state
+// object, so an untouched filter arrives as ?page=&limit=&search= rather than
+// being left out. A destructuring default such as `const { page = 1 } =
+// req.query` only fires for undefined, so a blank page stayed "" all the way
+// into the SQL and Postgres rejected the LIMIT/OFFSET bind with
+// "invalid input syntax for type bigint: \"\"" and a 500.
+app.use((req, res, next) => {
+  for (const key of Object.keys(req.query)) {
+    const value = req.query[key];
+    if (typeof value === 'string' && !value.trim()) delete req.query[key];
+  }
+  next();
+});
+
 // Compression
 app.use(compression());
 

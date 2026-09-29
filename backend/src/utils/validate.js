@@ -84,6 +84,10 @@ const intQueries = (...args) => {
     for (const name of names) {
       if (req.query[name] === undefined) continue;
       const raw = String(req.query[name]);
+      // A blank query param means "not supplied", same as undefined. Frontends
+      // build query strings by joining whatever is in a filter state object, so
+      // an untouched filter arrives as ?page=&limit= rather than being omitted.
+      if (!raw.trim()) continue;
       if (!/^-?\d+$/.test(raw)) {
         return badRequest(res, `Invalid ${name}: must be an integer`);
       }
@@ -96,6 +100,27 @@ const intQueries = (...args) => {
     return next();
   };
 };
+
+/**
+ * Treat a blank string as an absent value.
+ *
+ * express-validator's optional() only skips undefined and null, so it does not
+ * skip "". Every optional form field in this app arrives as "" whenever the
+ * user leaves it alone: an untouched input is "", and a <select> whose first
+ * option is <option value="">Select subject</option> always posts "". The
+ * notEmpty()/isLength()/isURL() check that follows then rejects it and the
+ * whole form fails with a 400, even though the field was optional.
+ *
+ * A blank string is rewritten to undefined before optional() runs, so the rest
+ * of the chain is skipped. Only strings are touched: 0 and false stay intact,
+ * which matters because years_of_experience is legitimately 0.
+ *
+ * Usage: optionalField(body('subject')).trim().notEmpty()
+ */
+const optionalField = (chain) =>
+  chain
+    .customSanitizer((value) => (typeof value === 'string' && value.trim() === '' ? undefined : value))
+    .optional();
 
 /**
  * Validate a skill name path param. Skills are stored as plain strings in
@@ -116,6 +141,7 @@ module.exports = {
   requireIntQuery,
   uuidParams,
   intQueries,
+  optionalField,
   skillNameParam,
   intQuery,
   badRequest,

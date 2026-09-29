@@ -1,4 +1,5 @@
 const { body, query, param, validationResult } = require('express-validator');
+const { optionalField } = require('../utils/validate');
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -10,9 +11,9 @@ const handleValidationErrors = (req, res, next) => {
 
 const requestMentorshipValidation = [
   body('mentor_id').isUUID().withMessage('Invalid mentor ID'),
-  body('message').optional().trim().isLength({ max: 2000 }),
-  body('student_goals').optional().trim().isLength({ max: 1000 }),
-  body('preferred_session_type').optional().isIn(['chat', 'video', 'in_person']),
+  optionalField(body('message')).trim().isLength({ max: 2000 }),
+  optionalField(body('student_goals')).trim().isLength({ max: 1000 }),
+  optionalField(body('preferred_session_type')).isIn(['chat', 'video', 'in_person']),
   handleValidationErrors
 ];
 
@@ -26,21 +27,21 @@ const scheduleSessionValidation = [
 const rateSessionValidation = [
   param('sessionId').isUUID().withMessage('Invalid session ID'),
   body('overall_rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be 1-5'),
-  body('communication_rating').optional().isInt({ min: 1, max: 5 }),
-  body('knowledge_rating').optional().isInt({ min: 1, max: 5 }),
-  body('punctuality_rating').optional().isInt({ min: 1, max: 5 }),
-  body('helpfulness_rating').optional().isInt({ min: 1, max: 5 }),
-  body('review').optional().trim().isLength({ max: 1000 }),
+  optionalField(body('communication_rating')).isInt({ min: 1, max: 5 }),
+  optionalField(body('knowledge_rating')).isInt({ min: 1, max: 5 }),
+  optionalField(body('punctuality_rating')).isInt({ min: 1, max: 5 }),
+  optionalField(body('helpfulness_rating')).isInt({ min: 1, max: 5 }),
+  optionalField(body('review')).trim().isLength({ max: 1000 }),
   handleValidationErrors
 ];
 
 const getMentorsValidation = [
-  query('page').optional().isInt({ min: 1 }),
-  query('limit').optional().isInt({ min: 1, max: 50 }),
-  query('skill').optional().trim().notEmpty(),
-  query('city').optional().trim().notEmpty(),
-  query('min_rating').optional().isFloat({ min: 1, max: 5 }),
-  query('available').optional().isBoolean(),
+  optionalField(query('page')).isInt({ min: 1 }),
+  optionalField(query('limit')).isInt({ min: 1, max: 50 }),
+  optionalField(query('skill')).trim().notEmpty(),
+  optionalField(query('city')).trim().notEmpty(),
+  optionalField(query('min_rating')).isFloat({ min: 1, max: 5 }),
+  optionalField(query('available')).isBoolean(),
   handleValidationErrors
 ];
 

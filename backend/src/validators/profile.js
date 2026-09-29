@@ -1,4 +1,5 @@
 const { body, validationResult } = require('express-validator');
+const { optionalField } = require('../utils/validate');
 
 const handleValidationErrors = (req, res, next) => {
   const errors = validationResult(req);
@@ -9,68 +10,68 @@ const handleValidationErrors = (req, res, next) => {
 };
 
 const updateProfileValidation = [
-  body('full_name').optional().trim().isLength({ min: 2, max: 255 }).withMessage('Name must be 2-255 characters'),
-  body('bio').optional().trim().isLength({ max: 1000 }).withMessage('Bio max 1000 characters'),
-  body('phone').optional().matches(/^[+]?[0-9]{10,15}$/).withMessage('Invalid phone number'),
-  body('city').optional().trim().notEmpty(),
-  body('state').optional().trim().notEmpty(),
-  body('college_name').optional().trim().notEmpty(),
-  body('course').optional().trim().notEmpty(),
-  body('year_of_study').optional().isInt({ min: 1, max: 6 }),
-  body('graduation_year').optional().isInt({ min: 2020, max: 2030 }),
-  body('skills').optional().isArray({ max: 20 }),
-  body('interests').optional().isArray({ max: 10 }),
-  body('linkedin_url').optional().isURL().withMessage('Invalid LinkedIn URL'),
-  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
-  body('portfolio_url').optional().isURL().withMessage('Invalid portfolio URL'),
+  optionalField(body('full_name')).trim().isLength({ min: 2, max: 255 }).withMessage('Name must be 2-255 characters'),
+  optionalField(body('bio')).trim().isLength({ max: 1000 }).withMessage('Bio max 1000 characters'),
+  optionalField(body('phone')).matches(/^[+]?[0-9]{10,15}$/).withMessage('Invalid phone number'),
+  optionalField(body('city')).trim().notEmpty(),
+  optionalField(body('state')).trim().notEmpty(),
+  optionalField(body('college_name')).trim().notEmpty(),
+  optionalField(body('course')).trim().notEmpty(),
+  optionalField(body('year_of_study')).isInt({ min: 1, max: 6 }),
+  optionalField(body('graduation_year')).isInt({ min: 2020, max: 2030 }),
+  optionalField(body('skills')).isArray({ max: 20 }),
+  optionalField(body('interests')).isArray({ max: 10 }),
+  optionalField(body('linkedin_url')).isURL().withMessage('Invalid LinkedIn URL'),
+  optionalField(body('github_url')).isURL().withMessage('Invalid GitHub URL'),
+  optionalField(body('portfolio_url')).isURL().withMessage('Invalid portfolio URL'),
   handleValidationErrors
 ];
 
 const addExperienceValidation = [
   body('title').trim().notEmpty().withMessage('Title is required'),
-  body('company_name').optional().trim(),
-  body('description').optional().trim().isLength({ max: 2000 }),
+  optionalField(body('company_name')).trim(),
+  optionalField(body('description')).trim().isLength({ max: 2000 }),
   body('start_date').isISO8601().withMessage('Valid start date required'),
   body('end_date').optional({ nullable: true }).isISO8601().withMessage('Invalid end date'),
-  body('is_current').optional().isBoolean(),
+  optionalField(body('is_current')).isBoolean(),
   handleValidationErrors
 ];
 
 const updateExperienceValidation = [
-  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
-  body('company_name').optional().trim(),
-  body('description').optional().trim().isLength({ max: 2000 }),
-  body('start_date').optional().isISO8601().withMessage('Invalid start date'),
+  optionalField(body('title')).trim().notEmpty().withMessage('Title cannot be empty'),
+  optionalField(body('company_name')).trim(),
+  optionalField(body('description')).trim().isLength({ max: 2000 }),
+  optionalField(body('start_date')).isISO8601().withMessage('Invalid start date'),
   body('end_date').optional({ nullable: true }).isISO8601().withMessage('Invalid end date'),
-  body('is_current').optional().isBoolean(),
+  optionalField(body('is_current')).isBoolean(),
   handleValidationErrors
 ];
 
 const addProjectValidation = [
   body('title').trim().notEmpty().withMessage('Title is required'),
-  body('description').optional().trim().isLength({ max: 2000 }),
-  body('project_url').optional().isURL().withMessage('Invalid project URL'),
-  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
-  body('technologies').optional().isArray({ max: 15 }),
-  body('technologies.*').optional().trim().notEmpty(),
-  body('image_url').optional().isURL().withMessage('Invalid image URL'),
+  optionalField(body('description')).trim().isLength({ max: 2000 }),
+  optionalField(body('project_url')).isURL().withMessage('Invalid project URL'),
+  optionalField(body('github_url')).isURL().withMessage('Invalid GitHub URL'),
+  optionalField(body('technologies')).isArray({ max: 15 }),
+  optionalField(body('technologies.*')).trim().notEmpty(),
+  optionalField(body('image_url')).isURL().withMessage('Invalid image URL'),
   handleValidationErrors
 ];
 
 const updateProjectValidation = [
-  body('title').optional().trim().notEmpty().withMessage('Title cannot be empty'),
-  body('description').optional().trim().isLength({ max: 2000 }),
-  body('project_url').optional().isURL().withMessage('Invalid project URL'),
-  body('github_url').optional().isURL().withMessage('Invalid GitHub URL'),
-  body('technologies').optional().isArray({ max: 15 }),
-  body('technologies.*').optional().trim().notEmpty(),
-  body('image_url').optional().isURL().withMessage('Invalid image URL'),
+  optionalField(body('title')).trim().notEmpty().withMessage('Title cannot be empty'),
+  optionalField(body('description')).trim().isLength({ max: 2000 }),
+  optionalField(body('project_url')).isURL().withMessage('Invalid project URL'),
+  optionalField(body('github_url')).isURL().withMessage('Invalid GitHub URL'),
+  optionalField(body('technologies')).isArray({ max: 15 }),
+  optionalField(body('technologies.*')).trim().notEmpty(),
+  optionalField(body('image_url')).isURL().withMessage('Invalid image URL'),
   handleValidationErrors
 ];
 
 const updateSkillsValidation = [
   body('skills').isArray({ min: 0, max: 30 }).withMessage('Skills must be an array with max 30 items'),
-  body('skills.*').optional().trim().notEmpty().withMessage('Skill name cannot be empty'),
+  optionalField(body('skills.*')).trim().notEmpty().withMessage('Skill name cannot be empty'),
   handleValidationErrors
 ];
 
@@ -82,23 +83,23 @@ const addSkillsValidation = [
 
 const updateAlumniValidation = [
   body('graduation_year').isInt({ min: 1990, max: 2024 }).withMessage('Invalid graduation year'),
-  body('current_company').optional().trim().notEmpty(),
-  body('current_designation').optional().trim().notEmpty(),
-  body('years_of_experience').optional().isInt({ min: 0, max: 50 }),
-  body('mentoring_available').optional().isBoolean(),
-  body('max_mentees').optional().isInt({ min: 1, max: 20 }),
-  body('mentorship_areas').optional().isArray({ max: 10 }),
+  optionalField(body('current_company')).trim().notEmpty(),
+  optionalField(body('current_designation')).trim().notEmpty(),
+  optionalField(body('years_of_experience')).isInt({ min: 0, max: 50 }),
+  optionalField(body('mentoring_available')).isBoolean(),
+  optionalField(body('max_mentees')).isInt({ min: 1, max: 20 }),
+  optionalField(body('mentorship_areas')).isArray({ max: 10 }),
   handleValidationErrors
 ];
 
 const updateCompanyValidation = [
   body('company_name').trim().notEmpty().withMessage('Company name is required'),
-  body('description').optional().trim().isLength({ max: 2000 }),
-  body('website_url').optional().isURL().withMessage('Invalid website URL'),
-  body('industry').optional().trim().notEmpty(),
-  body('company_size').optional().isIn(['1-10', '11-50', '51-200', '201-500', '500+']),
-  body('headquarters_city').optional().trim().notEmpty(),
-  body('headquarters_state').optional().trim().notEmpty(),
+  optionalField(body('description')).trim().isLength({ max: 2000 }),
+  optionalField(body('website_url')).isURL().withMessage('Invalid website URL'),
+  optionalField(body('industry')).trim().notEmpty(),
+  optionalField(body('company_size')).isIn(['1-10', '11-50', '51-200', '201-500', '500+']),
+  optionalField(body('headquarters_city')).trim().notEmpty(),
+  optionalField(body('headquarters_state')).trim().notEmpty(),
   handleValidationErrors
 ];
 

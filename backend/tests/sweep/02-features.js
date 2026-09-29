@@ -239,6 +239,76 @@ module.exports = async function run() {
   r = await users.studentC('PUT', '/api/notifications/preferences', { email_notifications: false });
   expect('update preferences', r, 200);
 
+  // ---------- blank optional fields ----------
+  // Every form in the UI posts "" for any field the user left alone, because an
+  // untouched input is "" and a <select> whose first option is
+  // <option value="">Select subject</option> always posts "". express-validator's
+  // optional() only skips undefined and null, so the notEmpty()/isLength()/
+  // isURL() check that followed rejected the blank and the whole form 400'd.
+  // Found by clicking through the real Create Doubt form in the browser.
+  r = await users.studentC('POST', '/api/doubts', {
+    title: 'Sweep: submitting the form exactly as the browser does',
+    content: 'The subject select is left on its default empty option and the topic input is untouched.',
+    subject: '', topic: '', tags: ['blankfields']
+  });
+  expect('blank subject and topic accepted on a new doubt', r, 201);
+  const blankDoubtId = r.body.doubt?.id;
+
+  r = await users.companyC('POST', '/api/gigs', {
+    title: 'Sweep: gig with every optional field left blank',
+    description: 'A gig created by the sweep to confirm blank optional fields do not fail validation.',
+    application_deadline: new Date(Date.now() + 14 * 864e5).toISOString(),
+    skills_required: ['Testing'], compensation: 1500, duration_days: 14,
+    category: 'Testing', requirements: '', location: '', max_students: ''
+  });
+  expect('blank requirements, location and max_students accepted', r, 201);
+  const blankGigId = r.body.gig?.id;
+
+  r = await users.studentC('PUT', '/api/profiles/me', {
+    full_name: 'Sweep Student', bio: '', city: '', state: '', college_name: '',
+    course: '', year_of_study: '', phone: '', linkedin_url: '', github_url: '',
+    portfolio_url: ''
+  });
+  expect('profile update with one real field and the rest blank', r, 200);
+
+  // optionalField must not swallow a legitimate 0
+  r = await users.studentC('PUT', '/api/profiles/me', { year_of_study: 0 });
+  expect('year_of_study 0 still rejected by isInt({min:1})', r, 400);
+  r = await users.studentC('PUT', '/api/profiles/me', { year_of_study: 3 });
+  expect('year_of_study 3 still accepted', r, 200);
+
+  // but genuinely bad values must still be rejected
+  r = await users.studentC('PUT', '/api/profiles/me', { linkedin_url: 'not-a-url' });
+  expect('non-url linkedin_url still rejected', r, 400);
+  r = await users.studentC('PUT', '/api/profiles/me', { full_name: 'A' });
+  expect('one character name still rejected', r, 400);
+
+  // ---------- blank query params ----------
+  // A filter bar that has never been touched is serialised as ?search=&page=.
+  // A destructuring default like `const { page = 1 } = req.query` does not fire
+  // for "", so the blank was pushed into the LIMIT/OFFSET bind and Postgres
+  // answered "invalid input syntax for type bigint" with a 500.
+  const blankFilters = [
+    '/api/doubts?search=&subject=&sort=&status=&page=&limit=',
+    '/api/gigs?search=&category=&skills=&sort=&status=&page=&limit=',
+    '/api/mentorship/requests?skill=&city=&page=&limit=',
+    '/api/resources?search=&subject=&type=&page=&limit=',
+    '/api/notifications?type=&page=&limit=',
+    '/api/wallet/transactions?type=&page=&limit=',
+    '/api/chat/conversations?page=&limit=',
+    '/api/follows/feed?page=&limit='
+  ];
+  for (const p of blankFilters) {
+    r = await users.studentC('GET', p);
+    check(`blank filter bar on ${p.split('?')[0]} is 200 not 500`, r.status === 200, `${r.status}`);
+  }
+
+  // and a blank query must not weaken the integer checks
+  for (const q of ['?page=abc', '?page=0', '?page=-5', '?limit=0', '?limit=99999']) {
+    r = await users.studentC('GET', '/api/doubts' + q);
+    check(`real bad value ${q} still rejected 400`, r.status === 400, `${r.status}`);
+  }
+
   // ---------- profiles ----------
   r = await users.studentC('GET', '/api/profiles/me');
   expect('my profile', r, 200);
@@ -309,6 +379,12 @@ module.exports = async function run() {
   }
 
   // cleanup
+  if (blankDoubtId) {
+    await db.query('DELETE FROM doubts WHERE id=$1', [blankDoubtId]);
+  }
+  if (blankGigId) {
+    await db.query('DELETE FROM gigs WHERE id=$1', [blankGigId]);
+  }
   if (gigId) {
     await db.query('DELETE FROM gig_applications WHERE gig_id=$1', [gigId]);
     await db.query('DELETE FROM gigs WHERE id=$1', [gigId]);
