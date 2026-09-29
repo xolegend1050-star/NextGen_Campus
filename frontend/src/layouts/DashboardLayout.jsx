@@ -21,6 +21,7 @@ import {
   FlagIcon,
   ExclamationTriangleIcon,
   DocumentTextIcon,
+  BanknotesIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline';
 
@@ -109,6 +110,7 @@ const DashboardLayout = () => {
           { name: 'Verifications', href: '/admin/verifications', icon: ShieldCheckIcon },
           { name: 'Flagged Content', href: '/admin/flagged-content', icon: FlagIcon },
           { name: 'Disputes', href: '/admin/disputes', icon: ExclamationTriangleIcon },
+  { name: 'Withdrawals', href: '/admin/withdrawals', icon: BanknotesIcon },
           { name: 'Audit Log', href: '/admin/audit-log', icon: DocumentTextIcon },
           { name: 'Analytics', href: '/admin/analytics', icon: ChartBarIcon },
         ];

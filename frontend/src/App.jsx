@@ -279,6 +279,7 @@ function App() {
               <Route path="verifications" element={<AdminVerifications />} />
               <Route path="flagged-content" element={<AdminFlaggedContent />} />
               <Route path="disputes" element={<AdminDisputes />} />
+      <Route path="withdrawals" element={<AdminWithdrawals />} />
               <Route path="audit-log" element={<AdminAuditLog />} />
               <Route path="analytics" element={<AdminAnalytics />} />
             </Route>

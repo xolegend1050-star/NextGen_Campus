@@ -4,6 +4,7 @@ import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
 import Badge from '../../components/common/Badge';
+import SubmitWork from '../../components/common/SubmitWork';
 import {
   BriefcaseIcon,
   CurrencyRupeeIcon,
@@ -22,8 +23,8 @@ const MyApplications = () => {
   const fetchApplications = async () => {
     setLoading(true);
     try {
-      const params = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await api.get(`/gigs/my-applications${params}`);
+      const params = filter !== 'all' ? '?status=' + filter : '';
+      const response = await api.get('/gigs/my-applications' + params);
       setApplications(response.data.applications);
     } catch (error) {
       console.error('Failed to fetch applications:', error);
@@ -57,11 +58,12 @@ const MyApplications = () => {
           <button
             key={status}
             onClick={() => setFilter(status)}
-            className={`px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap ${
-              filter === status
+            className={
+              'px-4 py-2 rounded-lg font-medium capitalize whitespace-nowrap ' +
+              (filter === status
                 ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
+            }
           >
             {status}
           </button>
@@ -72,15 +74,22 @@ const MyApplications = () => {
       {applications.length > 0 ? (
         <div className="space-y-4">
           {applications.map((app) => (
-            <Link
-              key={app.id}
-              to={`/dashboard/gigs/${app.gig_id}`}
-              className="card-hover block"
-            >
+            /*
+             * The card used to be a single <Link>, which left nowhere to put a
+             * button: an interactive control cannot sit inside an anchor, and
+             * Submit work is one. It is a div now, with the link on the title,
+             * so an accepted application can offer Submit work alongside it.
+             */
+            <div key={app.id} className="card-hover">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">{app.gig_title}</h3>
+                    <Link
+                      to={'/dashboard/gigs/' + app.gig_id}
+                      className="font-semibold text-gray-900 hover:text-primary-600"
+                    >
+                      {app.gig_title}
+                    </Link>
                     <Badge variant={getStatusVariant(app.status)} size="sm">
                       {app.status}
                     </Badge>
@@ -104,14 +113,23 @@ const MyApplications = () => {
                   </Badge>
                 )}
               </div>
-            </Link>
+
+              {app.status === 'accepted' && (
+                <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-3">
+                  <SubmitWork gigId={app.gig_id} gigTitle={app.gig_title} />
+                  <span className="text-xs text-gray-500">
+                    Submit your work so the company can release your payment.
+                  </span>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       ) : (
         <EmptyState
           icon="📋"
           title="No applications found"
-          description={filter === 'all' ? "You haven't applied to any gigs yet." : `No ${filter} applications.`}
+          description={filter === 'all' ? "You haven't applied to any gigs yet." : 'No ' + filter + ' applications.'}
           actionLabel={filter === 'all' ? 'Browse Gigs' : undefined}
           actionLink={filter === 'all' ? '/dashboard/gigs' : undefined}
         />

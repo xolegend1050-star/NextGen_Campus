@@ -81,7 +81,13 @@ export const EscrowActions = ({ gigId, applicationId, escrow, onChange, compensa
   const release = async () => {
     setBusy(true);
     try {
-      const res = await api.post(`/wallet/escrow/${gigId}/release`, {});
+      // application_id is required here, not cosmetic. Without it the backend
+      // falls back to "the most recent escrow for this gig", so on a gig with
+      // several accepted applicants the company would keep paying the newest one
+      // and have no way to name anybody else.
+      const res = await api.post(`/wallet/escrow/${gigId}/release`, {
+        application_id: applicationId
+      });
       toast.success(
         res.data.alreadyReleased
           ? 'This escrow was already released'
@@ -99,6 +105,7 @@ export const EscrowActions = ({ gigId, applicationId, escrow, onChange, compensa
     setBusy(true);
     try {
       const res = await api.post(`/wallet/escrow/${gigId}/refund`, {
+        application_id: applicationId,
         reason: 'Refunded by company'
       });
       toast.success('Escrow refunded to your wallet');
