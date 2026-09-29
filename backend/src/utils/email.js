@@ -6,20 +6,38 @@ const fromEmail = process.env.EMAIL_FROM || 'NextGen Campus <noreply@nextgencamp
 function getClient() {
   const apiKey = process.env.SENDGRID_API_KEY;
   if (!apiKey) {
-    logger.error('SENDGRID_API_KEY not set — emails will NOT be sent');
-    return null;
+    throw new Error(
+      'SENDGRID_API_KEY is not set on this service, so no email can be sent. ' +
+      'Add it in Render under Environment, or password reset will silently do nothing.'
+    );
   }
   sgMail.setApiKey(apiKey);
   return sgMail;
 }
 
+/**
+ * SendGrid reports why a message was refused in the response body, not in the
+ * error message. "sender not verified" is the usual one, and losing it is what
+ * made this failure take so long to diagnose, so it is logged in full.
+ */
+function describeSendGridError(error) {
+  const body = error && error.response && error.response.body;
+  if (body && body.errors && body.errors.length) {
+    return body.errors.map((e) => `${e.message}${e.field ? ' (' + e.field + ')' : ''}`).join('; ');
+  }
+  return error.message || String(error);
+}
+
 async function sendPasswordResetEmail(email, resetToken) {
+  // getClient throws when the key is absent, and the send below throws when
+  // SendGrid refuses. Callers used to be handed a plain `false` here and report
+  // success anyway, which is why thirty-eight reset requests had gone out with
+  // no email and nobody knew.
   const client = getClient();
-  if (!client) return false;
+
+  const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
 
   try {
-    const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
-
     await client.send({
       from: fromEmail,
       to: email,
@@ -40,8 +58,11 @@ async function sendPasswordResetEmail(email, resetToken) {
     logger.info(`Password reset email sent to: ${email}`);
     return true;
   } catch (error) {
-    logger.error(`Failed to send password reset email to ${email}:`, error.message);
-    return false;
+    const reason = describeSendGridError(error);
+    logger.error(`Failed to send password reset email to ${email}: ${reason}`);
+    const wrapped = new Error('Email could not be sent: ' + reason);
+    wrapped.cause = error;
+    throw wrapped;
   }
 }
 

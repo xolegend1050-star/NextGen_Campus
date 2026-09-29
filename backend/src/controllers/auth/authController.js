@@ -282,11 +282,23 @@ exports.forgotPassword = async (req, res, next) => {
       [userId, hashToken(resetToken)]
     );
 
-    // Send email with reset link (non-blocking)
-    sendPasswordResetEmail(email, resetToken).catch(err => {
-      logger.warn('Password reset email failed (non-blocking):', err.message);
-    });
-    logger.info(`Password reset requested for: ${email}`);
+    // Send the reset link. This used to be fire and forget, with the failure
+    // only logged, so the endpoint answered "a reset link has been sent" even
+    // when the mail provider had refused to send anything at all.
+    //
+    // The 200 for an unknown address is kept, because revealing whether an
+    // address is registered would leak the user list. But when the address does
+    // exist and the send genuinely failed, the caller is told, because a silent
+    // success here is indistinguishable from a working one.
+    try {
+      await sendPasswordResetEmail(email, resetToken);
+      logger.info(`Password reset requested for: ${email}`);
+    } catch (err) {
+      logger.error(`Password reset email not delivered for ${email}: ${err.message}`);
+      return res.status(502).json({
+        error: 'We could not send the reset email. Please try again shortly.'
+      });
+    }
 
     res.json({ message: 'If the email exists, a reset link has been sent' });
   } catch (error) {
