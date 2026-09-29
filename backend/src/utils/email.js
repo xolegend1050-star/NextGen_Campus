@@ -42,6 +42,15 @@ async function sendPasswordResetEmail(email, resetToken) {
       from: fromEmail,
       to: email,
       subject: 'Password Reset Request - NextGen Campus',
+      // SendGrid rewrites links to go through sendgrid.net/ls/click so it can
+      // report opens and clicks. Gmail then wraps that in a Safe Browsing
+      // interstitial, and the interstitial rendered as a blank page, so clicking
+      // "Reset Password" appeared to do nothing at all. The reset link is a
+      // single-use secret token, so there is nothing worth tracking in it.
+      trackingSettings: {
+        clickTracking: { enable: false, enableText: false },
+        openTracking: { enable: false }
+      },
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4f46e5;">Password Reset Request</h2>
