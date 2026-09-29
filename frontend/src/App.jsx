@@ -53,6 +53,7 @@ const AdminVerifications = lazy(() => import('./pages/admin/Verifications'));
 const AdminFlaggedContent = lazy(() => import('./pages/admin/FlaggedContent'));
 const AdminDisputes = lazy(() => import('./pages/admin/Disputes'));
 const AdminAuditLog = lazy(() => import('./pages/admin/AuditLog'));
+const AdminWithdrawals = lazy(() => import('./pages/admin/Withdrawals'));
 const AdminAnalytics = lazy(() => import('./pages/admin/Analytics'));
 
 // Lazy-loaded Social Pages

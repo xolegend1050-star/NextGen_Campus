@@ -7,7 +7,7 @@ import Badge from '../../components/common/Badge';
 import {
   BanknotesIcon,
   CheckIcon,
-  XIcon
+  XMarkIcon
 } from '@heroicons/react/24/outline';
 
 /**
@@ -152,7 +152,7 @@ const AdminWithdrawals = () => {
                       className="btn-outline text-sm flex items-center gap-1.5"
                       title="Return the amount to the user's balance"
                     >
-                      <XIcon className="h-4 w-4" />
+                      <XMarkIcon className="h-4 w-4" />
                       Reject
                     </button>
                   </div>
