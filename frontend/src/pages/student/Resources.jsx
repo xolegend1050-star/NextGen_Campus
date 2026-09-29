@@ -17,9 +17,10 @@ import {
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
+  const [facets, setFacets] = useState({ subjects: [], levels: [] });
   // The filter options come from the data, so no dropdown choice can offer a
   // value that returns nothing.
-  const filterOptions = useFilterOptions(resources);
+  const filterOptions = useFilterOptions(resources, facets);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [activeTab, setActiveTab] = useState('resources');
@@ -39,6 +40,9 @@ const Resources = () => {
         });
         const response = await api.get(`/resources?${params}`);
         setResources(response.data.resources);
+      // The full subject and level vocabulary comes with the response, so the filter
+      // options are not limited to whatever happens to be on this page.
+      if (response.data.facets) setFacets(response.data.facets);
         setPagination(response.data.pagination);
       } else {
         const response = await api.get('/resources/interview-questions?limit=20');

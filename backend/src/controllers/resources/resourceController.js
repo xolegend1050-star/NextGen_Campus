@@ -60,8 +60,26 @@ exports.getResources = async (req, res, next) => {
       db.query(countQuery, params.slice(0, -2))
     ]);
 
+    // The subject and level filters need the whole vocabulary, not just the rows
+    // on this page. Deriving the options from the paginated list meant only the
+    // twelve resources of page one could ever be chosen, so a subject whose rows
+    // all fell on page two could not be selected at all. Two DISTINCT queries
+    // make the options independent of pagination.
+    const [subjects, levels] = await Promise.all([
+      db.query(
+        "SELECT DISTINCT subject FROM resources WHERE is_approved = true AND subject IS NOT NULL AND subject <> '' ORDER BY subject"
+      ),
+      db.query(
+        "SELECT DISTINCT difficulty_level FROM resources WHERE is_approved = true AND difficulty_level IS NOT NULL AND difficulty_level <> '' ORDER BY difficulty_level"
+      )
+    ]);
+
     res.json({
       resources: resources.rows,
+      facets: {
+        subjects: subjects.rows.map((r) => r.subject),
+        levels: levels.rows.map((r) => r.difficulty_level)
+      },
       pagination: {
         total: parseInt(count.rows[0].count),
         page: parseInt(page),

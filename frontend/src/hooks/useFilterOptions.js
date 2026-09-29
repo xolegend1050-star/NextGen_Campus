@@ -24,10 +24,16 @@ const prettify = (raw) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-export const useFilterOptions = (resources) =>
+export const useFilterOptions = (resources, facets) =>
   useMemo(() => {
     const subjects = new Set();
     const levels = new Set();
+
+    // The API sends the whole vocabulary. Falling back to the rows keeps this
+    // working if that field is ever absent, and the page asks for twelve rows at
+    // a time, so the fallback alone would miss anything off the first page.
+    (facets?.subjects || []).forEach((s) => subjects.add(prettify(s)));
+    (facets?.levels || []).forEach((l) => levels.add(String(l).toLowerCase()));
 
     (resources || []).forEach((r) => {
       if (r.subject) subjects.add(prettify(r.subject));
@@ -45,6 +51,6 @@ export const useFilterOptions = (resources) =>
         }
       )
     };
-  }, [resources]);
+  }, [resources, facets]);
 
 export default useFilterOptions;
