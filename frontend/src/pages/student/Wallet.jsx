@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
+import { useAuthStore } from '../../store/authStore';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Badge from '../../components/common/Badge';
 import Pagination from '../../components/common/Pagination';
@@ -23,10 +24,37 @@ const Wallet = () => {
   const [withdrawing, setWithdrawing] = useState(false);
   const [escrows, setEscrows] = useState([]);
 
+  const user = useAuthStore((state) => state.user);
+  const role = user?.role;
+  const isCompany = role === 'company';
+
   // Money already earned but not yet paid out by the company.
   const heldInEscrow = escrows
     .filter(e => e.status === 'locked')
     .reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+
+  /**
+   * What the locked figure actually represents depends on who is looking.
+   *
+   * Both escrow funding and a pending withdrawal write to the same
+   * locked_balance column, so one label cannot be right for everyone:
+   *
+   *   student  escrow is money coming TO them, so nothing they hold is ever
+   *            escrowed. Their locked_balance is only ever a withdrawal they
+   *            have asked for and not yet been paid.
+   *   company  genuinely holds escrow it has funded for students, but the same
+   *            column also carries its own pending withdrawals.
+   *
+   * Showing a student "Locked in Escrow" is therefore always wrong, which is
+   * exactly what a student saw when they requested a withdrawal and watched
+   * their own money apparently move into escrow.
+   */
+  const lockedLabel = isCompany ? 'Locked (Escrow & Withdrawals)' : 'Pending Withdrawals';
+  const lockedAmount = parseFloat(wallet?.locked_balance || 0);
+  // For a company the total mixes two things, so the split is shown underneath
+  // rather than left for the reader to guess at.
+  const escrowHeld = heldInEscrow;
+  const withdrawalPending = Math.max(lockedAmount - escrowHeld, 0);
 
   useEffect(() => {
     fetchWallet();
@@ -150,14 +178,19 @@ const Wallet = () => {
         <div className="card">
           <div className="flex items-center gap-3 mb-2">
             <ArrowUpIcon className="h-8 w-8 text-orange-600" />
-            <span className="text-gray-500">Locked in Escrow</span>
+            <span className="text-gray-500">{lockedLabel}</span>
           </div>
-          <div className="text-2xl font-bold text-gray-900">
-            ₹{heldInEscrow > 0 ? heldInEscrow : (wallet?.locked_balance || 0)}
-          </div>
-          {heldInEscrow > 0 && (
+          <div className="text-2xl font-bold text-gray-900">₹{lockedAmount}</div>
+          {isCompany ? (
+            <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+              <p>₹{escrowHeld} held in escrow for students</p>
+              <p>₹{withdrawalPending} awaiting payout</p>
+            </div>
+          ) : (
             <p className="text-xs text-gray-500 mt-1">
-              Funds guaranteed but not yet released by the company
+              {lockedAmount > 0
+                ? 'Requested by you, not yet paid out'
+                : 'Escrow is money owed to you, not held by you'}
             </p>
           )}
         </div>
