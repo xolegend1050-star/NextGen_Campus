@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useFilterOptions from '../../hooks/useFilterOptions';
 import api from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import EmptyState from '../../components/common/EmptyState';
@@ -16,6 +17,9 @@ import {
 
 const Resources = () => {
   const [resources, setResources] = useState([]);
+  // The filter options come from the data, so no dropdown choice can offer a
+  // value that returns nothing.
+  const filterOptions = useFilterOptions(resources);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [activeTab, setActiveTab] = useState('resources');
@@ -94,10 +98,9 @@ const Resources = () => {
             className="input-field w-48"
           >
             <option value="">All Subjects</option>
-            <option value="programming">Programming</option>
-            <option value="databases">Databases</option>
-            <option value="networking">Networking</option>
-            <option value="webdev">Web Development</option>
+            {filterOptions.subjects.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
           </select>
           <select
             value={filters.difficulty}
@@ -105,9 +108,11 @@ const Resources = () => {
             className="input-field w-48"
           >
             <option value="">All Levels</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
+            {filterOptions.levels.map((l) => (
+              <option key={l} value={l}>
+                {l.charAt(0).toUpperCase() + l.slice(1)}
+              </option>
+            ))}
           </select>
         </div>
       )}
