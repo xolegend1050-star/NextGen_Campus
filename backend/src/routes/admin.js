@@ -33,10 +33,13 @@ router.get('/dashboard', adminController.getDashboardStats);
  *       200:
  *         description: List of pending verifications
  */
-router.get('/verifications', adminController.getPendingVerifications);
+router.get('/verifications', intQueries('page', 'limit'), adminController.getPendingVerifications);
 
 // User management routes
-router.get('/users', adminController.getUsers);
+// intQueries was imported here but never applied, so page and limit went
+// straight into LIMIT/OFFSET. ?page=abc, ?limit=xyz, ?page=0 and ?page=-5 all
+// returned 500 from Postgres rather than 400.
+router.get('/users', intQueries('page', 'limit'), adminController.getUsers);
 router.patch('/users/:id/ban', uuidParams('id'), adminController.banUser);
 router.patch('/users/:id/unban', uuidParams('id'), adminController.unbanUser);
 router.patch('/users/:id/role', uuidParams('id'), adminController.updateUserRole);
@@ -46,16 +49,16 @@ router.patch('/verifications/:id', uuidParams('id'), adminController.reviewVerif
 router.put('/verifications/:id', uuidParams('id'), adminController.reviewVerification);
 
 // Flagged content routes
-router.get('/flagged-content', adminController.getFlaggedContent);
+router.get('/flagged-content', intQueries('page', 'limit'), adminController.getFlaggedContent);
 router.patch('/flagged-content/:id', uuidParams('id'), adminController.reviewFlaggedContent);
 router.put('/flagged-content/:id', uuidParams('id'), adminController.reviewFlaggedContent);
 
 // Disputes routes
-router.get('/disputes', adminController.getDisputes);
+router.get('/disputes', intQueries('page', 'limit'), adminController.getDisputes);
 router.patch('/disputes/:id/resolve', uuidParams('id'), adminController.resolveDispute);
 router.put('/disputes/:id', uuidParams('id'), adminController.resolveDispute);
 
 // Audit log
-router.get('/audit-log', adminController.getAuditLog);
+router.get('/audit-log', intQueries('page', 'limit'), adminController.getAuditLog);
 
 module.exports = router;

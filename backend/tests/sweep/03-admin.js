@@ -1,4 +1,4 @@
-// Sweep: admin, wallet, analytics, AI, chat edge cases
+﻿// Sweep: admin, wallet, analytics, AI, chat edge cases
 const H = require('./harness');
 const { suite, check, expect, uuid, anotherUuid, users, db } = H;
 
@@ -6,6 +6,18 @@ module.exports = async function run() {
   suite('ADMIN + WALLET + ANALYTICS + AI + CHAT');
 
   // ---------- admin authorization ----------
+    // Every paginated admin list must reject a bad page or limit with 400.
+    // intQueries was imported into the admin routes but never applied, so these
+    // all reached the LIMIT/OFFSET clause and returned 500 from Postgres.
+    for (const p of ['/api/admin/users', '/api/admin/verifications',
+                     '/api/admin/flagged-content', '/api/admin/disputes',
+                     '/api/admin/audit-log']) {
+      for (const q of ['?page=abc', '?limit=xyz', '?page=0', '?page=-5']) {
+        const bad = await users.adminC('GET', p + q);
+        check(p + q + ' rejected 400', bad.status === 400, 'got ' + bad.status);
+      }
+    }
+
   const adminReads = [
     ['GET', '/api/admin/dashboard'], ['GET', '/api/admin/verifications'],
     ['GET', '/api/admin/users'], ['GET', '/api/admin/flagged-content'],

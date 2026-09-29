@@ -60,15 +60,41 @@ const uuidParams = (...names) => (req, res, next) => {
   return next();
 };
 
-/** Build middleware requiring numeric query values. */
-const intQueries = (...names) => (req, res, next) => {
-  for (const name of names) {
-    if (req.query[name] === undefined) continue;
-    if (!/^-?\d+$/.test(String(req.query[name]))) {
-      return badRequest(res, `Invalid ${name}: must be an integer`);
+/**
+ * Build middleware requiring numeric query values that are also in range.
+ *
+ * Checking only that the value is an integer was not enough: page=0 and
+ * page=-5 are integers, but they produce a negative OFFSET, which Postgres
+ * rejects, so the request still came back as a 500.
+ *
+ * Usage: intQueries('page', 'limit')   - page >= 1, limit 1..100
+ *        intQueries('limit', 1, 500)  - custom bounds
+ */
+const DEFAULT_INT_BOUNDS = { page: [1, 1000000], limit: [1, 100] };
+
+const intQueries = (...args) => {
+  const bounds = args[args.length - 1];
+  const names =
+    typeof bounds === 'object' && bounds !== null && !Array.isArray(bounds)
+      ? Object.keys(bounds)
+      : args.filter((a) => typeof a === 'string');
+  const custom = typeof bounds === 'object' && bounds !== null && !Array.isArray(bounds) ? bounds : {};
+
+  return (req, res, next) => {
+    for (const name of names) {
+      if (req.query[name] === undefined) continue;
+      const raw = String(req.query[name]);
+      if (!/^-?\d+$/.test(raw)) {
+        return badRequest(res, `Invalid ${name}: must be an integer`);
+      }
+      const [min, max] = custom[name] || DEFAULT_INT_BOUNDS[name] || [1, 1000000];
+      const n = parseInt(raw, 10);
+      if (n < min || n > max) {
+        return badRequest(res, `Invalid ${name}: must be between ${min} and ${max}`);
+      }
     }
-  }
-  return next();
+    return next();
+  };
 };
 
 /**
