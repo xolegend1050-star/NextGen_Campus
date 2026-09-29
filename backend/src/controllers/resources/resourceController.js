@@ -19,7 +19,14 @@ exports.getResources = async (req, res, next) => {
       LEFT JOIN profiles p ON u.id = p.user_id
       WHERE r.is_approved = true
     `;
-    let countQuery = 'SELECT COUNT(*) FROM resources WHERE is_approved = true';
+    // The count query needs the same table alias as the main one. Every filter
+    // below is written as r.<column> so the same clause can be appended to both
+    // statements, and appending r.<column> to a query whose table was unaliased
+    // made Postgres raise
+    //   missing FROM-clause entry for table "r"
+    // so every use of the subject, difficulty or type filter returned a 500
+    // while the unfiltered list worked fine.
+    let countQuery = 'SELECT COUNT(*) FROM resources r WHERE r.is_approved = true';
     const params = [];
     const conditions = [];
 

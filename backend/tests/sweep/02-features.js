@@ -349,6 +349,22 @@ module.exports = async function run() {
   check('edit unknown experience handled', r.status === 404 || r.status === 400, `${r.status}`);
 
   // ---------- resources ----------
+  // Every filter on the resource list returned a 500. The count query was built
+  // from "FROM resources" with no alias, while each condition is written as
+  // r.<column> so it can be shared with the main statement. Appending them
+  // together gave Postgres "missing FROM-clause entry for table r", so the
+  // unfiltered list worked and every filtered one failed. Both statements must
+  // be checked, because the list looks fine on its own.
+  r = await users.studentC('GET', '/api/resources');
+  expect('resources list without a filter', r, 200);
+  for (const q of ['subject=Database Systems', 'subject=Java', 'type=document', 'subject=Java&type=document', 'subject=NoSuchSubject']) {
+    r = await users.studentC('GET', '/api/resources?' + q.replace(/ /g, '%20'));
+    check('resource filter [' + q + '] is 200 not 500', r.status === 200, String(r.status));
+  }
+  r = await users.studentC('GET', '/api/resources/interview-questions');
+  expect('interview questions list', r, 200);
+  r = await users.studentC('GET', '/api/resources/interview-questions?category=Databases');
+  check('interview question category filter', r.status === 200, String(r.status));
   r = await users.anonC('GET', '/api/resources');
   expect('list resources public', r, 200);
   r = await users.anonC('GET', '/api/resources/interview-questions');
@@ -375,7 +391,10 @@ module.exports = async function run() {
   const iq = (await db.query('SELECT id FROM interview_questions LIMIT 1')).rows[0]?.id;
   if (iq) {
     r = await users.studentC('POST', '/api/resources/interview-practice', { question_id: iq, student_answer: 'Sweep test answer describing my approach in detail.' });
-    check('interview practice', r.status === 200 || r.status === 400 || r.status === 503, String(r.status));
+    // 201 is the success path. Before the library was seeded the table was empty,
+    // so the call could only ever fall through to 404, and the check was written
+    // around that rather than around the success it was meant to detect.
+    check('interview practice', r.status === 201 || r.status === 200 || r.status === 400 || r.status === 503, String(r.status));
   }
 
   // cleanup
