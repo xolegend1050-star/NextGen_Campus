@@ -418,8 +418,82 @@ const note = (ctx, title, text) => {
   doc.y = top + h + 10;
 };
 
+/**
+ * A figure: a colour screenshot in a ruled frame with a numbered caption beneath.
+ *
+ * Screenshots are the one place this document uses colour deliberately, because a
+ * screenshot of an interface is meaningless without it. Everything drawn around the
+ * image is still pure black, so the text of the report prints exactly as before.
+ *
+ * Two properties matter for print. The image is scaled to the text block and its
+ * height is computed from the file header before anything is drawn, so the frame
+ * always agrees with the picture and the block never splits across a page. And the
+ * figure is registered, so the verifier can assert that every caption has an image
+ * beneath it rather than trusting that it does.
+ */
+const pngSize = (() => {
+  const cache = new Map();
+  return (file) => {
+    if (cache.has(file)) return cache.get(file);
+    let size = null;
+    try {
+      const b = require('fs').readFileSync(file);
+      if (b.slice(1, 4).toString() === 'PNG') {
+        size = { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+      }
+    } catch { /* reported at draw time */ }
+    cache.set(file, size);
+    return size;
+  };
+})();
+
+const figure = (ctx, chapterNum, captionText, o = {}) => {
+  const { doc } = ctx;
+  const file = o.file;
+  const size = pngSize(file);
+  if (!size) {
+    doc.font('Times-Italic').fontSize(TYPE.table).fillColor(INK)
+      .text('[missing figure image: ' + (o.label || captionText) + ']',
+        M.left, doc.y, { width: CONTENT_W, align: 'center' });
+    doc.y += 24;
+    return;
+  }
+
+  if (ctx.setStat) ctx.setStat('figures', ctx.getStat().figures + 1);
+  const n = ctx.setStat ? ctx.getStat().figures : 1;
+  const label = 'Figure ' + chapterNum + '.' + n + '  ' + captionText;
+  if (ctx.registerFigure) ctx.registerFigure(chapterNum + '.' + n, captionText);
+
+  // Screenshots are landscape and the text block is portrait-ish, so the image is
+  // capped at a fraction of the content width as well as by its natural aspect.
+  const maxW = (o.width || 0.82) * CONTENT_W;
+  const w = Math.min(maxW, CONTENT_W);
+  const h = (w * size.h) / size.w;
+
+  const FRAME = 4;
+  const capH = measure(doc, label, {
+    font: 'Times-Italic', size: TYPE.table, width: CONTENT_W
+  }) + 6;
+
+  if (doc.y + h + 2 * FRAME + capH > TEXT_BOTTOM) {
+    doc.addPage();
+    doc.y = M.top;
+  }
+
+  const x = M.left + (CONTENT_W - w) / 2;
+  const top = doc.y;
+  doc.image(file, x + FRAME, top + FRAME, { width: w, height: h });
+  box(doc, x, top, w + 2 * FRAME, h + 2 * FRAME, RULE.thin);
+
+  doc.font('Times-Italic').fontSize(TYPE.table).fillColor(INK)
+    .text(label, M.left, top + h + 2 * FRAME + 4, { width: CONTENT_W, align: 'center' });
+
+  doc.x = M.left;
+  doc.y = top + h + 2 * FRAME + capH + 12;
+};
+
 const spacer = (ctx, pts) => { ctx.doc.y += pts; };
 
 const pageBreak = (ctx) => { ctx.doc.addPage(); ctx.doc.y = M.top; };
 
-module.exports = { h1, h2, h3, para, body, bullets, numbered, table, code, note, spacer, pageBreak, measure, keepWithNext };
+module.exports = { h1, h2, h3, para, body, bullets, numbered, table, code, note, figure, spacer, pageBreak, measure, keepWithNext };

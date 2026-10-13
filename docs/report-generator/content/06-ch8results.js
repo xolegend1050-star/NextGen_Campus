@@ -12,8 +12,9 @@
  * disagreed with.
  */
 module.exports = (ctx) => {
-  const { h1, h2, h3, body, bullets, numbered, table, code, note } = ctx.render;
+  const { h1, h2, h3, body, bullets, numbered, table, code, note, figure } = ctx.render;
   const { mark } = ctx;
+  const path = require('path');
 
   h1('8', 'Results');
   mark('h1:8');
@@ -49,6 +50,9 @@ module.exports = (ctx) => {
     ['Smallest text in this report', '9.5pt, body text 12pt',
       'Counted from the finished document, not from the source that produced it']
   ], [30, 24, 46], { caption: 'Table 8.1  Measured results' });
+
+  figure('8', 'Student dashboard, captured from the deployed system',
+    { file: path.join(__dirname, '..', 'assets', 'figures', 'test-dashboard.png') });
 
   h2('8.2', 'Results Against the Project Objectives');
   body('Table 1.2 in Chapter 1 stated eight objectives, each phrased so that it could be ' +

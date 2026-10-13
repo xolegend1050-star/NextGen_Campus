@@ -133,7 +133,8 @@ const sameRows = (a, b) => {
 /** Runs every content section against one document. */
 const layout = (doc, indexRows) => {
   const captured = {};
-  const stats = { tables: 0, codeBlocks: 0, notes: 0, indexRows: 0 };
+  const stats = { tables: 0, codeBlocks: 0, notes: 0, figures: 0, indexRows: 0 };
+  const figures = [];
   let chapter = 'Project Report';
 
   const ctx = {
@@ -144,7 +145,11 @@ const layout = (doc, indexRows) => {
     // describes the page the heading was about to leave, not the one it printed on.
     mark: (key) => { captured[key] = pageCount(doc); },
     getStat: () => stats,
-    setStat: (k, v) => { stats[k] = v; }
+    setStat: (k, v) => { stats[k] = v; },
+    // Figures are registered so the verifier can compare the captions in the
+    // finished document against the images actually painted, instead of
+    // trusting that a caption has something beneath it.
+    registerFigure: (num, caption) => { figures.push({ num, caption }); }
   };
 
   // Every renderer takes the context as its first argument. Binding it here once
@@ -164,7 +169,7 @@ const layout = (doc, indexRows) => {
   };
 
   SECTIONS.forEach((fn) => fn(ctx));
-  return { captured, stats, indexPages: ctx.indexPages || null };
+  return { captured, stats, figures, indexPages: ctx.indexPages || null };
 };
 
 (async () => {
@@ -205,6 +210,7 @@ const layout = (doc, indexRows) => {
     total,
     indexRows: rows,
     indexPages: finalRun.indexPages,
+    figures: finalRun.figures,
     captured: finalRun.captured,
     stats: finalRun.stats,
     identity: {
@@ -219,7 +225,7 @@ const layout = (doc, indexRows) => {
   console.log('  passes     : ' + pass);
   console.log('  total pages: ' + total);
   console.log('  rendered   : ' + stats.tables + ' tables, ' + stats.codeBlocks +
-    ' code blocks, ' + stats.notes + ' notes');
+    ' code blocks, ' + stats.notes + ' notes, ' + stats.figures + ' figures');
   process.exit(0);
 })().catch((e) => {
   console.error('  BUILD FAILED: ' + e.stack);

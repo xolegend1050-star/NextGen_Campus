@@ -1,4 +1,4 @@
-﻿{
+{
   "name": "nextgen-report-generator",
   "version": "2.0.0",
   "private": true,
@@ -10,7 +10,8 @@
     "extract:schema": "node extract-schema.js",
     "verify": "node verify.js",
     "check": "node verify.js",
-    "letterhead": "node tools/prepare-letterhead.js"
+    "letterhead": "node tools/prepare-letterhead.js",
+    "shots": "node tools/prepare-screenshots.js"
   },
   "dependencies": {
     "pdfjs-dist": "^4.7.76",
