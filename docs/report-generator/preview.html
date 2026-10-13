@@ -1,0 +1,68 @@
+<!doctype html>
+<!--
+  Renders pages of the finished PDF to canvases so they can be looked at.
+
+  The verifier proves properties of the document; it cannot tell you that a page
+  reads badly. This harness rasterises it in the browser, where pdf.js runs
+  natively, because rasterising it in Node crashes the native canvas binding.
+
+  Query string: ?pages=1,2,54&scale=1.5
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<title>PDF preview</title>
+<style>
+  body { margin: 0; background: #4a4a4a; font-family: system-ui, sans-serif; }
+  .wrap { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 14px; }
+  figure { margin: 0; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+  figcaption { background: #222; color: #fff; font: 13px/1.6 system-ui; padding: 3px 10px; }
+  #status { color: #fff; font: 14px system-ui; padding: 10px; }
+</style>
+</head>
+<body>
+<div id="status">loading…</div>
+<div class="wrap" id="out"></div>
+
+<script type="module">
+  import * as pdfjs from './node_modules/pdfjs-dist/build/pdf.mjs';
+
+  const q = new URLSearchParams(location.search);
+  const pages = (q.get('pages') || '1').split(',').map(n => parseInt(n, 10)).filter(Boolean);
+  const scale = parseFloat(q.get('scale') || '1.4');
+  const status = document.getElementById('status');
+  const out = document.getElementById('out');
+
+  try {
+    pdfjs.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/build/pdf.worker.mjs';
+    const doc = await pdfjs.getDocument({
+      url: './out/NextGen_Campus_Project_Report.pdf',
+      standardFontDataUrl: './node_modules/pdfjs-dist/standard_fonts/'
+    }).promise;
+
+    status.textContent = 'document has ' + doc.numPages + ' pages; rendering ' + pages.join(', ');
+
+    for (const n of pages) {
+      if (n < 1 || n > doc.numPages) continue;
+      const page = await doc.getPage(n);
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      canvas.style.width = Math.round(viewport.width) + 'px';
+      const fig = document.createElement('figure');
+      const cap = document.createElement('figcaption');
+      cap.textContent = 'page ' + n + ' of ' + doc.numPages;
+      fig.appendChild(cap);
+      fig.appendChild(canvas);
+      out.appendChild(fig);
+      await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+    }
+    status.textContent = 'done — ' + pages.length + ' page(s) rendered';
+    document.title = 'PDF preview ready';
+  } catch (e) {
+    status.textContent = 'failed: ' + e.message;
+  }
+</script>
+</body>
+</html>

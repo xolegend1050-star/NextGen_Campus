@@ -234,6 +234,30 @@ module.exports = (ctx) => {
     'becomes something the platform can reward, which is what makes the trust system in ' +
     'section 4.5 possible without asking anyone for a self-assessment.')
 
+  h2('2.2', 'Doubt and Answer Systems');
+  body('The second category examined was question and answer systems, since doubt ' +
+    'resolution was an early requirement. Three models were compared: threaded ' +
+    'discussion boards, chat groups, and dedicated question and answer platforms.');
+
+  table(['Model', 'Persistence', 'Attribution', 'Retrieval', 'Verdict'], [
+    ['Messaging groups', 'Ephemeral, depends on scrollback', 'Present but informal',
+      'Poor; search is not the point of the medium', 'Rejected as primary storage'],
+    ['Discussion forums', 'Permanent', 'Strong', 'Good, by keyword',
+      'Close, but no way to mark an answer as correct'],
+    ['Stack Overflow style Q and A', 'Permanent', 'Strong', 'Strong, with ranking',
+      'Adopted, with a campus scope'],
+    ['Chat with a knowledge base', 'Mixed', 'Weak', 'Weak',
+      'Rejected; loses both persistence and attribution']
+  ], [19, 22, 18, 22, 19], { caption: 'Table 2.2  Question and answer models compared' });
+
+  body('The decision was to adopt the accepted-answer model. Its important property ' +
+    'is not that an answer exists but that someone has judged it correct, and that ' +
+    'judgement is attributable. Once attribution is attached to the act of accepting, ' +
+    'that act becomes something the platform can reward, which is what makes the ' +
+    'trust system in section 4.5 possible without asking anyone to assess themselves. ' +
+    'A forum was rejected for the narrower reason that it can record that an answer ' +
+    'exists but has no way of recording that anyone believes it is right.');
+
   h2('2.3', 'Escrow and Trust-Based Payment');
   body('Escrow is the mechanism on which the paid half of the platform depends, so it was ' +
     'studied in some detail. The essential property of an escrow system is not that money ' +

@@ -52,10 +52,20 @@ for (let v = 0; v < 256; v++) {
 
 const BLACK_POINT = Math.min(whitePoint * 0.34, 96);
 
+// The scan carries a one pixel dark border down its right edge. It prints as a
+// stray hairline beside the letterhead on the cover, which is only visible once
+// the pages are looked at rather than measured. The outermost two pixels are
+// forced to paper, which removes the border without touching the letterhead.
+const EDGE = 2;
+
 let dark = 0, mid = 0, light = 0;
 for (let i = 0; i < lums.length; i++) {
+  const x = i % src.width;
+  const y = (i / src.width) | 0;
+  const onEdge = x < EDGE || x >= src.width - EDGE || y < EDGE || y >= src.height - EDGE;
   let v = lums[i];
-  if (v >= whitePoint) v = 255;
+  if (onEdge) v = 255;
+  else if (v >= whitePoint) v = 255;
   else if (v <= BLACK_POINT) v = 0;
   else {
     // Linear stretch between the two anchors: BLACK_POINT becomes black,

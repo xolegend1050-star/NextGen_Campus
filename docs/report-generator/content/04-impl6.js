@@ -46,6 +46,77 @@ module.exports = (ctx) => {
     'the same doubt should find it, and the search is over the subject and body of both ' +
     'questions and answers.')
 
+  h2('6.2', 'Authentication Module');
+  body('The authentication module handles registration, sign-in, token issue and refresh, ' +
+    'password reset by email, one-time passwords, and two OAuth providers. It is the ' +
+    'module with the largest number of defects found and fixed during the project, and ' +
+    'two of those defects are instructive.')
+
+  h3('Password reset depends on a third party that can be misconfigured')
+  body('The reset function mails a link containing a token. The mail provider is ' +
+    'reached through a helper that previously returned a boolean. The helper swallowed ' +
+    'the provider error and returned false, and the controller treated false as "no such ' +
+    'user", so a missing or wrong API key produced a response indistinguishable from a ' +
+    'mistyped email address. The consequence in production was that password reset was ' +
+    'simply broken, with nothing in the logs and nothing in the response to show why.')
+
+  code([
+    '/**',
+    ' * Send an email, or throw.',
+    ' *',
+    ' * These helpers used to return true/false and swallow the provider error, so a',
+    ' * missing SENDGRID_API_KEY produced the same response as an unknown email',
+    ' * address. The caller could not tell a delivery failure from a user who does not',
+    ' * exist, and nothing was written to the log. Throwing makes the failure visible',
+    ' * at the point it happens; the controller decides whether that is a 500 or a',
+    ' * generic rejection.',
+    ' */'
+  ], { caption: 'Listing 6.1  The contract of the mail helpers' });
+
+  h3('A token can be unique without being unique')
+  body('The second defect is the one described in section 4.5: two tokens minted for the ' +
+    'same user in the same second were byte-identical, so they shared a stored hash and ' +
+    'one could be used after the other had been rotated away. The fix is shown in ' +
+    'Listing 4.6 and is a single random identifier per token.')
+
+  h3('A tracking link broke the reset link')
+  body('The mail provider was configured to rewrite links for click tracking. The reset ' +
+    'link passes through a redirect that the provider\'s own filtering sometimes ' +
+    'intercepts with a safety interstitial, so the user reaches a warning page instead ' +
+    'of the application. Tracking was disabled. This is recorded because the cause was ' +
+    'not in the application at all, and it is the kind of failure that is easy to ' +
+    'misattribute to one own code.')
+
+  note('A general lesson from this module',
+    'Both defects share a shape: a helper that reported failure in a way the caller ' +
+      'could not interpret, so the failure surfaced as a successful response. The general ' +
+      'rule adopted afterwards is that helpers which talk to something outside the system ' +
+      'either succeed or throw. They do not return a status code that a caller is ' +
+      'expected to check, because that check was exactly what got forgotten.');
+
+  h2('6.3', 'Doubts and Answers Module');
+  body('A doubt carries a subject, a level and a body. Any authenticated user may answer ' +
+    'it. The asker may mark one answer as accepted, and doing so is what makes trust ' +
+    'computable, because it is the only judgement in the platform that is made by a ' +
+    'participant about the correctness of another participant work.')
+
+  bullets([
+    { text: 'A doubt may be answered by anyone, including the asker, which is unusual but ' +
+      'allows a student to post a question and supply the answer when they work it out ' +
+      'themselves.' },
+    { text: 'An answer may be edited by its author and may be removed by a moderator, and ' +
+      'both are recorded.' },
+    { text: 'Marking an answer accepted clears any previous acceptance on the same doubt, ' +
+      'so exactly one answer is accepted at a time.' },
+    { text: 'Accepting raises the answerer trust tier, which is applied after the ' +
+      'transaction that records the acceptance, not inside it.' }
+  ]);
+
+  body('The thread remains browsable and searchable after acceptance, which was one of ' +
+    'the four gaps from Chapter 2. The reason to keep it is that the next student with ' +
+    'the same doubt should find it, and the search is over the subject and body of both ' +
+    'questions and answers.')
+
   h2('6.4', 'Mentorship Module');
   body('The mentorship module is the core of the platform and the reason it exists. A ' +
     'mentor declares availability as a weekly schedule of time slots. A student requests ' +

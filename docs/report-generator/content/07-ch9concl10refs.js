@@ -22,7 +22,34 @@ module.exports = (ctx) => {
     'is requested, held, completed by both parties and rated, and the result is a record ' +
     'that both people keep and that the college can see.');
 
-    h2('9.3', 'Limitations Encountered');
+    h2('9.2', 'Summary of Achievements');
+  body('What was delivered is a working platform for four roles rather than a prototype: ' +
+    '149 endpoints across 18 route modules, every one of them behind authentication or ' +
+    'declared as deliberately public, over a database of 54 tables and 567 columns in which ' +
+    'every movement of money is transactional.');
+
+  body('It was verified by 93 unit tests across six suites, by a three-file endpoint sweep ' +
+    'run against the deployed system rather than a local copy, and by using the interface ' +
+    'as each of the four roles. That verification found 19 defects. Each was diagnosed to ' +
+    'a cause rather than a symptom, fixed, and given a check that now prevents its ' +
+    'recurrence; none is recorded as open, deferred or accepted in Appendix K.');
+
+  table(['Area', 'What was achieved'], [
+    ['Scope', 'A complete platform for student, company, mentor and administrator, not a prototype'],
+    ['Endpoints', '149 across 18 modules, 126 of them requiring authentication'],
+    ['Database', '54 tables, 567 columns, 81 indexes, 23 triggers, money as fixed-point decimal'],
+    ['Payments', 'Escrow with a deliverable gate, an administrator-only bypass, and an ' +
+      'automatic release after seven days'],
+    ['Testing', '93 unit tests, a three-file endpoint sweep against the deployment, and ' +
+      'interface verification as each role'],
+    ['Defects', '19 found, fixed and regression covered'],
+    ['Deployment', 'Two services and a database from one blueprint, with the scheduled ' +
+      'escrow release declared in it'],
+    ['Documentation', 'This report, generated and verified: 10 checks over the finished ' +
+      'document, including a 9pt floor and a pure black and white page']
+  ], [20, 80], { caption: 'Table 9.1  What the project delivered' });
+
+  h2('9.3', 'Limitations Encountered');
   body('Four limitations are worth stating honestly rather than leaving to be discovered.')
 
   bullets([

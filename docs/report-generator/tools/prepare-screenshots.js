@@ -30,6 +30,17 @@ const OUT = path.join(__dirname, '..', 'assets', 'figures');
 const MAX_W = 1200;
 const MIN_W = 520;          // below this, drawn text approaches the 9pt floor
 
+// A browser viewport often ends partway through a section, leaving a band of empty
+// page below the content. Printed in a report that reads as a rendering fault, so
+// each capture is trimmed to the bottom of its last non-empty row. Expressed as a
+// fraction of the height to keep, so a re-capture at a different size still crops
+// sensibly. null means keep the whole height.
+const CROP_TO = {
+  '01-landing': 0.78,    // viewport ended inside the "Why NextGen Campus?" section
+  '02-login': 1.0,
+  '03-register': 1.0
+};
+
 const files = fs.existsSync(SHOTS)
   ? fs.readdirSync(SHOTS).filter((f) => /\.(png|PNG)$/.test(f)).sort()
   : [];
@@ -43,23 +54,29 @@ if (!files.length) {
 fs.mkdirSync(OUT, { recursive: true });
 
 files.forEach((name) => {
+  const outName = name.replace(/\.(png|PNG)$/, '');
   const src = fs.readFileSync(path.join(SHOTS, name));
   const img = PNG.sync.read(src);
 
   let scale = 1;
   if (img.width > MAX_W) scale = MAX_W / img.width;
 
-  let outW = Math.round(img.width * scale);
-  let outH = Math.round(img.height * scale);
+  let srcW = img.width;
+  let srcH = img.height;
+  const keep = CROP_TO[outName];
+  if (keep !== undefined && keep < 1) srcH = Math.round(img.height * keep);
+
+  let outW = Math.round(srcW * scale);
+  let outH = Math.round(srcH * scale);
 
   const dst = new PNG({ width: outW, height: outH });
   let sum = 0, dark = 0, light = 0;
   const n = outW * outH;
 
   for (let y = 0; y < outH; y++) {
-    const sy = Math.min(img.height - 1, Math.floor(y / scale));
+    const sy = Math.min(srcH - 1, Math.floor(y / scale));
     for (let x = 0; x < outW; x++) {
-      const sx = Math.min(img.width - 1, Math.floor(x / scale));
+      const sx = Math.min(srcW - 1, Math.floor(x / scale));
       const si = (sy * img.width + sx) * 4;
       const di = (y * outW + x) * 4;
       const r = img.data[si], g = img.data[si + 1], b = img.data[si + 2];
@@ -76,7 +93,6 @@ files.forEach((name) => {
   const darkPct = (100 * dark) / n;
   const lightPct = (100 * light) / n;
 
-  const outName = name.replace(/\.(png|PNG)$/, '');
   const outFile = path.join(OUT, outName + '.png');
   fs.writeFileSync(outFile, PNG.sync.write(dst, { deflateLevel: 9 }));
 

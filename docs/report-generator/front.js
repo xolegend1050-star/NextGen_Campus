@@ -117,7 +117,7 @@ const renderIndex = (ctx, rows) => {
   const { doc } = ctx;
   const LABEL_W = CONTENT_W * 0.74;
   const PAGE_W = CONTENT_W - LABEL_W;
-  const ROW_H = 15.5;
+  const ROW_H = 14;
 
   // The pages this index occupies are recorded so the verifier can exclude them
   // when it looks for the headings the index points at. Excluding the wrong set
@@ -155,13 +155,13 @@ const renderIndex = (ctx, rows) => {
     doc.font(row.level === 1 ? 'Times-Bold' : 'Times-Roman')
       .fontSize(row.level === 1 ? TYPE.index : TYPE.indexSub)
       .fillColor(INK)
-      .text(row.label, M.left + (row.level === 1 ? 4 : 18), y + 3, {
+      .text(row.label, M.left + (row.level === 1 ? 4 : 18), y + 2.5, {
         width: LABEL_W - 12, lineBreak: false
       });
 
     doc.font('Times-Bold').fontSize(row.level === 1 ? TYPE.index : TYPE.indexSub)
       .fillColor(INK)
-      .text(String(row.page), M.left + LABEL_W, y + 3, { width: PAGE_W - 8, align: 'right', lineBreak: false });
+      .text(String(row.page), M.left + LABEL_W, y + 2.5, { width: PAGE_W - 8, align: 'right', lineBreak: false });
 
     rule(doc, M.left, y + ROW_H, M.left + CONTENT_W, y + ROW_H, RULE.hair);
     rule(doc, M.left + LABEL_W, y, M.left + LABEL_W, y + ROW_H, RULE.hair);
@@ -185,7 +185,18 @@ const renderIndex = (ctx, rows) => {
  * an explicit y. Leaving the margins in place is what gave the previous version
  * a phantom extra page for every page number.
  */
-const decorate = (doc, D, total) => {
+const decorate = (doc, D, total, chapterStarts) => {
+  // Which chapter a page belongs to is decided by where the chapters begin, not
+  // by a single variable read at the end of the build. The latter holds only the
+  // final chapter, so every page in the document carried the same running head.
+  const chapterFor = (pageNo) => {
+    let label = 'Project Report';
+    (chapterStarts || []).forEach((c) => {
+      if (c.page <= pageNo) label = c.label;
+    });
+    return label;
+  };
+
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(range.start + i);
@@ -199,7 +210,7 @@ const decorate = (doc, D, total) => {
     doc.fillColor(INK).font('Times-Roman').fontSize(TYPE.running)
       .text(D.title, M.left, 30, { width: CONTENT_W * 0.5, lineBreak: false });
     doc.fillColor(INK).font('Times-Italic').fontSize(TYPE.running)
-      .text(D.chapter || 'Project Report', M.left + CONTENT_W * 0.5, 30, {
+      .text(chapterFor(i + 1), M.left + CONTENT_W * 0.5, 30, {
         width: CONTENT_W * 0.5, align: 'right', lineBreak: false
       });
     rule(doc, M.left, 44, PAGE.W - M.right, 44, RULE.thin);

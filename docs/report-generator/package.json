@@ -11,9 +11,11 @@
     "verify": "node verify.js",
     "check": "node verify.js",
     "letterhead": "node tools/prepare-letterhead.js",
-    "shots": "node tools/prepare-screenshots.js"
+    "shots": "node tools/prepare-screenshots.js",
+    "serve": "node serve.js"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.11",
     "pdfjs-dist": "^4.7.76",
     "pdfkit": "^0.15.1",
     "pngjs": "^7.0.0"

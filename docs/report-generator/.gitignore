@@ -2,8 +2,4 @@ node_modules/
 out/
 recovered/
 detect-colour.cjs
-
-# Screenshots are captured locally and not under version control. Prepared,
-# print-sized copies in assets/figures are committed because the report needs
-# them to build.
 shots/

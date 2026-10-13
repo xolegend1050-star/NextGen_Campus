@@ -135,11 +135,24 @@ const layout = (doc, indexRows) => {
   const captured = {};
   const stats = { tables: 0, codeBlocks: 0, notes: 0, figures: 0, indexRows: 0 };
   const figures = [];
+  // The running head names the chapter on each page. It cannot be read off a
+  // single variable at the end, because by then every page has been laid out and
+  // the variable holds the last chapter: every page in the document was headed
+  // "Appendix N: Database Migrations". The chapter boundaries are recorded as
+  // they happen instead, and decorate() looks each page up against them.
+  const chapterStarts = [];
   let chapter = 'Project Report';
 
   const ctx = {
     doc,
-    setChapter: (c) => { chapter = c; D.chapter = c; },
+    setChapter: (c) => {
+      chapter = c;
+      D.chapter = c;
+      const at = pageCount(doc);
+      if (!chapterStarts.length || chapterStarts[chapterStarts.length - 1].label !== c) {
+        chapterStarts.push({ page: at, label: c });
+      }
+    },
     // Page numbers are read after the element is drawn. PDFKit starts a new page
     // while writing text that will not fit, so a number read beforehand
     // describes the page the heading was about to leave, not the one it printed on.
@@ -169,7 +182,7 @@ const layout = (doc, indexRows) => {
   };
 
   SECTIONS.forEach((fn) => fn(ctx));
-  return { captured, stats, figures, indexPages: ctx.indexPages || null };
+  return { captured, stats, figures, chapterStarts, indexPages: ctx.indexPages || null };
 };
 
 (async () => {
@@ -199,7 +212,7 @@ const layout = (doc, indexRows) => {
   const doc = makeDoc(OUT, { title: D.title + ' - Project Report', author: D.student, subject: D.degree + ' ' + D.semester });
   const finalRun = layout(doc, rows);
   const total = pageCount(doc);
-  front.decorate(doc, D, total);
+  front.decorate(doc, D, total, finalRun.chapterStarts);
   await done(doc);
 
   if (fs.existsSync(TMP)) fs.unlinkSync(TMP);
@@ -210,6 +223,7 @@ const layout = (doc, indexRows) => {
     total,
     indexRows: rows,
     indexPages: finalRun.indexPages,
+    chapterStarts: finalRun.chapterStarts,
     figures: finalRun.figures,
     captured: finalRun.captured,
     stats: finalRun.stats,

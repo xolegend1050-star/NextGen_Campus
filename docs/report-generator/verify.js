@@ -38,9 +38,15 @@ const MIN_PT = 9;
 // The original brief was 80-85 pages. Two chapters were added afterwards, with the
 // reader's agreement, on the evidence that a comparable report was missing exactly
 // that material: Technology and Methodology, and Results. The accepted figure was
-// about 97 pages, and that is the range this check now enforces.
+// about 97 pages.
+//
+// The upper bound has moved twice since, for reasons worth recording rather than
+// hiding: three colour screenshots, and three sections (6.2, 6.3 and 9.2) that an
+// earlier bad edit had silently deleted. Both were additions of content the report
+// was supposed to have. The bound tracks what the document is; it is not a target
+// to hit by deleting material.
 const TARGET_MIN = 88;
-const TARGET_MAX = 102;
+const TARGET_MAX = 105;
 
 const fail = [];
 const warn = [];
@@ -252,6 +258,7 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
   console.log('  4. MARGIN OVERFLOW');
   const PAGE = { W: 595.28 };
   const LEFT = 79.37, RIGHT = 595.28 - 56.69;
+  const M_LEFT = 79.37, CONTENT_W_R = 459.22;
   const over = [];
   for (const pg of pages) {
     for (const it of pg.items) {
@@ -432,6 +439,90 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
   } else {
     ok(captions.length + ' figure captions, each backed by a painted image on p' +
       imagePages.filter((p) => p.page > 2).map((p) => p.page).join(', p'));
+  }
+
+  // ---------------------------------------------------------------- 9
+  // Completeness against the plan. The contents page is built from the same marks
+  // the chapters record, so a section that was never written disappears from the
+  // contents page too, and a check that compares the two agrees with itself. The
+  // chapter plan is therefore read independently here, and every section it names
+  // must appear as a real heading in the body of the document.
+  console.log('  9. SECTION COMPLETENESS');
+  const plan = require('./details.js');
+  const planned = [];
+  plan.CHAPTERS.forEach((c) => c.sections.forEach((s) => planned.push({ num: s, title: plan.SECTION_TITLES[s] })));
+  plan.APPENDICES.forEach((a) => planned.push({ num: a.key, title: a.title }));
+
+  const headingsFound = new Set();
+  for (const pg of pages) {
+    // Group the page into lines first. A section heading is drawn as its number
+    // and its title as separate text runs on the same baseline, so matching a
+    // single item for a leading number finds nothing at all.
+    const lines = {};
+    for (const it of pg.items) {
+      if (it.y <= 52 || it.y >= pg.h - 48) continue;
+      const key = Math.round(it.y);
+      (lines[key] = lines[key] || []).push(it.str);
+    }
+    for (const key of Object.keys(lines)) {
+      const line = norm(lines[key].join(' '));
+      const m = line.match(/^(\d+\.\d+)\b/);
+      if (m) headingsFound.add(m[1]);
+    }
+  }
+  // An appendix heading reads "APPENDIX A: ..." rather than "A ...".
+  for (const a of plan.APPENDICES) {
+    const found = pages.some((pg) => pg.items.some((it) =>
+      it.y > 52 && it.y < pg.h - 48 && it.str.toUpperCase().indexOf('APPENDIX ' + a.key + ':') >= 0));
+    headingsFound.add(found ? a.key : 'missing-' + a.key);
+  }
+
+  const absent = planned.filter((p) => !headingsFound.has(p.num));
+  if (absent.length) {
+    bad('planned sections with no heading in the document: ' + absent.length);
+    absent.slice(0, 12).forEach((p) => console.log('           ' + p.num + '  ' + p.title));
+  } else {
+    ok('all ' + planned.length + ' planned sections and appendices are present as headings');
+  }
+
+  // ---------------------------------------------------------------- 10
+  // Running head. It is drawn after the whole document exists, so it is easy to
+  // write against a single variable that by then holds only the last chapter, and
+  // the result is the same chapter printed on every page. The text on each page
+  // is compared with the chapter that page actually belongs to.
+  console.log('  10. RUNNING HEAD');
+  const chapterFor = (pageNo) => {
+    let label = 'Project Report';
+    (side && side.chapterStarts ? side.chapterStarts : []).forEach((c) => {
+      if (c.page <= pageNo) label = c.label;
+    });
+    return label;
+  };
+
+  const wrongHead = [];
+  const seenHeads = new Set();
+  for (const pg of pages) {
+    if (pg.page === 1) continue;
+    const head = pg.items
+      .filter((i) => i.y <= 48 && i.x > M_LEFT + CONTENT_W_R * 0.45)
+      .map((i) => i.str).join(' ').trim();
+    if (!head) continue;
+    seenHeads.add(head);
+    const want = chapterFor(pg.page);
+    const normHead = head.replace(/\s+/g, ' ').toUpperCase();
+    const normWant = String(want).replace(/\s+/g, ' ').toUpperCase();
+    if (normHead !== normWant) wrongHead.push({ page: pg.page, got: head, want });
+  }
+
+  if (!seenHeads.size) {
+    warning('no running head found to check');
+  } else if (wrongHead.length) {
+    bad('running head does not match the chapter on ' + wrongHead.length + ' page(s)');
+    wrongHead.slice(0, 6).forEach((w) => console.log('           p' + w.page +
+      ' shows ' + JSON.stringify(w.got) + ', expected ' + JSON.stringify(w.want)));
+    console.log('           distinct running heads seen: ' + seenHeads.size);
+  } else {
+    ok(seenHeads.size + ' distinct running heads, each matching the chapter on its page');
   }
 
   // ---------------------------------------------------------------- summary
