@@ -174,7 +174,7 @@ module.exports = (ctx) => {
   mark('h1:H');
 
   body('The listings that matter most are already given with their explanations in ' +
-    'Chapter 5. This appendix collects the three that a reader is most likely to want to ' +
+    'Chapter 6. This appendix collects the three that a reader is most likely to want to ' +
     'see whole, without the surrounding prose.')
 
   h2('', 'Route declaration and guards');
@@ -225,7 +225,7 @@ module.exports = (ctx) => {
 
   h2('', 'The trust tier function');
   body('Trust is computed rather than submitted, which is the property described in ' +
-    'section 5.5. The function is pure and total: every input produces a tier, and the ' +
+    'section 6.5. The function is pure and total: every input produces a tier, and the ' +
     'same input always produces the same tier.')
 
   code([
@@ -418,7 +418,7 @@ module.exports = (ctx) => {
     ['D-12', 'Payments', 'Escrow funding made money disappear from a company wallet.',
       'Funding decremented the available balance without raising the locked balance.',
       'Both sides are moved in the same statement.',
-      'Sweep, 02-features, and the lifecycle check in 6.7'],
+      'Sweep, 02-features, and the lifecycle check in 7.7'],
     ['D-13', 'Payments', 'A company could only ever pay the most recent applicant.',
       'Release selected the escrow by newest-first with a limit of one and ignored which ' +
       'application was meant.',
@@ -437,7 +437,7 @@ module.exports = (ctx) => {
       'The deliverable check read a table that no route wrote to, so it always found no ' +
       'deliverable.',
       'A route was added to submit a deliverable, and a user interface for it.',
-      'Sweep, 02-features, and the lifecycle check in 6.7'],
+      'Sweep, 02-features, and the lifecycle check in 7.7'],
     ['D-17', 'Resources', 'Every resource filter returned a server error while the ' +
       'unfiltered list worked.',
       'The count query had no table alias and the filter clauses used one, so the ' +
@@ -475,42 +475,47 @@ module.exports = (ctx) => {
   h1(null, 'Appendix L: Glossary');
   mark('h1:L');
 
-  table(['Term', 'Meaning as used in this report'], [
-    ['Access token', 'A short-lived signed token presented on every request; verified ' +
-      'without a database read'],
-    ['Anchor gig', 'A gig a company has accepted a student for; escrow may only be ' +
-      'funded against an accepted application'],
-    ['Available balance', 'The part of a wallet that may be spent or withdrawn now'],
-    ['Deliverable', 'Work a student submits against a funded escrow; its existence is ' +
-      'the condition for release'],
-    ['Dispute', 'An escrow state raised by either party that blocks release until an ' +
-      'administrator resolves it'],
-    ['Escrow', 'Money held by the platform against an application until work is ' +
-      'delivered and accepted, or the escrow is refunded'],
-    ['Facet', 'A distinct value of a filterable column, returned with a result set so ' +
-      'the client can build its options from the data'],
-    ['Idempotent', 'An operation that may be applied more than once with the same effect ' +
-      'as applying it once'],
-    ['Locked balance', 'The part of a wallet that is committed and cannot be spent; for ' +
-      'a company this is escrow, for a student it is a pending withdrawal'],
-    ['Middleware', 'A function run before a controller, in order, for a request; the ' +
-      'guards in this system are middleware'],
-    ['Parameterised query', 'A statement in which values are passed separately from the ' +
-      'SQL text, so a value can never be read as code'],
-    ['Partial index', 'An index covering only the rows matching a condition, used here ' +
-      'to permit at most one live escrow per application while keeping the history'],
-    ['Refresh token', 'A longer-lived token, stored as a hash, exchanged for a new ' +
-      'access token and revocable'],
-    ['Role', 'One of student, company, mentor or administrator; the sole basis of ' +
-      'authorisation in this system'],
-    ['Row lock', 'A database lock that prevents another transaction from modifying a ' +
-      'row until the first transaction ends'],
-    ['Transaction', 'A group of statements that succeed or fail together; every movement ' +
-      'of money is inside one'],
-    ['Trust tier', 'A named level derived from observed activity; never submitted by ' +
-      'the user'],
-    ['Withdrawal hold', 'The locked amount set aside when a withdrawal is requested, ' +
-      'before any administrator decides']
-  ], [22, 78], { caption: 'Table L.1  Glossary' });
+  table(['Term', 'Meaning as used in this report', 'Discussed in'], [
+    ['Access token', 'A short-lived signed token presented on every request; verified without a database read',
+      '2.4, 4.5'],
+    ['Anchor gig', 'A gig a company has accepted a student for; escrow may only be funded against an accepted application',
+      '2.3, 6.5'],
+    ['Available balance', 'The part of a wallet that may be spent or withdrawn now',
+      '4.3, 6.6'],
+    ['Deliverable', 'Work a student submits against a funded escrow; its existence is the condition for release',
+      '6.5, 6.6'],
+    ['Dispute', 'An escrow state raised by either party that blocks release until an administrator resolves it',
+      '4.4, 2.3'],
+    ['Escrow', 'Money held by the platform against an application until work is delivered and accepted, or the escrow is refunded',
+      '2.3, 6.6'],
+    ['Facet', 'A distinct value of a filterable column, returned with a result set so the client can build its options from the data',
+      '6.11'],
+    ['Idempotent', 'An operation that may be applied more than once with the same effect as applying it once',
+      '4.4, 6.6'],
+    ['Locked balance', 'The part of a wallet that is committed and cannot be spent; for a company this is escrow, for a student it is a pending withdrawal',
+      '4.3, 6.6'],
+    ['Middleware', 'A function run before a controller, in order, for a request; the guards in this system are middleware',
+      '4.2, 5.1'],
+    ['Parameterised query', 'A statement in which values are passed separately from the SQL text, so a value can never be read as code',
+      '4.5, 6.1'],
+    ['Partial index', 'An index covering only the rows matching a condition, used here to permit at most one live escrow per application while keeping the history',
+      '4.3, 6.6'],
+    ['Quality gate', 'One of the four conditions a vertical slice must satisfy before it is called complete',
+      '5.2'],
+    ['Refresh token', 'A longer-lived token, stored as a hash, exchanged for a new access token and revocable',
+      '2.4, 6.2'],
+    ['Role', 'One of student, company, mentor or administrator; the sole basis of authorisation in this system',
+      '2.6, 4.5, C'],
+    ['Row lock', 'A database lock that prevents another transaction from modifying a row until the first transaction ends',
+      '4.3, 6.6'],
+    ['Transaction', 'A group of statements that succeed or fail together; every movement of money is inside one',
+      '4.3, 6.6'],
+    ['Trust tier', 'A named level derived from observed activity; never submitted by the user',
+      '2.6, 6.5'],
+    ['Vertical slice', 'One complete, testable increment of a feature, built through data layer, interface and tests together',
+      '5.2'],
+    ['Withdrawal hold', 'The locked amount set aside when a withdrawal is requested, before any administrator decides',
+      '6.6']
+  ], [21, 65, 14], { caption: 'Table L.1  Glossary' });
 
 };

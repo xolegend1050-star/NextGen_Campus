@@ -85,7 +85,7 @@ module.exports = (ctx) => {
     'somewhere the platform controls until a condition is met, that releasing them is ' +
     'atomic, and that no party can release them unilaterally for their own benefit. That ' +
     'requirement is what shaped the database design in section 4.3 and is the reason the ' +
-    'escrow module is treated as the most safety-critical part of the system in Chapter 5.');
+    'escrow module is treated as the most safety-critical part of the system in Chapter 6.');
 
   // ---------------------------------------------------------------- 1.3
   h2('1.3', 'Proposed Solution');
@@ -135,7 +135,7 @@ module.exports = (ctx) => {
   h2('1.4', 'Objectives');
   body('The project set out with the following objectives. Each is stated so that it can be ' +
     'judged true or false against the finished system, and the evidence for each is given ' +
-    'in Chapter 6.')
+    'in Chapter 7.')
 
   table( ['#', 'Objective', 'How it is judged'], [
     ['1', 'Provide a single authenticated entry point for all four participant roles',
@@ -194,11 +194,11 @@ module.exports = (ctx) => {
     ['No job runner that can be relied upon to be always on',
       'Escrow auto-release would never fire',
       'The release job is a plain script scheduled by the platform cron service, and is ' +
-      'safe to run by hand. Section 5.12.'],
+      'safe to run by hand. Section 6.12.'],
     ['Email depends on a third-party provider being configured correctly',
       'A missing key silently loses password resets',
       'The mail helpers throw rather than returning false, so the failure is visible ' +
-      'instead of being swallowed. Section 5.2.']
+      'instead of being swallowed. Section 6.2.']
   ], [24, 32, 44], { caption: 'Table 1.3  Deployment constraints and how each is absorbed' });
 
   // =====================================================================
@@ -318,7 +318,7 @@ module.exports = (ctx) => {
   body('The third was chosen. The cost is that a sleeping service also sleeps its sockets, ' +
     'which is why the client reconnects with backoff and re-fetches on reconnect rather ' +
     'than assuming that a missed frame was never sent. That trade is recorded in section ' +
-    '5.7.')
+    '6.7.')
 
   h2('2.6', 'Role-Based Access Control');
   body('Four roles were defined: student, company, mentor and administrator. The survey ' +
@@ -335,7 +335,7 @@ module.exports = (ctx) => {
     'a route, declared next to the route rather than inside the controller. Keeping the ' +
     'declaration beside the route is what makes it reviewable: the full authorisation ' +
     'policy of the system can be read in one pass over the route files, which is exactly ' +
-    'the check the sweep in section 6.3 performs automatically.')
+    'the check the sweep in section 7.3 performs automatically.')
 
   h2('2.7', 'Gap Identified');
   body('Four gaps survived the survey, and they are the reason the project exists. They are ' +
@@ -364,28 +364,28 @@ module.exports = (ctx) => {
   table( ['Decision', 'Reason from the survey', 'Implemented in'], [
     ['Escrow over direct transfer',
       'Direct transfer cannot support a first transaction between strangers',
-      'Section 4.4, implemented in section 5.6'],
+      'Section 4.4, implemented in section 6.6'],
     ['Deliverable gate on release, administrator-only bypass',
       'A gate that the paying party can switch off is not a protection',
-      'Section 4.4, implemented in section 5.6'],
+      'Section 4.4, implemented in section 6.6'],
     ['Automatic release after seven days',
       'A deadlock in escrow is a worse outcome than either party being slightly unhappy',
-      'Section 4.4, implemented in section 5.12'],
+      'Section 4.4, implemented in section 6.12'],
     ['Accepted-answer model for doubts',
       'Attributable judgement, not mere presence, is what makes trust computable',
-      'Section 4.5, implemented in section 5.3'],
+      'Section 4.5, implemented in section 6.3'],
     ['Role-based authorisation declared at the route',
       'The policy must be reviewable in one pass, and it is tested automatically',
-      'Section 4.5, implemented in section 5.10'],
+      'Section 4.5, implemented in section 6.10'],
     ['Refresh tokens stored as hashes and rotated',
       'Revocation requires the server to be able to recognise a used token',
-      'Section 4.5, implemented in section 5.2'],
+      'Section 4.5, implemented in section 6.2'],
     ['Trust computed from history, never submitted',
       'Self-assessment cannot be the basis of a payment guarantee',
-      'Section 4.5, implemented in section 5.5'],
+      'Section 4.5, implemented in section 6.5'],
     ['WebSocket on the existing runtime',
       'A second always-on service is not available in the target environment',
-      'Section 3.5, implemented in section 5.7']
+      'Section 3.5, implemented in section 6.7']
   ], [26, 38, 36], { caption: 'Table 2.6  Design decisions traceable to the survey' });
 
   body('One decision is worth singling out because it contradicts an instinct. The review ' +

@@ -117,10 +117,10 @@ module.exports = (ctx) => {
   h2('', 'The backend source tree');
   // A one line purpose per file, derived from its own header comment where the
   // author wrote one. Anything without a header falls back to its name, which is
-  // still more informative than a repeated "as described in Chapter 5".
+  // still more informative than a repeated "as described in Chapter 6".
   const describe = (file) => {
     const full = findFile(file);
-    if (!full) return 'Module as described in Chapter 5';
+    if (!full) return 'Module as described in Chapter 6';
     const head = fs.readFileSync(full, 'utf8').slice(0, 600);
     const block = head.match(/\/\*\*([\s\S]*?)\*\//);
     if (!block) return camel(file);
@@ -154,7 +154,7 @@ module.exports = (ctx) => {
   const third = Math.ceil(files.length / 3);
   const cells = [0, 1, 2].map((c) => files.slice(c * third, (c + 1) * third).map((e) => e.name));
   const height = Math.max(...cells.map((c) => c.length));
-  body('Each of these files is described in Chapter 5 where it carries behaviour worth ' +
+  body('Each of these files is described in Chapter 6 where it carries behaviour worth ' +
     'explaining; the list below is a map of the tree rather than a glossary.');
   table(['File', 'File', 'File'],
     Array.from({ length: height }, (_, r) => [cells[0][r] || '', cells[1][r] || '', cells[2][r] || '']),
@@ -183,7 +183,7 @@ module.exports = (ctx) => {
   mark('h1:B');
 
   body('This appendix connects each functional area to the files that implement it, so ' +
-    'that a reader tracing a feature from Chapter 5 can find it. The endpoint counts are ' +
+    'that a reader tracing a feature from Chapter 6 can find it. The endpoint counts are ' +
     'read from the route files at build time rather than written by hand.')
 
   const byModule = {};
@@ -310,34 +310,17 @@ module.exports = (ctx) => {
   mark('h1:D');
 
   h2('', 'Unit tests');
-  body('Six files, 93 tests, all passing. The suites and what they cover are listed ' +
-    'below; the detail of each area was given in section 6.2.')
-
-  table(['File', 'Covers'], [
-    ['trustTiers.test.js', 'The trust tier function: every boundary, monotonicity, and ' +
-      'that identical input yields identical output'],
-    ['verificationStateMachine.test.js', 'Every permitted transition and every refusal, ' +
-      'including that a rejection carries a reason'],
-    ['auth.test.js', 'Registration, sign-in, refresh rotation, and reuse of a spent ' +
-      'refresh token'],
-    ['otp.test.js', 'One-time password generation, expiry, verification and attempt limits'],
-    ['doubt.test.js', 'Posting, answering, accepting, and that acceptance is exclusive'],
-    ['fileValidation.test.js', 'Content-type detection and rejection of a file whose ' +
-      'content does not match its name']
-  ], [30, 70], { caption: 'Table D.1  Unit test suites' });
+  body('Six files, 93 tests, all passing, covering the trust tier boundaries, the ' +
+    'verification state machine, authentication and refresh rotation, one-time ' +
+    'passwords, doubts and answers, and file content-type validation. Section 7.2 ' +
+    'states what each area asserts and why it is worth asserting.');
 
   h2('', 'Endpoint sweep');
-  body('Three files, run against the deployed system. The harness enumerates routes from ' +
-    'the source, so a route added without a check fails the run.')
-
-  table(['File', 'Covers'], [
-    ['01-auth.js', 'Registration, sign-in, refresh, logout, reset, and the 401 behaviour ' +
-      'of every protected route'],
-    ['02-features.js', 'Gigs and applications, escrow, mentorship, doubts, resources, ' +
-      'wallet, notifications and validation behaviour'],
-    ['03-admin.js', 'Every administrative route, its role restriction, the audit log, ' +
-      'withdrawals and the escrow override']
-  ], [22, 78], { caption: 'Table D.2  Sweep suites' });
+  body('Three files run against the deployed system: authentication and session ' +
+    'handling, general feature behaviour, and administration. The harness ' +
+    'enumerates routes from the source, so an endpoint added without an assertion ' +
+    'fails the run rather than being skipped. Section 7.3 states what the sweep ' +
+    'checks and why each check exists.');
 
   h2('', 'What each check asserts');
   body('Beyond the status codes above, the sweep asserts that a blank optional filter ' +

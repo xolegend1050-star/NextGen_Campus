@@ -35,8 +35,12 @@ const PDF = process.argv[2] || path.join(__dirname, 'out', 'NextGen_Campus_Proje
 const SIDE = path.join(__dirname, 'out', 'layout.json');
 
 const MIN_PT = 9;
-const TARGET_MIN = 80;
-const TARGET_MAX = 85;
+// The original brief was 80-85 pages. Two chapters were added afterwards, with the
+// reader's agreement, on the evidence that a comparable report was missing exactly
+// that material: Technology and Methodology, and Results. The accepted figure was
+// about 97 pages, and that is the range this check now enforces.
+const TARGET_MIN = 88;
+const TARGET_MAX = 102;
 
 const fail = [];
 const warn = [];
@@ -358,6 +362,55 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
   else ok('no page is dense enough to overprint');
   if (voidPages.length) bad('pages with no printable content: ' + voidPages.map((v) => v.page).join(', '));
   else ok('every page carries printable content');
+
+  // ---------------------------------------------------------------- 8
+  // Figure integrity. A caption is a promise that something is under it. A document
+  // that prints "Figure 8.1 - Landing page" and then prints nothing is worse than
+  // one with no figures at all, because it tells the reader a figure was lost.
+  // A comparable report was found with five such captions and zero images, and two
+  // pages that contained nothing but a caption and a page number.
+  console.log('  8. FIGURE INTEGRITY');
+  let imageCount = 0;
+  const imagePages = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const ops = await page.getOperatorList();
+    // Counting the paint operator, not resolving the object and checking for a
+    // width. Resolving by name fails for objects reached through a form, and a
+    // check that silently reports zero images is worse than no check: it will
+    // happily pass a document whose figures are all missing.
+    let onPage = 0;
+    for (let i = 0; i < ops.fnArray.length; i++) {
+      if (ops.fnArray[i] === 85) { onPage++; imageCount++; }   // paintImageXObject
+    }
+    if (onPage) imagePages.push({ page: p, count: onPage });
+  }
+  const captions = [];
+  for (const pg of pages) {
+    for (const it of pg.items) {
+      const m = it.str.match(/\bFigure\s+([A-Z]?\d+\.\d+)\b/);
+      if (m) captions.push({ page: pg.page, num: m[1] });
+    }
+  }
+  // The cover letterhead and any letterhead repeated on the certificate are
+  // institutional furniture, not numbered figures.
+  const letterheadPages = imagePages.filter((p) => p.page <= 2);
+  const letterhead = letterheadPages.reduce((a, p) => a + p.count, 0);
+  const figures = Math.max(0, imageCount - letterhead);
+
+  if (!captions.length && !figures) {
+    ok('no figures and no figure captions, which is consistent');
+  } else if (captions.length !== figures) {
+    bad('figure captions and images disagree: ' + captions.length +
+      ' captions, ' + figures + ' figures');
+    captions.slice(0, 8).forEach((c) => console.log('           caption ' + c.num + ' on p' + c.page));
+    const figPages = imagePages.filter((p) => p.page > 2);
+    console.log('           images on pages: ' +
+      (figPages.map((p) => 'p' + p.page + ' x' + p.count).join(', ') || 'none'));
+  } else {
+    ok(captions.length + ' figure captions, each backed by a painted image on p' +
+      imagePages.filter((p) => p.page > 2).map((p) => p.page).join(', p'));
+  }
 
   // ---------------------------------------------------------------- summary
   console.log('  ' + '-'.repeat(70));

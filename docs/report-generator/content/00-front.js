@@ -111,7 +111,7 @@ module.exports = (ctx) => {
     ['Database Design', schema.tables.length + ' tables, ' + colCount + ' columns, ' +
       schema.indexes.length + ' indexes, ' + schema.triggers.length + ' triggers'],
     ['Test Coverage', '93 unit tests passing, plus a three-file endpoint sweep'],
-    ['Defects Found and Fixed', '19, documented in Chapter 6 and Appendix K']
+    ['Defects Found and Fixed', '19, documented in Chapter 7 and Appendix K']
   ], [24, 76], { caption: 'Table 0.1  Project particulars' });
 
   mark('front:Progress Report');
@@ -144,7 +144,7 @@ module.exports = (ctx) => {
 
   body('Finally, I acknowledge my family and friends for their support and patience during ' +
     'the development of this project, and the students who tested the system and reported the ' +
-    'defects recorded in Chapter 6 and Appendix K. Those reports made the software better ' +
+    'defects recorded in Chapter 7 and Appendix K. Those reports made the software better ' +
     'than I would have left it.');
 
   // ===================================================== 6. PRELIMINARY INVESTIGATION
@@ -187,7 +187,7 @@ module.exports = (ctx) => {
     ['Economic', 'Feasible. The entire stack is open source and the deployment uses a free ' +
       'tier. No licensing cost arises at any stage.'],
     ['Operational', 'Feasible. The system is maintained by the department. Ownership of ' +
-      'alumni data was raised as a concern and is addressed in section 5.2.'],
+      'alumni data was raised as a concern and is addressed in section 6.2.'],
     ['Legal', 'Feasible with care. Payments are held in escrow by the platform rather than ' +
       'transferred directly between the parties, and no personal data is published without ' +
       'the individual\'s consent.'],

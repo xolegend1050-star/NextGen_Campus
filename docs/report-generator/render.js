@@ -179,7 +179,28 @@ const table = (ctx, head, rows, widths, o = {}) => {
   if (ctx.setStat) ctx.setStat('tables', ctx.getStat().tables + 1);
 
   const total = widths.reduce((a, b) => a + b, 0);
-  const w = widths.map((x) => Math.max((x / total) * CONTENT_W, 30));
+  // Proportional widths, with a floor so a narrow column cannot become zero.
+  //
+  // The floor can push the sum past the text block: a 4% first column becomes 18pt,
+  // is raised to the 30pt floor, and the table is now 12pt wider than the page
+  // allows. Nothing re-normalised it, so the rightmost column silently ran into
+  // the margin and the verifier caught it. The excess is taken back
+  // proportionally from whichever columns have slack above the floor.
+  const MIN_COL = 30;
+  let w = widths.map((x) => (x / total) * CONTENT_W);
+  w = w.map((x) => Math.max(x, MIN_COL));
+  const excess = w.reduce((a, b) => a + b, 0) - CONTENT_W;
+  if (excess > 0) {
+    const slack = w.map((x) => Math.max(0, x - MIN_COL));
+    const totalSlack = slack.reduce((a, b) => a + b, 0);
+    if (totalSlack <= 0) {
+      // Every column is at the floor. Fall back to a flat distribution rather
+      // than letting the table overhang the page.
+      w = w.map(() => CONTENT_W / w.length);
+    } else {
+      w = w.map((x, i) => x - excess * (slack[i] / totalSlack));
+    }
+  }
 
   // Compact mode is for reference tables: long lists of short rows, where 10pt
   // text and 20pt rows cost a page per fifty entries. A table of prose keeps 10pt,

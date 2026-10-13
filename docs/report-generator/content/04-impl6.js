@@ -1,5 +1,5 @@
 /**
- * Chapter 5: Implementation.
+ * Chapter 6: Implementation.
  *
  * Each module is presented in the same shape: what it is for, the code that does
  * the part that matters, and an explanation of why that code is written the way it
@@ -13,112 +13,40 @@ module.exports = (ctx) => {
   const { mark } = ctx;
 
   // =====================================================================
-  h1('5', 'Implementation');
-  mark('h1:5');
+  h1('6', 'Implementation');
+  mark('h1:6');
 
-  h2('5.1', 'Development Environment');
+  h2('6.1', 'Development Environment');
   body('The implementation is JavaScript throughout. One language on both sides of the ' +
     'wire means a validation rule, a date format and a string comparison cannot drift ' +
     'between the client and the server, which was a recurring source of defects before ' +
     'the choice was made.')
 
   table(['Concern', 'Choice', 'Reason'], [
-    ['Language', 'JavaScript, Node.js 20 or later',
-      'One language across client and server; no second runtime to deploy'],
+    ['Language', 'JavaScript on client and server',
+      'One language across the wire. Table 5.1 gives the full stack with the ' +
+      'reasoning for each choice.'],
     ['Server framework', 'Express',
-      'Small, well understood, and its middleware model is what the route-boundary ' +
-      'validation design depends on'],
-    ['Database driver', 'node-postgres with a transaction-scoped pool',
-      'Parameterised queries by default, and explicit transactions when money moves'],
-    ['Client framework', 'React with Vite',
-      'Component model suits the many similar list screens; Vite builds fast enough to ' +
-      'make the feedback loop short'],
-    ['Routing', 'React Router', 'Standard, and supports lazy loading of admin screens'],
-    ['Client state', 'Zustand', 'One store rather than a context tree per concern'],
-    ['Forms', 'React Hook Form with Zod', 'Schema shared with the server rule it mirrors'],
-    ['Real-time', 'Socket.IO with its client', 'Reconnection with backoff is handled for us'],
-    ['Testing', 'Jest with Supertest for units, a custom harness for endpoints',
-      'Both run against the deployed system, so they test what is actually there']
-  ], [18, 30, 52], { caption: 'Table 5.1  Development environment' });
-
-  body('Two conventions apply throughout. First, no business logic exists in a route ' +
-    'file; a route declares path, method, authentication, authorisation and validation, ' +
-    'then names a controller. Second, no module other than the database module opens a ' +
-    'connection. Both exist so that the security policy and the transaction discipline ' +
-    'can be checked by reading one file per concern.')
-
-  h2('5.2', 'Authentication Module');
-  body('The authentication module handles registration, sign-in, token issue and refresh, ' +
-    'password reset by email, one-time passwords, and two OAuth providers. It is the ' +
-    'module with the largest number of defects found and fixed during the project, and ' +
-    'two of those defects are instructive.')
-
-  h3('Password reset depends on a third party that can be misconfigured')
-  body('The reset function mails a link containing a token. The mail provider is ' +
-    'reached through a helper that previously returned a boolean. The helper swallowed ' +
-    'the provider error and returned false, and the controller treated false as "no such ' +
-    'user", so a missing or wrong API key produced a response indistinguishable from a ' +
-    'mistyped email address. The consequence in production was that password reset was ' +
-    'simply broken, with nothing in the logs and nothing in the response to show why.')
-
-  code([
-    '/**',
-    ' * Send an email, or throw.',
-    ' *',
-    ' * These helpers used to return true/false and swallow the provider error, so a',
-    ' * missing SENDGRID_API_KEY produced the same response as an unknown email',
-    ' * address. The caller could not tell a delivery failure from a user who does not',
-    ' * exist, and nothing was written to the log. Throwing makes the failure visible',
-    ' * at the point it happens; the controller decides whether that is a 500 or a',
-    ' * generic rejection.',
-    ' */'
-  ], { caption: 'Listing 5.1  The contract of the mail helpers' });
-
-  h3('A token can be unique without being unique')
-  body('The second defect is the one described in section 4.5: two tokens minted for the ' +
-    'same user in the same second were byte-identical, so they shared a stored hash and ' +
-    'one could be used after the other had been rotated away. The fix is shown in ' +
-    'Listing 4.6 and is a single random identifier per token.')
-
-  h3('A tracking link broke the reset link')
-  body('The mail provider was configured to rewrite links for click tracking. The reset ' +
-    'link passes through a redirect that the provider\'s own filtering sometimes ' +
-    'intercepts with a safety interstitial, so the user reaches a warning page instead ' +
-    'of the application. Tracking was disabled. This is recorded because the cause was ' +
-    'not in the application at all, and it is the kind of failure that is easy to ' +
-    'misattribute to one own code.')
-
-  note('A general lesson from this module',
-    'Both defects share a shape: a helper that reported failure in a way the caller ' +
-      'could not interpret, so the failure surfaced as a successful response. The general ' +
-      'rule adopted afterwards is that helpers which talk to something outside the system ' +
-      'either succeed or throw. They do not return a status code that a caller is ' +
-      'expected to check, because that check was exactly what got forgotten.');
-
-  h2('5.3', 'Doubts and Answers Module');
-  body('A doubt carries a subject, a level and a body. Any authenticated user may answer ' +
-    'it. The asker may mark one answer as accepted, and doing so is what makes trust ' +
-    'computable, because it is the only judgement in the platform that is made by a ' +
-    'participant about the correctness of another participant work.')
-
-  bullets([
-    { text: 'A doubt may be answered by anyone, including the asker, which is unusual but ' +
-      'allows a student to post a question and supply the answer when they work it out ' +
-      'themselves.' },
-    { text: 'An answer may be edited by its author and may be removed by a moderator, and ' +
-      'both are recorded.' },
-    { text: 'Marking an answer accepted clears any previous acceptance on the same doubt, ' +
-      'so exactly one answer is accepted at a time.' },
-    { text: 'Accepting raises the answerer trust tier, which is applied after the ' +
-      'transaction that records the acceptance, not inside it.' }
-  ]);
+      'Its middleware model is what the route-boundary validation design in ' +
+      'section 4.2 depends on.'],
+    ['Database', 'PostgreSQL 16',
+      'Transactions, row locks and check constraints, because this system moves money.'],
+    ['Client', 'React with Vite and React Router',
+      'Mostly lists and forms across similar screens; Vite keeps the edit and ' +
+      'reload loop short.'],
+    ['Client state and forms', 'Zustand, React Hook Form with Zod',
+      'One store; validation declared once and enforced on both sides.'],
+    ['Real-time', 'Socket.IO', 'Reconnection with backoff is handled for us.'],
+    ['Testing', 'Jest with Supertest, plus a three-file endpoint sweep',
+      'Supertest drives the real middleware chain rather than a copy of it.']
+  ], [20, 30, 50], { caption: 'Table 6.1  The stack in brief' });
 
   body('The thread remains browsable and searchable after acceptance, which was one of ' +
     'the four gaps from Chapter 2. The reason to keep it is that the next student with ' +
     'the same doubt should find it, and the search is over the subject and body of both ' +
     'questions and answers.')
 
-  h2('5.4', 'Mentorship Module');
+  h2('6.4', 'Mentorship Module');
   body('The mentorship module is the core of the platform and the reason it exists. A ' +
     'mentor declares availability as a weekly schedule of time slots. A student requests ' +
     'a session with a mentor, naming a topic and a preferred slot. The mentor accepts, ' +
@@ -132,7 +60,7 @@ module.exports = (ctx) => {
     ['completed', 'Both parties have marked it held', 'Nobody; the state is terminal'],
     ['cancelled', 'It will not happen', 'Terminal'],
     ['declined', 'The mentor declined', 'Terminal']
-  ], [18, 40, 42], { caption: 'Table 5.2  Mentorship session states' });
+  ], [18, 40, 42], { caption: 'Table 6.2  Mentorship session states' });
 
   body('Completion requiring both parties is deliberate. If one party could complete a ' +
     'session alone, a mentor could mark a session held that never happened and collect the ' +
@@ -148,11 +76,11 @@ module.exports = (ctx) => {
       'a session with both a student and a mentor and nothing about payment, so adding a ' +
       'fee later would be an addition to the record rather than a change to it.');
 
-  h2('5.5', 'Gigs and Applications Module');
+  h2('6.5', 'Gigs and Applications Module');
   body('A gig is posted by a company with a title, description, budget, required skills ' +
     'and a deadline. A student applies with a short note. The company reviews the ' +
     'applicants and accepts or rejects each. A company may accept more than one student ' +
-    'for one gig, and that fact drives most of the escrow complexity in 5.6.')
+    'for one gig, and that fact drives most of the escrow complexity in 6.6.')
 
   table(['Application state', 'Meaning', 'May the company fund escrow?'], [
     ['pending', 'Submitted, not yet reviewed', 'No'],
@@ -160,7 +88,7 @@ module.exports = (ctx) => {
     ['rejected', 'Not chosen', 'No'],
     ['withdrawn', 'The student withdrew', 'No'],
     ['completed', 'Work delivered and paid', 'No; the escrow already exists']
-  ], [24, 40, 36], { caption: 'Table 5.3  Application states' });
+  ], [24, 40, 36], { caption: 'Table 6.3  Application states' });
 
   body('Funding is restricted to accepted applications for a reason that is only visible ' +
     'in the data model. If escrow could be funded against a pending application, there ' +
@@ -179,9 +107,9 @@ module.exports = (ctx) => {
     ['Contributor', 'At least one answer accepted, or one resource approved, or one completed session rated'],
     ['Trusted', 'A sustained combination: several accepted answers or sessions, and no unresolved dispute'],
     ['Established', 'High volume of completed, rated work across more than one counterparty']
-  ], [20, 80], { caption: 'Table 5.4  Trust tiers and how they are reached' });
+  ], [20, 80], { caption: 'Table 6.4  Trust tiers and how they are reached' });
 
-  h2('5.6', 'Payments and Escrow Module');
+  h2('6.6', 'Payments and Escrow Module');
   body('This is the module in which correctness matters most, and it is where most of the ' +
     'defects found during the project were found. Four separate faults were repaired here, ' +
     'and each is presented with the fault, because a reader evaluating this work should ' +
@@ -207,7 +135,7 @@ module.exports = (ctx) => {
     '  \'UPDATE wallets SET balance = $1, locked_balance = locked_balance + $2 WHERE id = $3\',',
     '  [balanceAfter, value, wallet.rows[0].id]',
     ');'
-  ], { caption: 'Listing 5.2  Funding escrow, with the locked balance raised' });
+  ], { caption: 'Listing 6.2  Funding escrow, with the locked balance raised' });
 
   h3('Fault two: only the newest applicant could ever be paid')
   body('Releasing escrow selected the transaction to pay with an ordering by creation ' +
@@ -231,7 +159,7 @@ module.exports = (ctx) => {
     '        FOR UPDATE`,',
     '  applicationId ? [gigId, req.user.id, applicationId] : [gigId, req.user.id]',
     ');'
-  ], { caption: 'Listing 5.3  Releasing a named application' });
+  ], { caption: 'Listing 6.3  Releasing a named application' });
 
   h3('Fault three: the protection could be switched off by the party it protected against')
   body('Release required a submitted deliverable. The same endpoint also accepted a flag ' +
@@ -256,7 +184,7 @@ module.exports = (ctx) => {
     '  logger.warn(`Admin ${req.user.id} force released escrow ${row.id} ` +',
     '    `for gig ${gigId} with no deliverable`);',
     '}'
-  ], { caption: 'Listing 5.4  The deliverable gate, and who may bypass it' });
+  ], { caption: 'Listing 6.4  The deliverable gate, and who may bypass it' });
 
   note('Why the bypass was restricted rather than removed',
     'An administrator override is sometimes necessary: a student may have delivered work ' +
@@ -279,7 +207,7 @@ module.exports = (ctx) => {
     'checks its state, and returns without acting if it is already released. Two ' +
     'concurrent releases therefore produce one payment: the second waits for the lock, ' +
     'then sees a terminal state. The same pattern is used in the refund path and in the ' +
-    'automatic release described in 5.12.')
+    'automatic release described in 6.12.')
 
   table(['Situation', 'Response', 'Why'], [
     ['Released, released again', '200 with the existing record, marked already released',
@@ -288,7 +216,7 @@ module.exports = (ctx) => {
     ['Any other state', '400 naming the current state', 'The caller is told what is wrong'],
     ['No escrow for this gig and company', '404', 'Distinguishes absence from conflict'],
     ['force without admin role', '403', 'The gate is not the payer to operate']
-  ], [26, 36, 38], { caption: 'Table 5.5  Release path outcomes' });
+  ], [26, 36, 38], { caption: 'Table 6.5  Release path outcomes' });
 
   h3('Withdrawals')
   body('A withdrawal request moves the amount from available into locked on the company ' +
@@ -325,9 +253,9 @@ module.exports = (ctx) => {
     '    [amount, walletId]',
     '  );',
     '}'
-  ], { caption: 'Listing 5.5  Approving and rejecting a withdrawal' });
+  ], { caption: 'Listing 6.5  Approving and rejecting a withdrawal' });
 
-  h2('5.7', 'Messaging Module');
+  h2('6.7', 'Messaging Module');
   body('Messaging is one-to-one threads plus a connection to a gig or a session. ' +
     'Delivery is over WebSocket on the same process that serves the API, for the reasons ' +
     'given in section 3.5.')
@@ -350,7 +278,7 @@ module.exports = (ctx) => {
       'an idle site. Treating it as ordinary, and re-fetching on return, means the ' +
       'behaviour users see is the same whether the service was awake or asleep.');
 
-  h2('5.8', 'Notifications Module');
+  h2('6.8', 'Notifications Module');
   body('Notifications are rows, not a delivery system. An event writes a row and, if the ' +
     'user is connected, pushes it over the socket. A user who was offline sees it on their ' +
     'next visit. This is the right trade at this scale because it needs no delivery ' +
@@ -364,7 +292,7 @@ module.exports = (ctx) => {
     'is the same principle as the update timestamps described in section 4.3: if a value ' +
     'is derived from the row, the row should be responsible for it.')
 
-  h2('5.9', 'AI Service');
+  h2('6.9', 'AI Service');
   body('The AI module provides assistance with a doubt: a student may ask for a hint or an ' +
     'explanation, and the service returns a response that is clearly labelled as generated ' +
     'and is not stored as an accepted answer. Two decisions are worth stating.')
@@ -378,7 +306,7 @@ module.exports = (ctx) => {
       'hold a connection from the pool or delay other requests.' }
   ]);
 
-  h2('5.10', 'Admin and Moderation Module');
+  h2('6.10', 'Admin and Moderation Module');
   body('The administrative module carries verification review, resource approval, doubt ' +
     'and answer moderation, the audit log, analytics, withdrawal decisions and the escrow ' +
     'override. It is the only module whose routes are all administrative, which means the ' +
@@ -395,14 +323,14 @@ module.exports = (ctx) => {
       'Audit log and a wallet transaction'],
     ['Release or refund escrow without a deliverable', 'Pays or returns the money',
       'Audit log and a warning line in the application log']
-  ], [30, 40, 30], { caption: 'Table 5.6  Administrative actions and their records' });
+  ], [30, 40, 30], { caption: 'Table 6.6  Administrative actions and their records' });
 
   body('The pattern across all five is the same: an administrator may do something a user ' +
     'cannot, and in every case the action that could be contentious is written to the audit ' +
-    'log with the acting administrator. The escrow override in 5.6 depends on this; it is ' +
+    'log with the acting administrator. The escrow override in 6.6 depends on this; it is ' +
     'acceptable for that override to exist only because it leaves a record.')
 
-  h2('5.11', 'Resources and Interview Preparation');
+  h2('6.11', 'Resources and Interview Preparation');
   body('The resources module is a browsable library of uploaded material with a subject, a ' +
     'level and a type, together with a separate bank of interview questions. It is the ' +
     'module that failed most completely in the delivered system, and the reason is worth ' +
@@ -429,7 +357,7 @@ module.exports = (ctx) => {
     '  conditions.push(`r.subject = $${params.length + 1}`);',
     '  params.push(subject);',
     '}'
-  ], { caption: 'Listing 5.6  The aliased count query' });
+  ], { caption: 'Listing 6.6  The aliased count query' });
 
   note('Why this fault was so effective at hiding itself',
     'The unfiltered list worked. The failure appeared only when a filter was applied, ' +
@@ -454,7 +382,7 @@ module.exports = (ctx) => {
       'from a hard-coded list.' }
   ]);
 
-  h2('5.12', 'Background Scheduling');
+  h2('6.12', 'Background Scheduling');
   body('One scheduled task exists, and it is the most important one: releasing escrow that ' +
     'has passed its automatic release date. The escrow table carried a column for this ' +
     'date from the beginning, and nothing read it. A company that accepted a student and ' +
@@ -485,7 +413,7 @@ module.exports = (ctx) => {
     '',
     '// Only gig students, never a company or an admin.',
     'const RELEASEABLE = [\'student\', \'alumni\'];'
-  ], { caption: 'Listing 5.7  The automatic release job, header' });
+  ], { caption: 'Listing 6.7  The automatic release job, header' });
 
   h3('Three decisions in this job')
   table(['Decision', 'Reason'], [
@@ -498,7 +426,7 @@ module.exports = (ctx) => {
     ['Refunds are never automatic',
       'Auto-releasing pays the party that needs protecting. A job that moved money the ' +
       'other way unattended would remove money from someone who had already funded it.']
-  ], [32, 68], { caption: 'Table 5.7  Design of the scheduled release' });
+  ], [32, 68], { caption: 'Table 6.7  Design of the scheduled release' });
 
   body('The row lock is taken with a re-read inside the transaction, so if an ' +
     'administrator releases the same escrow by hand while the job is running, exactly one ' +

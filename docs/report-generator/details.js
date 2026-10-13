@@ -29,10 +29,12 @@ const CHAPTERS = [
   { num: '2', title: 'Literature Survey', sections: ['2.1', '2.2', '2.3', '2.4', '2.5', '2.6', '2.7', '2.8'] },
   { num: '3', title: 'System Analysis', sections: ['3.1', '3.2', '3.3', '3.4', '3.5'] },
   { num: '4', title: 'System Design', sections: ['4.1', '4.2', '4.3', '4.4', '4.5', '4.6'] },
-  { num: '5', title: 'Implementation', sections: ['5.1', '5.2', '5.3', '5.4', '5.5', '5.6', '5.7', '5.8', '5.9', '5.10', '5.11', '5.12'] },
-  { num: '6', title: 'Testing', sections: ['6.1', '6.2', '6.3', '6.4', '6.5', '6.6', '6.7', '6.8'] },
-  { num: '7', title: 'Conclusion and Future Scope', sections: ['7.1', '7.2', '7.3', '7.4'] },
-  { num: '8', title: 'References', sections: [] }
+  { num: '5', title: 'Technology and Methodology', sections: ['5.1', '5.2', '5.3'] },
+  { num: '6', title: 'Implementation', sections: ['6.1', '6.2', '6.3', '6.4', '6.5', '6.6', '6.7', '6.8', '6.9', '6.10', '6.11', '6.12'] },
+  { num: '7', title: 'Testing', sections: ['7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8'] },
+  { num: '8', title: 'Results', sections: ['8.1', '8.2', '8.3', '8.4', '8.5'] },
+  { num: '9', title: 'Conclusion and Future Scope', sections: ['9.1', '9.2', '9.3', '9.4'] },
+  { num: '10', title: 'References', sections: [] }
 ];
 
 const APPENDICES = [
@@ -47,7 +49,9 @@ const APPENDICES = [
   { key: 'I', title: 'Deployment Topology' },
   { key: 'J', title: 'Verification Commands' },
   { key: 'K', title: 'Defect Log' },
-  { key: 'L', title: 'Glossary' }
+  { key: 'L', title: 'Glossary' },
+  { key: 'M', title: 'Traceability Matrix' },
+  { key: 'N', title: 'Database Migrations' }
 ];
 
 // Section titles for the index labels. The index resolves each sub-section by
@@ -70,27 +74,34 @@ const SECTION_TITLES = {
   '4.3': 'Database Design', '4.4': 'State Machines', '4.5': 'Security Design',
   '4.6': 'Interface Design',
 
-  '5.1': 'Development Environment', '5.2': 'Authentication Module',
-  '5.3': 'Doubts and Answers Module', '5.4': 'Mentorship Module',
-  '5.5': 'Gigs and Applications Module', '5.6': 'Payments and Escrow Module',
-  '5.7': 'Messaging Module', '5.8': 'Notifications Module',
-  '5.9': 'AI Service', '5.10': 'Admin and Moderation Module',
-  '5.11': 'Resources and Interview Preparation', '5.12': 'Background Scheduling',
+  '5.1': 'Technology Stack', '5.2': 'Development Methodology',
+  '5.3': 'Alternative Technologies Considered',
 
-  '6.1': 'Testing Strategy', '6.2': 'Static Analysis and Unit Tests',
-  '6.3': 'Endpoint Sweep', '6.4': 'Defects Found and Resolved',
-  '6.5': 'Verification Against the Deployed System',
-  '6.6': 'Defects Found by Interface Verification',
-  '6.7': 'Payment Lifecycle Verification', '6.8': 'User Acceptance',
+  '6.1': 'Development Environment', '6.2': 'Authentication Module',
+  '6.3': 'Doubts and Answers Module', '6.4': 'Mentorship Module',
+  '6.5': 'Gigs and Applications Module', '6.6': 'Payments and Escrow Module',
+  '6.7': 'Messaging Module', '6.8': 'Notifications Module',
+  '6.9': 'AI Service', '6.10': 'Admin and Moderation Module',
+  '6.11': 'Resources and Interview Preparation', '6.12': 'Background Scheduling',
 
-  '7.1': 'Conclusion', '7.2': 'Summary of Achievements',
-  '7.3': 'Limitations Encountered', '7.4': 'Future Enhancements',
+  '7.1': 'Testing Strategy', '7.2': 'Static Analysis and Unit Tests',
+  '7.3': 'Endpoint Sweep', '7.4': 'Defects Found and Resolved',
+  '7.5': 'Verification Against the Deployed System',
+  '7.6': 'Defects Found by Interface Verification',
+  '7.7': 'Payment Lifecycle Verification', '7.8': 'User Acceptance',
+
+  '8.1': 'Measured Results', '8.2': 'Results Against the Project Objectives',
+  '8.3': 'Results Against the Non-Functional Requirements',
+  '8.4': 'Defect Resolution', '8.5': 'Discussion of Results',
+
+  '9.1': 'Conclusion', '9.2': 'Summary of Achievements',
+  '9.3': 'Limitations Encountered', '9.4': 'Future Enhancements',
 
   A: 'Project Structure', B: 'Module Map', C: 'Role and Permission Matrix',
   D: 'Test Results Summary', E: 'REST API Reference', F: 'Database Data Dictionary',
   G: 'Index and Trigger Catalogue', H: 'Key Source Code Extracts',
   I: 'Deployment Topology', J: 'Verification Commands', K: 'Defect Log',
-  L: 'Glossary'
+  L: 'Glossary', M: 'Traceability Matrix', N: 'Database Migrations'
 };
 
 module.exports = { D, CHAPTERS, APPENDICES, SECTION_TITLES };

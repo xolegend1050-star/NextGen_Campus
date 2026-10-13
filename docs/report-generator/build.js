@@ -55,14 +55,20 @@ const requireReferenceData = () => {
 };
 requireReferenceData();
 
+// Order is the reading order, and it is also what decides the page numbers: each
+// entry is a module that renders one or more chapters in sequence.
 const SECTIONS = [
   './content/00-front.js',
-  './content/01-ch12.js',
-  './content/02-ch34.js',
-  './content/03-ch5.js',
-  './content/04-ch678.js',
-  './content/05-appendixA-D.js',
-  './content/06-appendixE-L.js'
+  './content/01-ch12.js',            // 1 Introduction, 2 Literature Survey
+  './content/02-ch34.js',            // 3 System Analysis, 4 System Design
+  './content/03-ch5technology.js',   // 5 Technology and Methodology
+  './content/04-impl6.js',           // 6 Implementation
+  './content/05-ch7testing.js',      // 7 Testing
+  './content/06-ch8results.js',      // 8 Results
+  './content/07-ch9concl10refs.js',  // 9 Conclusion, 10 References
+  './content/08-appendixA-D.js',
+  './content/09-appendixE-L.js',
+  './content/10-appendixM-N.js'
 ].map((p) => require(p));
 
 /**
