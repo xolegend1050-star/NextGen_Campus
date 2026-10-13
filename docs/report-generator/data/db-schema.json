@@ -1,0 +1,4545 @@
+{
+ "tables": [
+  {
+   "table": "admin_audit_log",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "admin_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "action_type",
+     "type": "admin_action_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "target_user_id",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "target_resource_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "target_resource_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "reason",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "details",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "ip_address",
+     "type": "inet",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "admin_roles",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "permissions",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "created_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "alumni_profiles",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "profile_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → profiles(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "graduation_year",
+     "type": "integer",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "current_company",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "current_designation",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "years_of_experience",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "mentoring_available",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "max_mentees",
+     "type": "integer",
+     "flags": [
+      "default 5"
+     ]
+    },
+    {
+     "name": "mentorship_areas",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "linkedin_verified",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "company_email",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "analytics_events",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "event_type",
+     "type": "varchar(100)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "event_data",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "session_id",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "ip_address",
+     "type": "inet",
+     "flags": []
+    },
+    {
+     "name": "user_agent",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "api_keys",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "key_hash",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "name",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "permissions",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "last_used_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "is_active",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "api_rate_limits",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "api_key_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → api_keys(id)"
+     ]
+    },
+    {
+     "name": "endpoint",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "requests_count",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "window_start",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "window_duration_minutes",
+     "type": "integer",
+     "flags": [
+      "default 60"
+     ]
+    },
+    {
+     "name": "max_requests",
+     "type": "integer",
+     "flags": [
+      "default 100"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "badges",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "name",
+     "type": "varchar(100)",
+     "flags": [
+      "required",
+      "unique"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "icon_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "category",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "points_value",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "tier",
+     "type": "varchar(20)",
+     "flags": [
+      "default bronze"
+     ]
+    },
+    {
+     "name": "criteria",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "is_active",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "chat_reports",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "message_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → messages(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "reported_by",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reason",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "reviewed_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reviewed_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "company_profiles",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "company_name",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "logo_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "website_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "industry",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "company_size",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "founded_year",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "headquarters_city",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "headquarters_state",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "gst_number",
+     "type": "varchar(20)",
+     "flags": []
+    },
+    {
+     "name": "linkedin_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "is_verified",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "trust_score",
+     "type": "decimal(5,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "payment_cap",
+     "type": "decimal(10,2)",
+     "flags": [
+      "default 5000.00"
+     ]
+    },
+    {
+     "name": "requires_escrow",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "total_gigs_posted",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "total_students_hired",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "average_rating",
+     "type": "decimal(3,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "company_reports",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "company_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reported_by",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reason",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "evidence_urls",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "reviewed_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "action_taken",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "conversation_participants",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "conversation_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → conversations(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "last_read_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "is_muted",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "joined_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "conversations",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "type",
+     "type": "conversation_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "related_request_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "related_gig_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "is_active",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "disputes",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → gigs(id)"
+     ]
+    },
+    {
+     "name": "raised_by",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "against_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "escrow_id",
+     "type": "uuid",
+     "flags": [
+      "FK → escrow_transactions(id)"
+     ]
+    },
+    {
+     "name": "reason",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "evidence_urls",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "dispute_status",
+     "flags": [
+      "default open"
+     ]
+    },
+    {
+     "name": "resolution",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "resolved_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "resolved_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "doubt_answers",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "doubt_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → doubts(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "author_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "content",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "source",
+     "type": "answer_source",
+     "flags": [
+      "default peer"
+     ]
+    },
+    {
+     "name": "upvotes",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "downvotes",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "is_accepted",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "is_flagged",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "flag_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "doubt_bookmarks",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "doubt_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → doubts(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "doubt_votes",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "doubt_id",
+     "type": "uuid",
+     "flags": [
+      "FK → doubts(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "answer_id",
+     "type": "uuid",
+     "flags": [
+      "FK → doubt_answers(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "vote_type",
+     "type": "integer",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "doubts",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "author_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(500)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "content",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "tags",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "subject",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "topic",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "doubt_status",
+     "flags": [
+      "default open"
+     ]
+    },
+    {
+     "name": "upvotes",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "downvotes",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "views",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "is_flagged",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "flag_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "ai_draft_answer",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "ai_draft_generated_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "accepted_answer_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "escrow_transactions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → gigs(id)"
+     ]
+    },
+    {
+     "name": "company_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "amount",
+     "type": "decimal(10,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default locked"
+     ]
+    },
+    {
+     "name": "funded_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "released_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "auto_release_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "released_to_wallet",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "flagged_content",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "content_type",
+     "type": "varchar(50)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "content_id",
+     "type": "uuid",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "reported_by",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reason",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "reviewed_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "action_taken",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "follows",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "follower_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "following_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "gig_applications",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → gigs(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "cover_letter",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "resume_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "application_status",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "ai_match_score",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "match_reasons",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "company_notes",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "shortlisted_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "accepted_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "gig_deliverables",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → gigs(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "file_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "file_name",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default submitted"
+     ]
+    },
+    {
+     "name": "submitted_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "reviewed_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "feedback",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "gig_recommendations",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → gigs(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "match_score",
+     "type": "decimal(5,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "match_reasons",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "skill_gaps",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "prediction_confidence",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "is_viewed",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "is_applied",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "gigs",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "company_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "requirements",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "skills_required",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "category",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "subcategory",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "gig_type",
+     "type": "varchar(50)",
+     "flags": [
+      "default micro_internship"
+     ]
+    },
+    {
+     "name": "duration_days",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "max_students",
+     "type": "integer",
+     "flags": [
+      "default 1"
+     ]
+    },
+    {
+     "name": "compensation",
+     "type": "decimal(10,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "is_escrow_required",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "gig_status",
+     "flags": [
+      "default draft"
+     ]
+    },
+    {
+     "name": "is_remote",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "location",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "application_deadline",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "start_date",
+     "type": "date",
+     "flags": []
+    },
+    {
+     "name": "end_date",
+     "type": "date",
+     "flags": []
+    },
+    {
+     "name": "total_applications",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "is_featured",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "ai_match_threshold",
+     "type": "decimal(5,2)",
+     "flags": [
+      "default 50.00"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "interview_practice",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "question_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → interview_questions(id)"
+     ]
+    },
+    {
+     "name": "student_answer",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "ai_feedback",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "score",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "time_taken_seconds",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "practice_date",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "interview_questions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "question",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "sample_answer",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "difficulty_level",
+     "type": "varchar(20)",
+     "flags": []
+    },
+    {
+     "name": "category",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "tags",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "company_name",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "asked_frequency",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "leaderboards",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "category",
+     "type": "varchar(50)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "total_points",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "rank",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "period",
+     "type": "varchar(20)",
+     "flags": [
+      "default all_time"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "login_otps",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "otp_code",
+     "type": "varchar(6)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "attempts",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "max_attempts",
+     "type": "integer",
+     "flags": [
+      "default 3"
+     ]
+    },
+    {
+     "name": "verified",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "mentor_availability",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "mentor_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "day_of_week",
+     "type": "integer",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "start_time",
+     "type": "time",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "end_time",
+     "type": "time",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "is_active",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "mentor_expertise",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "mentor_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "skill",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "proficiency_level",
+     "type": "integer",
+     "flags": [
+      "default 3"
+     ]
+    },
+    {
+     "name": "years_experience",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "mentorship_requests",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "mentor_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "message",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "status",
+     "type": "mentorship_status",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "ai_match_score",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "match_reasons",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "student_goals",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "preferred_session_type",
+     "type": "session_type",
+     "flags": [
+      "default chat"
+     ]
+    },
+    {
+     "name": "responded_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "mentorship_sessions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "request_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → mentorship_requests(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "mentor_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "session_type",
+     "type": "session_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "session_status",
+     "flags": [
+      "default scheduled"
+     ]
+    },
+    {
+     "name": "scheduled_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "started_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "ended_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "duration_minutes",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "meeting_link",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "notes",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "student_attended",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "mentor_attended",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "messages",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "conversation_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → conversations(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "sender_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "content",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "message_type",
+     "type": "varchar(20)",
+     "flags": [
+      "default text"
+     ]
+    },
+    {
+     "name": "file_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "file_name",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "file_size",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "is_edited",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "is_deleted",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "read_by",
+     "type": "uuid[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "ai_moderated",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "moderation_flag",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "notification_preferences",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "email_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "push_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "in_app_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "doubt_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "mentorship_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "gig_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "payment_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "system_notifications",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "quiet_hours_start",
+     "type": "time",
+     "flags": []
+    },
+    {
+     "name": "quiet_hours_end",
+     "type": "time",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "notifications",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "type",
+     "type": "notification_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "message",
+     "type": "text",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "data",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "is_read",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "read_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "action_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "password_resets",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "token_hash",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "used",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "platform_metrics",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "metric_name",
+     "type": "varchar(100)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "metric_value",
+     "type": "decimal(12,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "metric_date",
+     "type": "date",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "metadata",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "points_history",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "points",
+     "type": "integer",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "reason",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "reference_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "reference_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "profile_experience",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "profile_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → profiles(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "company_name",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "start_date",
+     "type": "date",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "end_date",
+     "type": "date",
+     "flags": []
+    },
+    {
+     "name": "is_current",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "profile_projects",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "profile_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → profiles(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "project_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "github_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "technologies",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "image_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "profiles",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "full_name",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "avatar_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "cover_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "bio",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "phone",
+     "type": "varchar(20)",
+     "flags": []
+    },
+    {
+     "name": "date_of_birth",
+     "type": "date",
+     "flags": []
+    },
+    {
+     "name": "gender",
+     "type": "varchar(20)",
+     "flags": []
+    },
+    {
+     "name": "city",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "state",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "college_name",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "college_city",
+     "type": "varchar(100)",
+     "flags": []
+    },
+    {
+     "name": "course",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "year_of_study",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "graduation_year",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "skills",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "interests",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "linkedin_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "github_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "portfolio_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "resume_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "trust_score",
+     "type": "decimal(5,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "talent_tier",
+     "type": "talent_tier",
+     "flags": [
+      "default new"
+     ]
+    },
+    {
+     "name": "is_profile_complete",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "visibility_settings",
+     "type": "jsonb",
+     "flags": [
+      "default {\"city\":"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "ratings",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "rater_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "rated_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "session_id",
+     "type": "uuid",
+     "flags": [
+      "FK → mentorship_sessions(id)"
+     ]
+    },
+    {
+     "name": "gig_id",
+     "type": "uuid",
+     "flags": [
+      "FK → gigs(id)"
+     ]
+    },
+    {
+     "name": "overall_rating",
+     "type": "integer",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "communication_rating",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "knowledge_rating",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "punctuality_rating",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "helpfulness_rating",
+     "type": "integer",
+     "flags": []
+    },
+    {
+     "name": "review",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "is_visible",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "resources",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "uploader_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "title",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "resource_type",
+     "type": "resource_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "file_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "external_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "tags",
+     "type": "text[]",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "subject",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "difficulty_level",
+     "type": "varchar(20)",
+     "flags": []
+    },
+    {
+     "name": "download_count",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "is_approved",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "student_activity_log",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "activity_type",
+     "type": "varchar(100)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "activity_data",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "points_earned",
+     "type": "integer",
+     "flags": [
+      "default 0"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "student_skill_analysis",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "student_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "skill",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "proficiency_level",
+     "type": "integer",
+     "flags": [
+      "default 3"
+     ]
+    },
+    {
+     "name": "evidence_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "evidence_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "confidence_score",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "last_updated",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "trust_score_history",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "old_score",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "new_score",
+     "type": "decimal(5,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "change_reason",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "change_amount",
+     "type": "decimal(5,2)",
+     "flags": []
+    },
+    {
+     "name": "reference_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "reference_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "user_badges",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "badge_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → badges(id)"
+     ]
+    },
+    {
+     "name": "earned_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "user_sessions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "token_hash",
+     "type": "varchar(255)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "refresh_token_hash",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "ip_address",
+     "type": "inet",
+     "flags": []
+    },
+    {
+     "name": "user_agent",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "users",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "email",
+     "type": "varchar(255)",
+     "flags": [
+      "required",
+      "unique"
+     ]
+    },
+    {
+     "name": "password_hash",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "role",
+     "type": "user_role",
+     "flags": [
+      "required",
+      "default student"
+     ]
+    },
+    {
+     "name": "auth_provider",
+     "type": "auth_provider",
+     "flags": [
+      "default email"
+     ]
+    },
+    {
+     "name": "provider_id",
+     "type": "varchar(255)",
+     "flags": []
+    },
+    {
+     "name": "is_email_verified",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "is_active",
+     "type": "boolean",
+     "flags": [
+      "default TRUE"
+     ]
+    },
+    {
+     "name": "is_banned",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "ban_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "skip_otp",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "last_login_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "verification_tokens",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "token",
+     "type": "varchar(255)",
+     "flags": [
+      "required",
+      "unique"
+     ]
+    },
+    {
+     "name": "verification_type",
+     "type": "verification_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "used",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "verifications",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "verification_type",
+     "type": "verification_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "tier",
+     "type": "verification_tier",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "verification_status",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "document_url",
+     "type": "varchar(500)",
+     "flags": []
+    },
+    {
+     "name": "document_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "metadata",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "reviewed_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "reviewed_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "rejection_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "expires_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "wallet_transactions",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "wallet_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → wallets(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "transaction_type",
+     "type": "wallet_transaction_type",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "amount",
+     "type": "decimal(12,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "balance_before",
+     "type": "decimal(12,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "balance_after",
+     "type": "decimal(12,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "wallet_transaction_status",
+     "flags": [
+      "default completed"
+     ]
+    },
+    {
+     "name": "reference_type",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "reference_id",
+     "type": "uuid",
+     "flags": []
+    },
+    {
+     "name": "description",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "metadata",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "wallets",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "unique",
+      "FK → users(id)",
+      "ON DELETE CASCADE"
+     ]
+    },
+    {
+     "name": "balance",
+     "type": "decimal(12,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "locked_balance",
+     "type": "decimal(12,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "total_earned",
+     "type": "decimal(12,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "total_withdrawn",
+     "type": "decimal(12,2)",
+     "flags": [
+      "default 0.00"
+     ]
+    },
+    {
+     "name": "is_frozen",
+     "type": "boolean",
+     "flags": [
+      "default FALSE"
+     ]
+    },
+    {
+     "name": "freeze_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    },
+    {
+     "name": "updated_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  },
+  {
+   "table": "withdrawal_requests",
+   "columns": [
+    {
+     "name": "id",
+     "type": "uuid",
+     "flags": [
+      "PK",
+      "default uuid_generate_v4()"
+     ]
+    },
+    {
+     "name": "user_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "wallet_id",
+     "type": "uuid",
+     "flags": [
+      "required",
+      "FK → wallets(id)"
+     ]
+    },
+    {
+     "name": "amount",
+     "type": "decimal(10,2)",
+     "flags": [
+      "required"
+     ]
+    },
+    {
+     "name": "payment_method",
+     "type": "varchar(50)",
+     "flags": []
+    },
+    {
+     "name": "payment_details",
+     "type": "jsonb",
+     "flags": [
+      "default {}"
+     ]
+    },
+    {
+     "name": "status",
+     "type": "varchar(20)",
+     "flags": [
+      "default pending"
+     ]
+    },
+    {
+     "name": "processed_by",
+     "type": "uuid",
+     "flags": [
+      "FK → users(id)"
+     ]
+    },
+    {
+     "name": "processed_at",
+     "type": "timestamp with time zone",
+     "flags": []
+    },
+    {
+     "name": "rejection_reason",
+     "type": "text",
+     "flags": []
+    },
+    {
+     "name": "created_at",
+     "type": "timestamp with time zone",
+     "flags": [
+      "default NOW()"
+     ]
+    }
+   ]
+  }
+ ],
+ "indexes": [
+  {
+   "name": "idx_login_otps_user",
+   "table": "login_otps",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_login_otps_code",
+   "table": "login_otps",
+   "cols": "otp_code"
+  },
+  {
+   "name": "idx_users_email",
+   "table": "users",
+   "cols": "email"
+  },
+  {
+   "name": "idx_users_role",
+   "table": "users",
+   "cols": "role"
+  },
+  {
+   "name": "idx_users_is_active",
+   "table": "users",
+   "cols": "is_active"
+  },
+  {
+   "name": "idx_profiles_user_id",
+   "table": "profiles",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_profiles_city",
+   "table": "profiles",
+   "cols": "city"
+  },
+  {
+   "name": "idx_profiles_college",
+   "table": "profiles",
+   "cols": "college_name"
+  },
+  {
+   "name": "idx_profiles_trust_score",
+   "table": "profiles",
+   "cols": "trust_score DESC"
+  },
+  {
+   "name": "idx_profiles_skills",
+   "table": "profiles",
+   "cols": "skills"
+  },
+  {
+   "name": "idx_doubts_author",
+   "table": "doubts",
+   "cols": "author_id"
+  },
+  {
+   "name": "idx_doubts_status",
+   "table": "doubts",
+   "cols": "status"
+  },
+  {
+   "name": "idx_doubts_subject",
+   "table": "doubts",
+   "cols": "subject"
+  },
+  {
+   "name": "idx_doubts_created",
+   "table": "doubts",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_doubts_tags",
+   "table": "doubts",
+   "cols": "tags"
+  },
+  {
+   "name": "idx_answers_doubt",
+   "table": "doubt_answers",
+   "cols": "doubt_id"
+  },
+  {
+   "name": "idx_answers_author",
+   "table": "doubt_answers",
+   "cols": "author_id"
+  },
+  {
+   "name": "idx_mentorship_student",
+   "table": "mentorship_requests",
+   "cols": "student_id"
+  },
+  {
+   "name": "idx_mentorship_mentor",
+   "table": "mentorship_requests",
+   "cols": "mentor_id"
+  },
+  {
+   "name": "idx_mentorship_status",
+   "table": "mentorship_requests",
+   "cols": "status"
+  },
+  {
+   "name": "idx_sessions_student",
+   "table": "mentorship_sessions",
+   "cols": "student_id"
+  },
+  {
+   "name": "idx_sessions_mentor",
+   "table": "mentorship_sessions",
+   "cols": "mentor_id"
+  },
+  {
+   "name": "idx_sessions_scheduled",
+   "table": "mentorship_sessions",
+   "cols": "scheduled_at"
+  },
+  {
+   "name": "idx_gigs_company",
+   "table": "gigs",
+   "cols": "company_id"
+  },
+  {
+   "name": "idx_gigs_status",
+   "table": "gigs",
+   "cols": "status"
+  },
+  {
+   "name": "idx_gigs_category",
+   "table": "gigs",
+   "cols": "category"
+  },
+  {
+   "name": "idx_gigs_created",
+   "table": "gigs",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_gigs_skills",
+   "table": "gigs",
+   "cols": "skills_required"
+  },
+  {
+   "name": "idx_applications_gig",
+   "table": "gig_applications",
+   "cols": "gig_id"
+  },
+  {
+   "name": "idx_applications_student",
+   "table": "gig_applications",
+   "cols": "student_id"
+  },
+  {
+   "name": "idx_applications_status",
+   "table": "gig_applications",
+   "cols": "status"
+  },
+  {
+   "name": "idx_wallet_user",
+   "table": "wallets",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_transactions_wallet",
+   "table": "wallet_transactions",
+   "cols": "wallet_id"
+  },
+  {
+   "name": "idx_transactions_type",
+   "table": "wallet_transactions",
+   "cols": "transaction_type"
+  },
+  {
+   "name": "idx_transactions_created",
+   "table": "wallet_transactions",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_escrow_gig",
+   "table": "escrow_transactions",
+   "cols": "gig_id"
+  },
+  {
+   "name": "idx_escrow_company",
+   "table": "escrow_transactions",
+   "cols": "company_id"
+  },
+  {
+   "name": "idx_escrow_student",
+   "table": "escrow_transactions",
+   "cols": "student_id"
+  },
+  {
+   "name": "idx_escrow_status",
+   "table": "escrow_transactions",
+   "cols": "status"
+  },
+  {
+   "name": "idx_ratings_rated",
+   "table": "ratings",
+   "cols": "rated_id"
+  },
+  {
+   "name": "idx_ratings_rater",
+   "table": "ratings",
+   "cols": "rater_id"
+  },
+  {
+   "name": "idx_notifications_user",
+   "table": "notifications",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_notifications_type",
+   "table": "notifications",
+   "cols": "type"
+  },
+  {
+   "name": "idx_notifications_read",
+   "table": "notifications",
+   "cols": "is_read"
+  },
+  {
+   "name": "idx_notifications_created",
+   "table": "notifications",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_messages_conversation",
+   "table": "messages",
+   "cols": "conversation_id"
+  },
+  {
+   "name": "idx_messages_sender",
+   "table": "messages",
+   "cols": "sender_id"
+  },
+  {
+   "name": "idx_messages_created",
+   "table": "messages",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_analytics_user",
+   "table": "analytics_events",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_analytics_type",
+   "table": "analytics_events",
+   "cols": "event_type"
+  },
+  {
+   "name": "idx_analytics_created",
+   "table": "analytics_events",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_user_badges_user",
+   "table": "user_badges",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_points_user",
+   "table": "points_history",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_admin_log_admin",
+   "table": "admin_audit_log",
+   "cols": "admin_id"
+  },
+  {
+   "name": "idx_admin_log_action",
+   "table": "admin_audit_log",
+   "cols": "action_type"
+  },
+  {
+   "name": "idx_admin_log_created",
+   "table": "admin_audit_log",
+   "cols": "created_at DESC"
+  },
+  {
+   "name": "idx_user_sessions_token_hash",
+   "table": "user_sessions",
+   "cols": "token_hash"
+  },
+  {
+   "name": "idx_user_sessions_refresh_token_hash",
+   "table": "user_sessions",
+   "cols": "refresh_token_hash"
+  },
+  {
+   "name": "idx_password_resets_token_hash",
+   "table": "password_resets",
+   "cols": "token_hash"
+  },
+  {
+   "name": "idx_password_resets_user_id_used",
+   "table": "password_resets",
+   "cols": "user_id, used"
+  },
+  {
+   "name": "idx_user_sessions_user_id",
+   "table": "user_sessions",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_user_sessions_expires_at",
+   "table": "user_sessions",
+   "cols": "expires_at"
+  },
+  {
+   "name": "idx_escrow_one_locked_per_application",
+   "table": "escrow_transactions",
+   "cols": "application_id"
+  },
+  {
+   "name": "idx_escrow_company_status",
+   "table": "escrow_transactions",
+   "cols": "company_id, status"
+  },
+  {
+   "name": "idx_escrow_student_status",
+   "table": "escrow_transactions",
+   "cols": "student_id, status"
+  },
+  {
+   "name": "idx_escrow_gig_status",
+   "table": "escrow_transactions",
+   "cols": "gig_id, status"
+  },
+  {
+   "name": "idx_escrow_auto_release",
+   "table": "escrow_transactions",
+   "cols": "auto_release_at"
+  },
+  {
+   "name": "idx_follows_follower",
+   "table": "follows",
+   "cols": "follower_id"
+  },
+  {
+   "name": "idx_follows_following",
+   "table": "follows",
+   "cols": "following_id"
+  },
+  {
+   "name": "idx_verifications_user_id",
+   "table": "verifications",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_verifications_status",
+   "table": "verifications",
+   "cols": "status"
+  },
+  {
+   "name": "idx_verifications_type",
+   "table": "verifications",
+   "cols": "verification_type"
+  },
+  {
+   "name": "idx_verifications_user_status",
+   "table": "verifications",
+   "cols": "user_id, status"
+  },
+  {
+   "name": "idx_unique_pending_verification",
+   "table": "verifications",
+   "cols": "user_id, verification_type"
+  },
+  {
+   "name": "idx_trust_history_user_id",
+   "table": "trust_score_history",
+   "cols": "user_id"
+  },
+  {
+   "name": "idx_trust_history_created_at",
+   "table": "trust_score_history",
+   "cols": "created_at"
+  },
+  {
+   "name": "idx_profiles_talent_tier",
+   "table": "profiles",
+   "cols": "talent_tier"
+  },
+  {
+   "name": "idx_profiles_trust_score",
+   "table": "profiles",
+   "cols": "trust_score DESC"
+  },
+  {
+   "name": "idx_doubt_answers_author",
+   "table": "doubt_answers",
+   "cols": "author_id"
+  },
+  {
+   "name": "idx_ratings_rated_id",
+   "table": "ratings",
+   "cols": "rated_id"
+  },
+  {
+   "name": "idx_flagged_status",
+   "table": "flagged_content",
+   "cols": "status"
+  }
+ ],
+ "triggers": [
+  "trigger_cleanup_otps",
+  "trigger_create_notification_prefs",
+  "trigger_create_profile",
+  "trigger_create_wallet",
+  "trigger_update_application_count",
+  "trigger_update_follow_counts",
+  "trigger_update_votes",
+  "trigger_verified_at",
+  "update_alumni_profiles_updated_at",
+  "update_company_profiles_updated_at",
+  "update_doubt_answers_updated_at",
+  "update_doubts_updated_at",
+  "update_escrow_transactions_updated_at",
+  "update_gig_applications_updated_at",
+  "update_gigs_updated_at",
+  "update_mentorship_requests_updated_at",
+  "update_mentorship_sessions_updated_at",
+  "update_messages_updated_at",
+  "update_notifications_updated_at",
+  "update_profiles_updated_at",
+  "update_resources_updated_at",
+  "update_users_updated_at",
+  "update_wallets_updated_at"
+ ]
+}

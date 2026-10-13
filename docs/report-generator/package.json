@@ -1,0 +1,20 @@
+﻿{
+  "name": "nextgen-report-generator",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Builds the NextGen Campus black book as a monochrome PDF suitable for black and white printing",
+  "scripts": {
+    "build": "node build.js",
+    "extract": "node extract-routes.js && node extract-schema.js",
+    "extract:api": "node extract-routes.js",
+    "extract:schema": "node extract-schema.js",
+    "verify": "node verify.js",
+    "check": "node verify.js",
+    "letterhead": "node tools/prepare-letterhead.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "^4.7.76",
+    "pdfkit": "^0.15.1",
+    "pngjs": "^7.0.0"
+  }
+}

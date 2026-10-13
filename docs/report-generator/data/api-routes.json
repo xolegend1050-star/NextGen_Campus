@@ -1,0 +1,1343 @@
+[
+ {
+  "method": "GET",
+  "path": "/api/admin/audit-log",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "getAuditLog"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/dashboard",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": false,
+  "handler": "getDashboardStats"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/disputes",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "getDisputes"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/admin/disputes/:id",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "resolveDispute"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/disputes/:id/resolve",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "resolveDispute"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/flagged-content",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "getFlaggedContent"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/flagged-content/:id",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "reviewFlaggedContent"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/admin/flagged-content/:id",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "reviewFlaggedContent"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/users",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "getUsers"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/users/:id/ban",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "banUser"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/users/:id/role",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "updateUserRole"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/users/:id/unban",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "unbanUser"
+ },
+ {
+  "method": "GET",
+  "path": "/api/admin/verifications",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "getPendingVerifications"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/admin/verifications/:id",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "reviewVerification"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/admin/verifications/:id",
+  "module": "admin",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "reviewVerification"
+ },
+ {
+  "method": "POST",
+  "path": "/api/ai/analyze-resume",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "analyzeResume"
+ },
+ {
+  "method": "POST",
+  "path": "/api/ai/draft-answer",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "generateDraftAnswer"
+ },
+ {
+  "method": "GET",
+  "path": "/api/ai/health",
+  "module": "ai",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "aiHealth"
+ },
+ {
+  "method": "POST",
+  "path": "/api/ai/mock-interview",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "mockInterview"
+ },
+ {
+  "method": "POST",
+  "path": "/api/ai/moderate-content",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "moderateContent"
+ },
+ {
+  "method": "POST",
+  "path": "/api/ai/predict-gig-success",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "predictGigSuccess"
+ },
+ {
+  "method": "GET",
+  "path": "/api/ai/recommend-gigs",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "recommendGigs"
+ },
+ {
+  "method": "GET",
+  "path": "/api/ai/recommend-mentors",
+  "module": "ai",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "recommendMentors"
+ },
+ {
+  "method": "GET",
+  "path": "/api/analytics/admin",
+  "module": "analytics",
+  "auth": true,
+  "roles": "admin",
+  "validates": false,
+  "handler": "getPlatformAnalytics"
+ },
+ {
+  "method": "GET",
+  "path": "/api/analytics/leaderboard",
+  "module": "analytics",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getLeaderboard"
+ },
+ {
+  "method": "GET",
+  "path": "/api/analytics/platform",
+  "module": "analytics",
+  "auth": true,
+  "roles": "admin",
+  "validates": false,
+  "handler": "getPlatformAnalytics"
+ },
+ {
+  "method": "GET",
+  "path": "/api/analytics/student/:studentId",
+  "module": "analytics",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getStudentAnalytics"
+ },
+ {
+  "method": "POST",
+  "path": "/api/analytics/track",
+  "module": "analytics",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "trackEvent"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/forgot-password",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "forgotPassword"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/github",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "githubLogin"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/google",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "googleLogin"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/login",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "login"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/logout",
+  "module": "auth",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "logout"
+ },
+ {
+  "method": "GET",
+  "path": "/api/auth/me",
+  "module": "auth",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMe"
+ },
+ {
+  "method": "GET",
+  "path": "/api/auth/me/badges",
+  "module": "auth",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getUserBadges"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/refresh",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "refreshToken"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/register",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "register"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/resend-verification",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "resendVerification"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/reset-password",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "resetPassword"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/send-otp",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "sendOtp"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/verify-email",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "verifyEmail"
+ },
+ {
+  "method": "POST",
+  "path": "/api/auth/verify-otp",
+  "module": "auth",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "verifyOtp"
+ },
+ {
+  "method": "GET",
+  "path": "/api/badges",
+  "module": "badges",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "getAllBadges"
+ },
+ {
+  "method": "GET",
+  "path": "/api/badges/my-badges",
+  "module": "badges",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyBadges"
+ },
+ {
+  "method": "GET",
+  "path": "/api/badges/points",
+  "module": "badges",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyPoints"
+ },
+ {
+  "method": "POST",
+  "path": "/api/chat/attachment",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadAttachment"
+ },
+ {
+  "method": "GET",
+  "path": "/api/chat/conversations",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getConversations"
+ },
+ {
+  "method": "POST",
+  "path": "/api/chat/conversations",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "createConversation"
+ },
+ {
+  "method": "GET",
+  "path": "/api/chat/conversations/:conversationId/messages",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getMessages"
+ },
+ {
+  "method": "POST",
+  "path": "/api/chat/conversations/:conversationId/messages",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "sendMessage"
+ },
+ {
+  "method": "POST",
+  "path": "/api/chat/conversations/:conversationId/participants",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "addParticipant"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/chat/conversations/:conversationId/read",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "markAsRead"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/chat/messages/:messageId",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "deleteMessage"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/chat/messages/:messageId",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "editMessage"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/chat/messages/:messageId/read",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "markAsRead"
+ },
+ {
+  "method": "GET",
+  "path": "/api/chat/unread-count",
+  "module": "chat",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getUnreadCount"
+ },
+ {
+  "method": "GET",
+  "path": "/api/doubts",
+  "module": "doubts",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getAllDoubts"
+ },
+ {
+  "method": "POST",
+  "path": "/api/doubts",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "createDoubt"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/doubts/:id",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "deleteDoubt"
+ },
+ {
+  "method": "GET",
+  "path": "/api/doubts/:id",
+  "module": "doubts",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getDoubtById"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/doubts/:id",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateDoubt"
+ },
+ {
+  "method": "POST",
+  "path": "/api/doubts/:id/accept/:answerId",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "acceptAnswer"
+ },
+ {
+  "method": "GET",
+  "path": "/api/doubts/:id/answers",
+  "module": "doubts",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getDoubtAnswers"
+ },
+ {
+  "method": "POST",
+  "path": "/api/doubts/:id/answers",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "answerDoubt"
+ },
+ {
+  "method": "POST",
+  "path": "/api/doubts/:id/vote",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "voteDoubt"
+ },
+ {
+  "method": "POST",
+  "path": "/api/doubts/answers/:answerId/vote",
+  "module": "doubts",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "voteAnswer"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/follows/:userId",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "unfollowUser"
+ },
+ {
+  "method": "POST",
+  "path": "/api/follows/:userId",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "followUser"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/:userId/followers",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getFollowers"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/:userId/following",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getFollowing"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/:userId/status",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getFollowStatus"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/discover",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "discoverUsers"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/feed",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getFeed"
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/online",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": ""
+ },
+ {
+  "method": "GET",
+  "path": "/api/follows/suggestions",
+  "module": "follows",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getSuggestions"
+ },
+ {
+  "method": "GET",
+  "path": "/api/gigs",
+  "module": "gigs",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getAllGigs"
+ },
+ {
+  "method": "POST",
+  "path": "/api/gigs",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "createGig"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/gigs/:id",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "deleteGig"
+ },
+ {
+  "method": "GET",
+  "path": "/api/gigs/:id",
+  "module": "gigs",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getGigById"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/gigs/:id",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "updateGig"
+ },
+ {
+  "method": "GET",
+  "path": "/api/gigs/:id/applications",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "getGigApplications"
+ },
+ {
+  "method": "POST",
+  "path": "/api/gigs/:id/apply",
+  "module": "gigs",
+  "auth": true,
+  "roles": "student",
+  "validates": true,
+  "handler": "applyForGig"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/gigs/applications/:applicationId",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "updateApplicationStatus"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/gigs/applications/:applicationId/status",
+  "module": "gigs",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "updateApplicationStatus"
+ },
+ {
+  "method": "GET",
+  "path": "/api/gigs/my-applications",
+  "module": "gigs",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyApplications"
+ },
+ {
+  "method": "GET",
+  "path": "/api/mentorship/mentors",
+  "module": "mentorship",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getMentors"
+ },
+ {
+  "method": "GET",
+  "path": "/api/mentorship/requests",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getMentorshipRequests"
+ },
+ {
+  "method": "POST",
+  "path": "/api/mentorship/requests",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "requestMentorship"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/mentorship/requests/:id/:action",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateRequestStatus"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/mentorship/requests/:requestId",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateRequestStatus"
+ },
+ {
+  "method": "POST",
+  "path": "/api/mentorship/requests/:requestId/schedule",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "scheduleSession"
+ },
+ {
+  "method": "GET",
+  "path": "/api/mentorship/sessions",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getSessions"
+ },
+ {
+  "method": "POST",
+  "path": "/api/mentorship/sessions/:sessionId/rate",
+  "module": "mentorship",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "rateSession"
+ },
+ {
+  "method": "GET",
+  "path": "/api/notifications",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getNotifications"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/notifications/:id/read",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "markAsRead"
+ },
+ {
+  "method": "GET",
+  "path": "/api/notifications/preferences",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getPreferences"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/notifications/preferences",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "updatePreferences"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/notifications/read-all",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "markAllAsRead"
+ },
+ {
+  "method": "GET",
+  "path": "/api/notifications/unread-count",
+  "module": "notifications",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getUnreadCount"
+ },
+ {
+  "method": "GET",
+  "path": "/api/profiles/:userId",
+  "module": "profiles",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getPublicProfile"
+ },
+ {
+  "method": "GET",
+  "path": "/api/profiles/me",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyProfile"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/profiles/me",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateProfile"
+ },
+ {
+  "method": "GET",
+  "path": "/api/profiles/me/completion",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getCompletionStatus"
+ },
+ {
+  "method": "GET",
+  "path": "/api/profiles/me/experience",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyExperience"
+ },
+ {
+  "method": "POST",
+  "path": "/api/profiles/me/experience",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "addExperience"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/profiles/me/experience/:id",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "deleteExperience"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/profiles/me/experience/:id",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateExperience"
+ },
+ {
+  "method": "GET",
+  "path": "/api/profiles/me/projects",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getMyProjects"
+ },
+ {
+  "method": "POST",
+  "path": "/api/profiles/me/projects",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "addProject"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/profiles/me/projects/:id",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "deleteProject"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/profiles/me/projects/:id",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateProject"
+ },
+ {
+  "method": "POST",
+  "path": "/api/profiles/me/skills",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "addSkills"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/profiles/me/skills",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateSkills"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/profiles/me/skills/:skill",
+  "module": "profiles",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "removeSkill"
+ },
+ {
+  "method": "GET",
+  "path": "/api/resources",
+  "module": "resources",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "getResources"
+ },
+ {
+  "method": "POST",
+  "path": "/api/resources",
+  "module": "resources",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadResource"
+ },
+ {
+  "method": "POST",
+  "path": "/api/resources/:id/download",
+  "module": "resources",
+  "auth": false,
+  "roles": null,
+  "validates": true,
+  "handler": "recordDownload"
+ },
+ {
+  "method": "POST",
+  "path": "/api/resources/interview-practice",
+  "module": "resources",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "practiceInterview"
+ },
+ {
+  "method": "GET",
+  "path": "/api/resources/interview-questions",
+  "module": "resources",
+  "auth": false,
+  "roles": null,
+  "validates": false,
+  "handler": "getInterviewQuestions"
+ },
+ {
+  "method": "GET",
+  "path": "/api/trust/history/:userId",
+  "module": "trust",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getTrustScoreHistory"
+ },
+ {
+  "method": "GET",
+  "path": "/api/trust/my-score",
+  "module": "trust",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getTrustScore"
+ },
+ {
+  "method": "POST",
+  "path": "/api/trust/report-company/:companyId",
+  "module": "trust",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "reportCompany"
+ },
+ {
+  "method": "GET",
+  "path": "/api/trust/score/:userId",
+  "module": "trust",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getTrustScore"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/upload/:category/:filename",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "deleteUpload"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/avatar",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadAvatar"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/avatar/apply",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "setAvatar"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/document",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadDocument"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/doubt-image",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadDoubtImage"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/resume",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "uploadResume"
+ },
+ {
+  "method": "POST",
+  "path": "/api/upload/resume/apply",
+  "module": "upload",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "setResume"
+ },
+ {
+  "method": "GET",
+  "path": "/api/users",
+  "module": "users",
+  "auth": true,
+  "roles": "admin",
+  "validates": false,
+  "handler": "getAllUsers"
+ },
+ {
+  "method": "DELETE",
+  "path": "/api/users/:id",
+  "module": "users",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "deleteUser"
+ },
+ {
+  "method": "GET",
+  "path": "/api/users/:id",
+  "module": "users",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getUserById"
+ },
+ {
+  "method": "PUT",
+  "path": "/api/users/:id",
+  "module": "users",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "updateUser"
+ },
+ {
+  "method": "POST",
+  "path": "/api/users/:id/ban",
+  "module": "users",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "banUser"
+ },
+ {
+  "method": "GET",
+  "path": "/api/users/search",
+  "module": "users",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "searchUsers"
+ },
+ {
+  "method": "GET",
+  "path": "/api/verification/status",
+  "module": "verification",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getVerificationStatus"
+ },
+ {
+  "method": "POST",
+  "path": "/api/verification/submit",
+  "module": "verification",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "submitVerification"
+ },
+ {
+  "method": "POST",
+  "path": "/api/verification/verify-email",
+  "module": "verification",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "verifyEmail"
+ },
+ {
+  "method": "GET",
+  "path": "/api/wallet",
+  "module": "wallet",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "getWallet"
+ },
+ {
+  "method": "GET",
+  "path": "/api/wallet/admin/withdrawals",
+  "module": "wallet",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "listWithdrawals"
+ },
+ {
+  "method": "PATCH",
+  "path": "/api/wallet/admin/withdrawals/:id",
+  "module": "wallet",
+  "auth": true,
+  "roles": "admin",
+  "validates": true,
+  "handler": "processWithdrawal"
+ },
+ {
+  "method": "GET",
+  "path": "/api/wallet/escrow",
+  "module": "wallet",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "listEscrows"
+ },
+ {
+  "method": "POST",
+  "path": "/api/wallet/escrow/:gigId",
+  "module": "wallet",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "fundEscrow"
+ },
+ {
+  "method": "POST",
+  "path": "/api/wallet/escrow/:gigId/deliverable",
+  "module": "wallet",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "submitDeliverable"
+ },
+ {
+  "method": "POST",
+  "path": "/api/wallet/escrow/:gigId/refund",
+  "module": "wallet",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "refundEscrow"
+ },
+ {
+  "method": "POST",
+  "path": "/api/wallet/escrow/:gigId/release",
+  "module": "wallet",
+  "auth": true,
+  "roles": "company",
+  "validates": true,
+  "handler": "releaseEscrow"
+ },
+ {
+  "method": "GET",
+  "path": "/api/wallet/transactions",
+  "module": "wallet",
+  "auth": true,
+  "roles": null,
+  "validates": true,
+  "handler": "getTransactions"
+ },
+ {
+  "method": "POST",
+  "path": "/api/wallet/withdraw",
+  "module": "wallet",
+  "auth": true,
+  "roles": null,
+  "validates": false,
+  "handler": "requestWithdrawal"
+ }
+]

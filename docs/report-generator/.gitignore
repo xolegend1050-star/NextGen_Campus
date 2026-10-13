@@ -1,0 +1,4 @@
+node_modules/
+out/
+recovered/
+detect-colour.cjs
