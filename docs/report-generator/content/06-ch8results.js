@@ -51,10 +51,33 @@ module.exports = (ctx) => {
       'Counted from the finished document, not from the source that produced it']
   ], [30, 24, 46], { caption: 'Table 8.1  Measured results' });
 
-  figure('8', 'Student dashboard, captured from the deployed system',
-    { file: path.join(__dirname, '..', 'assets', 'figures', 'test-dashboard.png') });
+  h2('8.2', 'Interface');
+  body('The screenshots below were captured from the deployed system rather than from a ' +
+    'local copy, so they show the application as it is actually served. They are ' +
+    'reproduced in colour, because a picture of an interface is meaningless without it; ' +
+    'every other element of this document remains pure black on white, so the text of ' +
+    'the report prints exactly as it would on a monochrome printer.');
 
-  h2('8.2', 'Results Against the Project Objectives');
+  figure('8', 'Landing page: the entry point, stating the purpose of the platform and ' +
+    'the two calls to action', { file: path.join(__dirname, '..', 'assets', 'figures', '01-landing.png') });
+
+  figure('8', 'Sign-in: password sign-in alongside the two OAuth providers, so that a user ' +
+    'is not forced to hold a password for a platform they may use rarely',
+    { file: path.join(__dirname, '..', 'assets', 'figures', '02-login.png') });
+
+  figure('8', 'Registration: the participant type is chosen first, because the four roles ' +
+    'are genuinely different rather than differing grants of the same permission',
+    { file: path.join(__dirname, '..', 'assets', 'figures', '03-register.png') });
+
+  note('What these screenshots do not show',
+    'These are the pages that render without a server round trip. The authenticated ' +
+      'screens, which carry the substance of the system, are described in Chapter 6 and ' +
+      'Appendix E rather than pictured here. A reader should treat the interface as ' +
+      'demonstrated by its request surface: 149 endpoints across 18 modules, tabulated in ' +
+      'full in Appendix E, are a more complete description of what the interface can do ' +
+      'than any set of pictures.');
+
+  h2('8.3', 'Results Against the Project Objectives');
   body('Table 1.2 in Chapter 1 stated eight objectives, each phrased so that it could be ' +
     'judged true or false. This section judges them. Two are met only in part, and are ' +
     'recorded as such rather than presented as successes.')
@@ -85,7 +108,7 @@ module.exports = (ctx) => {
       'Met',
       'Seven automated checks on the printed document, including zero non-black colour ' +
       'operators and a 9pt floor; see Appendix J']
-  ], [4, 30, 18, 48], { caption: 'Table 8.2  Objectives set out against outcomes observed' });
+  ], [4, 30, 18, 48], { caption: 'Table 8.3  Objectives set out against outcomes observed' });
 
   h3('The two that were not fully met, and why');
   body('The fourth objective, that a company can pay a named applicant, was met only ' +
@@ -103,7 +126,7 @@ module.exports = (ctx) => {
     'HTTP responses. None would have been visible in a demonstration, and all four were ' +
     'found by testing the path rather than the endpoints.')
 
-  h2('8.3', 'Results Against the Non-Functional Requirements');
+  h2('8.4', 'Results Against the Non-Functional Requirements');
   body('Table 3.3 in Chapter 3 stated eight non-functional requirements, each with the ' +
     'measurement that would show whether it was met. This section supplies those ' +
     'measurements. One is not met, and one is met by a mechanism that carries its own ' +
@@ -139,11 +162,11 @@ module.exports = (ctx) => {
       'Profiles are private by default and a visibility setting governs which fields are ' +
       'public; verification state is set by an administrator and a rejection requires a ' +
       'recorded reason']
-  ], [9, 26, 13, 52], { caption: 'Table 8.3  Non-functional requirements set out against measured results' });
+  ], [9, 26, 13, 52], { caption: 'Table 8.4  Non-functional requirements set out against measured results' });
 
-  h2('8.4', 'Defect Resolution');
+  h2('8.5', 'Defect Resolution');
   body('Nineteen defects were found and fixed during the project, listed in full in ' +
-    'Appendix K. Table 8.4 groups them by how they were found, because the distribution ' +
+    'Appendix K. Table 8.5 groups them by how they were found, because the distribution ' +
     'is more informative than the total.')
 
   table(['Found by', 'Defects', 'What this says about the method'], [
@@ -162,14 +185,14 @@ module.exports = (ctx) => {
     ['Deployment and configuration', '2',
       'Both found only in the deployed environment, and both would have been invisible ' +
       'locally. This is why the sweep runs against the deployment.']
-  ], [34, 11, 55], { caption: 'Table 8.4  How the nineteen defects were found' });
+  ], [34, 11, 55], { caption: 'Table 8.5  How the nineteen defects were found' });
 
   body('All nineteen are fixed and each has a check that now prevents recurrence. No ' +
     'defect in Appendix K is recorded as open, deferred or accepted, which is a claim ' +
     'worth making precisely because it is checkable: Appendix K names the check for ' +
     'every entry, and those checks run.')
 
-  h2('8.5', 'Discussion of Results');
+  h2('8.6', 'Discussion of Results');
   body('Three conclusions follow from the tables above, and each is stated with the ' +
     'evidence for it rather than as an impression.')
 
@@ -206,13 +229,13 @@ module.exports = (ctx) => {
       'here was a review and a set of automated checks, not an audit. No penetration ' +
       'test was performed and none should be inferred.' },
     { text: 'They do not establish that the objectives were the right objectives. ' +
-      'Table 8.2 shows the system meets what Chapter 1 set out to do. Whether that was ' +
+      'Table 8.3 shows the system meets what Chapter 1 set out to do. Whether that was ' +
       'the most valuable thing to build is a question about the college, not about the ' +
       'software, and this report does not claim to have answered it.' }
   ]);
 
   note('On the honesty of the numbers in this chapter',
-    'Every figure in Tables 8.1 to 8.4 is counted from the source or produced by a test ' +
+    'Every figure in Tables 8.1 to 8.5 is counted from the source or produced by a test ' +
       'run, and the appendix that generates those counts is the same appendix that ' +
       'generates the API reference and the data dictionary. Where a quantity could not ' +
       'be measured automatically it has been described rather than given a number. The ' +

@@ -71,6 +71,20 @@ const scanColour = (buffer) => {
     const raw = buffer.slice(start, end);
     let s;
     try { s = zlib.inflateSync(raw).toString('latin1'); } catch { continue; }
+
+    // A content stream is printable ASCII. Image data is binary, and tokenising
+    // it produces colour operators that were never drawn: adding the first colour
+    // screenshot made this check report eleven white fills that exist only as byte
+    // patterns in the picture. Requiring the stream to be almost entirely printable
+    // separates the two, and costs nothing because a real content stream always is.
+    let printable = 0;
+    const limit = Math.min(s.length, 200000);
+    for (let i = 0; i < limit; i++) {
+      const c = s.charCodeAt(i);
+      if ((c >= 32 && c <= 126) || c === 9 || c === 10 || c === 13) printable++;
+    }
+    if (limit === 0 || printable / limit < 0.95) continue;
+
     if (!/BT|Tj|TJ|re\b|Do\b/.test(s)) continue;
 
     // Tokenise into operands and operators, then walk the stream.
@@ -149,6 +163,24 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
     pages.push({ page: p, h, items });
   }
 
+  // Counted up front because two later checks need it: a page carrying a figure is
+  // not underfilled, and the figure integrity check compares captions with images.
+  let imageCount = 0;
+  const imagePages = [];
+  for (let p = 1; p <= doc.numPages; p++) {
+    const page = await doc.getPage(p);
+    const ops = await page.getOperatorList();
+    // Counting the paint operator, not resolving the object and checking for a
+    // width. Resolving by name fails for objects reached through a form, and a
+    // check that silently reports zero images is worse than no check: it will
+    // happily pass a document whose figures are all missing.
+    let onPage = 0;
+    for (let i = 0; i < ops.fnArray.length; i++) {
+      if (ops.fnArray[i] === 85) { onPage++; imageCount++; }   // paintImageXObject
+    }
+    if (onPage) imagePages.push({ page: p, count: onPage });
+  }
+
   // ---------------------------------------------------------------- 1
   console.log('  1. MINIMUM FONT SIZE (floor ' + MIN_PT + 'pt)');
   const small = new Map();
@@ -182,10 +214,15 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
     return { page: pg.page, chars, top, bottom, body };
   });
   const blanks = perPage.filter((p) => p.chars < 25);
-  const thin = perPage.filter((p) => p.chars >= 25 && p.chars < 180);
+  // A page carrying a figure is not underfilled even though a picture contributes
+  // no text. Judging it by character count would report every screenshot page as
+  // a near-empty page, which is exactly the false positive this check has to avoid.
+  const figPages = new Set(imagePages.map((p) => p.page));
+  const thin = perPage.filter((p) => p.chars >= 25 && p.chars < 180 && !figPages.has(p.page));
   if (blanks.length) bad('blank pages: ' + blanks.map((b) => b.page).join(', '));
-  else ok('no blank pages across ' + perPage.length + ' pages');
-  if (thin.length) warning('sparse pages (<180 chars): ' + thin.map((t) =>
+  else ok('no blank pages across ' + perPage.length + ' pages' +
+    (figPages.size ? ' (' + figPages.size + ' carrying figures)' : ''));
+  if (thin.length) warning('sparse pages (<180 chars, no figure): ' + thin.map((t) =>
     'p' + t.page + ' ' + t.chars + 'ch').join(', '));
   else ok('no underfilled pages');
 
@@ -370,21 +407,6 @@ const isWhite = (vals) => vals.slice(0, 3).every((v) => Math.abs(v - 1) < 0.004)
   // A comparable report was found with five such captions and zero images, and two
   // pages that contained nothing but a caption and a page number.
   console.log('  8. FIGURE INTEGRITY');
-  let imageCount = 0;
-  const imagePages = [];
-  for (let p = 1; p <= doc.numPages; p++) {
-    const page = await doc.getPage(p);
-    const ops = await page.getOperatorList();
-    // Counting the paint operator, not resolving the object and checking for a
-    // width. Resolving by name fails for objects reached through a form, and a
-    // check that silently reports zero images is worse than no check: it will
-    // happily pass a document whose figures are all missing.
-    let onPage = 0;
-    for (let i = 0; i < ops.fnArray.length; i++) {
-      if (ops.fnArray[i] === 85) { onPage++; imageCount++; }   // paintImageXObject
-    }
-    if (onPage) imagePages.push({ page: p, count: onPage });
-  }
   const captions = [];
   for (const pg of pages) {
     for (const it of pg.items) {

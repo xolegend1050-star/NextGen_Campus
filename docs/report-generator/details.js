@@ -32,7 +32,7 @@ const CHAPTERS = [
   { num: '5', title: 'Technology and Methodology', sections: ['5.1', '5.2', '5.3'] },
   { num: '6', title: 'Implementation', sections: ['6.1', '6.2', '6.3', '6.4', '6.5', '6.6', '6.7', '6.8', '6.9', '6.10', '6.11', '6.12'] },
   { num: '7', title: 'Testing', sections: ['7.1', '7.2', '7.3', '7.4', '7.5', '7.6', '7.7', '7.8'] },
-  { num: '8', title: 'Results', sections: ['8.1', '8.2', '8.3', '8.4', '8.5'] },
+  { num: '8', title: 'Results', sections: ['8.1', '8.2', '8.3', '8.4', '8.5', '8.6'] },
   { num: '9', title: 'Conclusion and Future Scope', sections: ['9.1', '9.2', '9.3', '9.4'] },
   { num: '10', title: 'References', sections: [] }
 ];
@@ -90,9 +90,10 @@ const SECTION_TITLES = {
   '7.6': 'Defects Found by Interface Verification',
   '7.7': 'Payment Lifecycle Verification', '7.8': 'User Acceptance',
 
-  '8.1': 'Measured Results', '8.2': 'Results Against the Project Objectives',
-  '8.3': 'Results Against the Non-Functional Requirements',
-  '8.4': 'Defect Resolution', '8.5': 'Discussion of Results',
+  '8.1': 'Measured Results', '8.2': 'Interface',
+  '8.3': 'Results Against the Project Objectives',
+  '8.4': 'Results Against the Non-Functional Requirements',
+  '8.5': 'Defect Resolution', '8.6': 'Discussion of Results',
 
   '9.1': 'Conclusion', '9.2': 'Summary of Achievements',
   '9.3': 'Limitations Encountered', '9.4': 'Future Enhancements',
