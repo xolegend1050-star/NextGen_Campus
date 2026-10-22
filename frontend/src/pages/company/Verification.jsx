@@ -11,6 +11,9 @@ const CompanyVerification = () => {
   const [submitting, setSubmitting] = useState(false);
   const [companyEmail, setCompanyEmail] = useState('');
   const [activeTab, setActiveTab] = useState('email');
+  // Populated only outside production, where the API returns the link alongside
+  // the record because there is no inbox to read while developing.
+  const [domainLink, setDomainLink] = useState(null);
 
   useEffect(() => { fetchStatus(); }, []);
 
@@ -30,11 +33,19 @@ const CompanyVerification = () => {
     if (!companyEmail) return;
     setSubmitting(true);
     try {
-      await api.post('/verification/submit', {
+      const response = await api.post('/verification/submit', {
         verification_type: 'company_domain',
         metadata: { company_email: companyEmail }
       });
-      toast.success('Verification email sent!');
+      const { devLink } = response.data || {};
+      setDomainLink(devLink || null);
+      // The address is not proof of anything until that link is clicked, so the
+      // message says which of the two happened rather than always claiming mail
+      // went out. A missing SENDGRID_API_KEY now surfaces as a 502 from the API
+      // instead of a success toast with no email behind it.
+      toast.success(devLink
+        ? 'Verification link created. Open it below to confirm the address.'
+        : 'Verification link sent to your company address.');
       setCompanyEmail('');
       fetchStatus();
     } catch (error) {
@@ -116,7 +127,19 @@ const CompanyVerification = () => {
             {domainStatus?.status === 'approved' ? (
               <StatusAlert type="success" message="Domain email verified!" />
             ) : domainStatus?.status === 'pending' ? (
-              <StatusAlert type="pending" message="Verification pending. Check your email." />
+              <div className="space-y-2">
+                <StatusAlert type="pending" message="Verification pending. Check your email for the link." />
+                {domainLink && (
+                  <a
+                    href={domainLink}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-sm font-medium text-indigo-600 underline"
+                  >
+                    Open the verification link
+                  </a>
+                )}
+              </div>
             ) : (
               <div className="flex gap-2">
                 <input

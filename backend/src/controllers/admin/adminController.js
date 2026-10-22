@@ -2,6 +2,7 @@ const db = require('../../config/database');
 const logger = require('../../utils/logger');
 const { sendVerificationApprovedEmail, sendVerificationRejectedEmail } = require('../../utils/email');
 const { awardPoints } = require('../../utils/trustTiers');
+const { syncCompanyBadge, COMPANY_TYPES } = require('../../utils/companyBadge');
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
@@ -271,7 +272,11 @@ exports.reviewVerification = async (req, res, next) => {
       let badgeName = null;
       if (vType === 'student_college_email' || vType === 'student_id_card') badgeName = 'Verified Student';
       else if (vType === 'alumni_linkedin' || vType === 'alumni_college_id') badgeName = 'Verified Alumni';
-      else if (vType === 'company_domain' || vType === 'company_gst') badgeName = 'Verified Company';
+      // Company is deliberately absent from this chain. The verification page
+      // counts two checks and promises the badge for both, so awarding it when
+      // only one is approved would let a company that uploaded a certificate
+      // without ever proving the matching domain show as verified.
+      // syncCompanyBadge below decides the company badge instead.
 
       if (badgeName) {
         const badge = await db.query('SELECT id FROM badges WHERE name = $1', [badgeName]);
@@ -285,6 +290,14 @@ exports.reviewVerification = async (req, res, next) => {
 
       // Award trust score points via centralized system
       await awardPoints(userId, 'verification_approved', vType, id);
+    }
+
+    // Runs after both outcomes. An approval can complete the pair and earn the
+    // badge; a rejection or expiry takes it away again. Recomputing from the rows
+    // rather than only ever switching it on is what makes revocation work.
+    if (COMPANY_TYPES.includes(verification.rows[0].verification_type)) {
+      const earned = await syncCompanyBadge(db, verification.rows[0].user_id);
+      logger.info(`Company badge resynced for ${verification.rows[0].user_id}: is_verified=${earned}`);
     }
 
     // Log admin action

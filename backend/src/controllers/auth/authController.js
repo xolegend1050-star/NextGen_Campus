@@ -9,6 +9,7 @@ const { storeOtp, verifyOtp: verifyOtpCode, OTP_EXPIRY_MINUTES } = require('../.
 
 // Hash tokens for secure storage (SHA-256, not bcrypt — tokens are high-entropy)
 const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+const { syncCompanyBadge, COMPANY_TYPES } = require('../../utils/companyBadge');
 
 const generateTokens = (userId) => {
   const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET + '-refresh';
@@ -412,7 +413,7 @@ exports.verifyEmail = async (req, res, next) => {
     const { token } = req.body;
 
     const result = await db.query(
-      `SELECT user_id FROM verification_tokens
+      `SELECT user_id, verification_type FROM verification_tokens
        WHERE token = $1 AND used = false AND expires_at > NOW()`,
       [hashToken(token)]
     );
@@ -422,6 +423,7 @@ exports.verifyEmail = async (req, res, next) => {
     }
 
     const userId = result.rows[0].user_id;
+    const verificationType = result.rows[0].verification_type;
 
     // Check if user still exists
     const userCheck = await db.query('SELECT id FROM users WHERE id = $1', [userId]);
@@ -430,11 +432,35 @@ exports.verifyEmail = async (req, res, next) => {
     }
 
     await db.query('UPDATE users SET is_email_verified = true WHERE id = $1', [userId]);
+
+    // The token records which kind of verification it was issued for, so clicking
+    // the link also completes that verification. It previously only flagged the
+    // account: the request itself stayed pending forever, because the endpoint
+    // that did approve it was never called by the frontend. A token issued during
+    // registration matches no row here, so it is a harmless no-op in that case.
+    const approved = await db.query(
+      `UPDATE verifications
+          SET status = 'approved', reviewed_at = NOW(), rejection_reason = NULL
+        WHERE user_id = $1
+          AND verification_type = $2
+          AND status = 'pending'
+        RETURNING id`,
+      [userId, verificationType]
+    );
+
     await db.query('UPDATE verification_tokens SET used = true WHERE token = $1', [hashToken(token)]);
+
+    if (approved.rows.length > 0 && COMPANY_TYPES.includes(verificationType)) {
+      const earned = await syncCompanyBadge(db, userId);
+      logger.info(`Company verification completed by link: ${userId}, badge earned=${earned}`);
+    }
 
     logger.info(`Email verified for user: ${userId}`);
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({
+      message: 'Email verified successfully',
+      verificationApproved: approved.rows.length > 0
+    });
   } catch (error) {
     next(error);
   }

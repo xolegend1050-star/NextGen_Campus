@@ -1,8 +1,13 @@
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const db = require('../../config/database');
 const logger = require('../../utils/logger');
+
+// Same digest the auth controller writes and reads. It is duplicated rather than
+// imported because every module that touches tokens already defines it locally.
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 const { analyzeIDCard } = require('../../utils/ocr');
 const {
   sendVerificationSubmittedEmail,
@@ -155,27 +160,58 @@ exports.submitVerification = async (req, res, next) => {
       }
     }
 
-    // Tier 1 auto-verification logic
+    // Tier 1 does not mean "approve on submission". Both of these types are
+    // proven by controlling an email address, so what happens here is that a
+    // one-time link is sent and the verification is approved when it is clicked.
+    //
+    // company_domain used to be approved the moment it arrived. The address was
+    // checked against a list of free mail providers and nothing else, so typing
+    // ceo@flipkart.com earned the domain half of the Verified Company badge
+    // without ever touching that mailbox, while the page claimed to have sent a
+    // link and no link existed.
+    let verifyLink = null;
     if (tier === 'tier1_auto') {
-      if (verification_type === 'student_college_email') {
-        // Send verification email with token
+      const EMAIL_PROVEN_TYPES = ['student_college_email', 'company_domain'];
+
+      if (EMAIL_PROVEN_TYPES.includes(verification_type)) {
         const token = uuidv4();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+        // Stored as sha256, which is what /api/auth/verify-email looks up when the
+        // link is clicked. It used to be stored raw, so the lookup hashed the token
+        // being clicked, never matched the row written here, and every student
+        // clicked through to "Invalid or expired verification link".
         await db.query(
           `INSERT INTO verification_tokens (user_id, token, verification_type, expires_at)
            VALUES ($1, $2, $3, $4)`,
-          [req.user.id, token, verification_type, expiresAt]
+          [req.user.id, hashToken(token), verification_type, expiresAt]
         );
 
-        // Send verification email
-        const verifyUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
-        await sendVerificationEmail(
-          metadata.college_email || req.user.email,
-          token
-        );
+        verifyLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
 
-        logger.info(`Verification email sent to ${req.user.id}`);
+        const destination = verification_type === 'company_domain'
+          ? metadata.company_email
+          : (metadata.college_email || req.user.email);
+
+        const sent = await sendVerificationEmail(destination, token);
+
+        if (!sent) {
+          // A verification left pending with no link in the holder's hand can never
+          // be completed, and it blocks a retry because submission refuses a second
+          // pending row of the same type. Rolling it back means a corrected address
+          // or a working SENDGRID_API_KEY can simply be submitted again.
+          await db.query('DELETE FROM verifications WHERE id = $1', [result.rows[0].id]);
+          await db.query(
+            'DELETE FROM verification_tokens WHERE user_id = $1 AND token = $2',
+            [req.user.id, hashToken(token)]
+          );
+          logger.error(`Verification link not sent to ${destination}; submission rolled back`);
+          return res.status(502).json({
+            error: 'The verification link could not be sent. Check that SENDGRID_API_KEY is set on the API service, then submit again.'
+          });
+        }
+
+        logger.info(`Verification link sent to ${destination} (${verification_type})`);
       }
 
       if (verification_type === 'alumni_linkedin') {
@@ -185,15 +221,6 @@ exports.submitVerification = async (req, res, next) => {
           [result.rows[0].id]
         );
         logger.info(`LinkedIn verification auto-approved for user ${req.user.id}`);
-      }
-
-      if (verification_type === 'company_domain') {
-        // Company domain email is Tier 1 — auto-approve after domain check
-        await db.query(
-          `UPDATE verifications SET status = 'approved', reviewed_at = NOW() WHERE id = $1`,
-          [result.rows[0].id]
-        );
-        logger.info(`Company domain verification auto-approved for user ${req.user.id}`);
       }
     }
 
@@ -208,7 +235,19 @@ exports.submitVerification = async (req, res, next) => {
       userName
     ).catch(() => {});
 
-    res.status(201).json({ verification: result.rows[0] });
+    const payload = { verification: result.rows[0] };
+
+    // Outside production the link is returned alongside the record, because there
+    // is no inbox to read while developing and otherwise the only way to see this
+    // flow work end to end is to configure a mail provider first. It is withheld
+    // in production deliberately: handing the link to the requester would let them
+    // confirm an address they never received mail at, which is the exact hole this
+    // change closes.
+    if (verifyLink && process.env.NODE_ENV !== 'production') {
+      payload.devLink = verifyLink;
+    }
+
+    res.status(201).json(payload);
   } catch (error) {
     next(error);
   }
