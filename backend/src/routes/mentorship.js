@@ -37,6 +37,27 @@ router.get('/mentors', getMentorsValidation, mentorshipController.getMentors);
 
 /**
  * @swagger
+ * /api/mentorship/mentors/{mentorId}:
+ *   get:
+ *     tags: [Mentorship]
+ *     summary: Get a single mentor
+ *     parameters:
+ *       - in: path
+ *         name: mentorId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: The mentor
+ *       404:
+ *         description: No such mentor
+ */
+router.get('/mentors/:mentorId', uuidParams('mentorId'), mentorshipController.getMentorById);
+
+/**
+ * @swagger
  * /api/mentorship/requests:
  *   get:
  *     tags: [Mentorship]

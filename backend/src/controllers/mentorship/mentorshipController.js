@@ -74,6 +74,50 @@ exports.getMentors = async (req, res, next) => {
   }
 };
 
+/**
+ * A single mentor, fetched by id.
+ *
+ * The detail page previously downloaded the whole mentor list and searched for
+ * the id in the browser. The validator caps limit at 50 while the page asked for
+ * 100, so that request was rejected with a 400 every time; the error was caught
+ * and the page rendered "Mentor not found" for mentors that were in the database.
+ * Even with a legal limit it only ever worked for mentors inside the first page.
+ *
+ * The columns deliberately match getMentors, because the same component renders
+ * both the list and the detail view and every field the detail page reads has to
+ * be present on this path too.
+ */
+exports.getMentorById = async (req, res, next) => {
+  try {
+    const { mentorId } = req.params;
+
+    const result = await db.query(
+      `SELECT u.id, u.email,
+              p.full_name, p.avatar_url, p.bio, p.city, p.college_name,
+              p.skills, p.trust_score, p.talent_tier,
+              ap.graduation_year, ap.current_company, ap.current_designation,
+              ap.years_of_experience, ap.mentoring_available, ap.mentorship_areas,
+              (SELECT AVG(overall_rating) FROM ratings WHERE rated_id = u.id) as avg_rating,
+              (SELECT COUNT(*) FROM mentorship_sessions WHERE mentor_id = u.id AND status = 'completed') as sessions_completed
+       FROM users u
+       JOIN profiles p ON u.id = p.user_id
+       JOIN alumni_profiles ap ON u.id = ap.user_id
+       WHERE u.id = $1
+         AND u.role = 'alumni' AND u.is_active = true AND u.is_banned = false
+         AND ap.mentoring_available = true`,
+      [mentorId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Mentor not found' });
+    }
+
+    res.json({ mentor: result.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getMentorshipRequests = async (req, res, next) => {
   try {
     const { status } = req.query;

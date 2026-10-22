@@ -34,11 +34,20 @@ const MentorDetail = () => {
 
   const fetchMentor = async () => {
     try {
-      const response = await api.get(`/mentorship/mentors?limit=100`);
-      const foundMentor = response.data.mentors.find(m => m.id === id);
-      setMentor(foundMentor);
+      // Fetched by id. It used to pull the whole mentor list with limit=100 and
+      // look for this id in the browser, but the validator caps limit at 50, so
+      // that request was rejected with a 400 every single time, the error was
+      // swallowed here, and the page reported "Mentor not found" for mentors that
+      // were sitting in the database. It would still have been wrong past fifty
+      // mentors, because the rest were never fetched.
+      const response = await api.get(`/mentorship/mentors/${id}`);
+      setMentor(response.data.mentor);
     } catch (error) {
-      toast.error('Failed to load mentor');
+      // A 404 is the page's own answer below -- the mentor really is not there,
+      // which is different from failing to reach the server at all.
+      if (error.response?.status !== 404) {
+        toast.error('Failed to load mentor');
+      }
     } finally {
       setLoading(false);
     }
