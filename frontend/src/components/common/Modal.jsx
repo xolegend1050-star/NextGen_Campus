@@ -36,13 +36,23 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
               onClick={onClose}
             />
 
-            {/* Modal panel */}
+            {/* Modal panel.
+
+                `relative z-10` is load-bearing. The panel is otherwise an ordinary
+                inline-block: no positioning, and framer-motion resets `transform` to
+                none once the entrance animation rests at scale 1. The backdrop
+                declared above it is `position: fixed`, so it paints later in the same
+                stacking context and landed on top of the panel. The 75% grey then
+                washed the dialog out and `backdrop-blur-sm` blurred it as well,
+                because backdrop-filter affects everything painted behind it. Giving
+                the panel its own stacking context above the backdrop is what puts it
+                back in front. */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className={`inline-block transform overflow-hidden rounded-xl bg-white text-left align-bottom shadow-2xl sm:my-8 sm:w-full ${sizes[size]} sm:align-middle`}
+              className={`relative z-10 inline-block transform overflow-hidden rounded-xl bg-white text-left align-bottom shadow-2xl sm:my-8 sm:w-full ${sizes[size]} sm:align-middle`}
             >
               {/* Header */}
               <div className="flex items-center justify-between border-b px-6 py-4">
