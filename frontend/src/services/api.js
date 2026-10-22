@@ -7,7 +7,13 @@ const API_URL = import.meta.env.VITE_API_URL ||
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  // A Render free-tier service that has been idle is asleep, and waking one takes
+  // 30-90 seconds. This timeout has to sit well below that, or the first request
+  // after a quiet period hangs the interface for the entire boot. 15 seconds is
+  // far more than any warm request needs -- the busiest endpoint measured here
+  // answers in about 600ms -- and short enough that a stalled call is noticed
+  // quickly. The interceptor below retries a read once, which covers the boot.
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -56,6 +62,24 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+
+    // The first request to a service that has been asleep wakes it, so that one
+    // request times out while the boot is still running. Retrying once, after the
+    // boot has had a few more seconds, usually lands. Only GET is retried: a POST,
+    // PUT or DELETE may have been applied before the connection dropped, and
+    // replaying it would charge a wallet twice or release an escrow twice.
+    //
+    // A 401 is not retried here because error.response exists, so it falls through
+    // to the refresh logic below untouched.
+    const canRetry = originalRequest
+      && !originalRequest._retried
+      && originalRequest.method === 'get'
+      && (!error.response || error.code === 'ECONNABORTED');
+    if (canRetry) {
+      originalRequest._retried = true;
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+      return api(originalRequest);
+    }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
